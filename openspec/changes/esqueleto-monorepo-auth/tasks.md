@@ -26,7 +26,7 @@
 - [x] 4.3 Pantalla Login (email + contrasena contra Supabase Auth) con su estado de error inline, siguiendo el diseno del artifact "JuniorTrainer UI" (panel partido, paleta zinc/blue-700, tipografia Geist)
 - [x] 4.4 Pantalla de alta de contrasena desde el enlace de invitacion o de recuperacion (`/set-password`), que llama a `supabase.auth.updateUser({ password })` y distingue enlace invalido/caducado
 - [x] 4.5 Pantalla Forgot con la confirmacion (ForgotSent) inline, mismo componente, mismo mensaje exista o no el email
-- [ ] 4.6 Verificar manualmente el flujo completo: invitar a un alumno de prueba desde `POST /users`, abrir el enlace del correo, elegir contrasena y entrar (pendiente: requiere los tres servicios corriendo y acceso a un correo real; ver README)
+- [x] 4.6 Verificar manualmente el flujo completo: invitar a un alumno de prueba desde `POST /users`, abrir el enlace del correo, elegir contrasena y entrar (verificado por el usuario: invitacion a chemabravoh@gmail.com, enlace a /set-password valido, contrasena fijada, login correcto hasta `home`)
 
 ## 5. docker-compose y CI
 
