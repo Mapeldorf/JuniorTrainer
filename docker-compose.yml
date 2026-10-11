@@ -15,6 +15,9 @@ services:
       LITELLM_URL: http://litellm:4000
     depends_on:
       - litellm
+      - agent-web
+      - agent-code
+      - agent-exercises
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -25,6 +28,43 @@ services:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
 
+  # Los tres agentes de generacion (grupos 3-5): servicios A2A internos,
+  # sin puerto publicado al host (tarea 7.1) -- solo el backend les habla,
+  # dentro de la red interna de Compose, por su nombre de servicio (que
+  # coincide con el host que cada uno ya anuncia por defecto en su propia
+  # Agent Card, ver agents/*/app/config.py y backend/app/config.py).
+  agent-web:
+    build: ./agents/web
+    expose:
+      - "8010"
+    env_file: .env
+    depends_on:
+      - litellm
+
+  agent-code:
+    build: ./agents/code
+    expose:
+      - "8011"
+    env_file: .env
+    volumes:
+      # Carpeta de repos ya preparados (clonados/subidos fuera de este
+      # compose, ver design.md "Contrato de entrada del agente de codigo" --
+      # su preparacion es un Non-Goal de este change). Solo-lectura: el
+      # agente de codigo unicamente lee (tarea 4.2). `REPOS_DIR` (host) y la
+      # ruta fija dentro del contenedor son las mismas para quien prepara el
+      # repo y para quien lo lee, para que un `repo_path` relativo a esa raiz
+      # sea valido en ambos lados.
+      - ${REPOS_DIR:-./data/repos}:/data/repos:ro
+    depends_on:
+      - litellm
+
+  agent-exercises:
+    build: ./agents/exercises
+    expose:
+      - "8012"
+    env_file: .env
+    depends_on:
+      - litellm
+
 # La base de datos y la autenticacion viven en Supabase (seccion 11 de la
-# especificacion), no en este docker-compose. Los cinco agentes se añaden
-# en el paso 2 del plan de trabajo, cuando su codigo exista.
+# especificacion), no en este docker-compose.

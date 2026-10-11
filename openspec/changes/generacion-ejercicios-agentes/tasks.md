@@ -48,7 +48,7 @@
 
 ## 7. docker-compose
 
-- [ ] 7.1 Añadir los servicios `agent-web`, `agent-code` y `agent-exercises` a `docker-compose.yml` (sin publicar puerto al host, solo red interna de Compose), con sus variables de entorno via `.env`, y verificar `docker compose config` sin errores
+- [x] 7.1 Añadir los servicios `agent-web`, `agent-code` y `agent-exercises` a `docker-compose.yml` (sin publicar puerto al host, solo red interna de Compose), con sus variables de entorno via `.env`, y verificar `docker compose config` sin errores
 - [ ] 7.2 Verificar `docker compose build` sin errores para los tres servicios nuevos (requiere Docker en la maquina del usuario)
 
 ## 8. Prueba de aceptacion de extremo a extremo

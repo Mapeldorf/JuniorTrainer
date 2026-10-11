@@ -20,6 +20,10 @@ agents/**/*.egg-info/
 .env.*
 !.env.example
 
+# Repos preparados para el agente de codigo (grupo 7, REPOS_DIR en .env.example)
+/data/repos/*
+!/data/repos/.gitkeep
+
 # OS
 .DS_Store
 
