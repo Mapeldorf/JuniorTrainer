@@ -7,10 +7,11 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
     los resultados de web/codigo, el tipo, el numero pedido y los
     enunciados ya guardados (via `search_saved_exercises`), y devuelve
     exactamente `count` candidatos.
-  - 5.4 (este fichero, ahora): memoria larga PROPIA (ver app/memory.py)
-    -- se suma al historial de enunciados a evitar (que antes solo
-    llevaba los guardados) y se escribe el historial tras generar.
-  - 5.5: trace_id de Langfuse (todavia no en este fichero).
+  - 5.4: memoria larga PROPIA (ver app/memory.py) -- se suma al
+    historial de enunciados a evitar (que antes solo llevaba los
+    guardados) y se escribe el historial tras generar.
+  - 5.5 (este fichero, ahora): `trace_id` opcional que se reenvia a
+    LiteLLM (ver app/tracing.py), igual que en los otros dos agentes.
 """
 
 import json
@@ -21,6 +22,7 @@ from app.llm import build_generator_model
 from app.memory import get_recent_statements, save_statements
 from app.models import CandidateExercise, ExerciseCodeBlock, ExerciseGenerationResult
 from app.tools.saved_exercises import SearchBudget, SearchBudgetExceeded, search_saved_exercises
+from app.tracing import litellm_trace_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,7 @@ async def generate_exercises(
     count: int,
     web_result: dict | None,
     code_result: dict | None,
+    trace_id: str | None = None,
 ) -> ExerciseGenerationResult:
     saved_statements: list[str] = []
     try:
@@ -81,7 +84,9 @@ async def generate_exercises(
 
     avoid_statements = [*saved_statements, *recent_statements]
 
-    candidates = await _draft_candidates(exercise_type, count, web_result, code_result, avoid_statements)
+    candidates = await _draft_candidates(
+        exercise_type, count, web_result, code_result, avoid_statements, trace_id
+    )
 
     # Se escribe DESPUES de generar con exito: si _draft_candidates lanza
     # (JSON invalido, numero incorrecto...), no hay enunciados nuevos que
@@ -100,6 +105,7 @@ async def _draft_candidates(
     web_result: dict | None,
     code_result: dict | None,
     avoid_statements: list[str],
+    trace_id: str | None = None,
 ) -> list[CandidateExercise]:
     model = build_generator_model()
 
@@ -129,7 +135,8 @@ async def _draft_candidates(
         [
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": human_prompt},
-        ]
+        ],
+        extra_body=litellm_trace_metadata(trace_id),
     )
     items = _parse_json(response.content, expect=list)
     if len(items) != count:
