@@ -1,0 +1,5 @@
+fastapi>=0.115,<0.116
+uvicorn[standard]>=0.32,<0.33
+pydantic-settings>=2.5,<3
+a2a-sdk[fastapi]>=1.2,<2
+sse-starlette>=2.1,<3

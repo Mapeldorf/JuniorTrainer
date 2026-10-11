@@ -13,7 +13,7 @@
 
 ## 3. Agente Web
 
-- [ ] 3.1 Scaffold `agents/web/` (servicio A2A con Agent Card en `/.well-known/agent-card.json`) y verificar que arranca y responde a su Agent Card
+- [x] 3.1 Scaffold `agents/web/` (servicio A2A con Agent Card en `/.well-known/agent-card.json`) y verificar que arranca y responde a su Agent Card
 - [ ] 3.2 Implementar la tool `tavily_search` (hasta 5 busquedas por tarea) y verificar con una llamada real que devuelve titulo, URL y extracto
 - [ ] 3.3 Conectar al modelo `generator` via el proxy de LiteLLM (`langchain-openai` contra `http://litellm:4000`, autenticado con `LITELLM_MASTER_KEY`) y verificar que una llamada de prueba responde con un resumen por tecnologia
 - [ ] 3.4 Implementar memoria larga (`PostgresStore`, clave = tecnologias normalizadas, TTL 30 dias) y verificar que una segunda llamada con las mismas tecnologias no invoca `tavily_search` (requisito "El agente web no repite busquedas")

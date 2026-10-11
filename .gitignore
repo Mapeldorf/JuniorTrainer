@@ -9,6 +9,10 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/.venv/
 backend/*.egg-info/
+agents/**/__pycache__/
+agents/**/.venv/
+agents/**/.venv-test/
+agents/**/*.egg-info/
 *.pyc
 
 # Env
