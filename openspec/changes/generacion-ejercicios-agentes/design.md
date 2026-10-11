@@ -117,6 +117,28 @@ return trace_id if trace_id else new_trace_id()
 
 Verificado localmente contra un servidor A2A real (no un `Struct` construido a mano: la funcion real importada tal cual, llamada con `context.message.metadata` de un mensaje que de verdad atraviesa el protocolo), con y sin `trace_id` presente. Pendiente de que el usuario reconfirme 6.7 completo (la traza agrupada en Langfuse Cloud) con este fix aplicado.
 
+## Bug encontrado en vivo: `uvicorn app.main:app` no respeta el fix de Windows (6.7)
+
+Arreglado el bug de `resolve_trace_id`, el usuario reintento 6.7 y el agente web volvio a fallar en Windows, esta vez con el error que el fix de `app/__init__.py` decia prevenir: `psycopg.InterfaceError: Psycopg cannot use the 'ProactorEventLoop'...`, al tocar Postgres (checkpoint de memoria corta) desde una peticion real por primera vez.
+
+El fix de `app/__init__.py` SI esta ahi y es correcto en si mismo, pero `uvicorn app.main:app` (la CLI, como se venia arrancando cada agente) no lo deja actuar a tiempo. Confirmado instrumentando el orden real (`asyncio.get_running_loop()` dentro de `app/__init__.py`, y rastreando cuando se importa el modulo frente a cuando el loop ya esta corriendo): `uvicorn.run("app.main:app", ...)` -> `Server.run()` llama a `asyncio.run(self.serve(...))`, que crea el loop de inmediato bajo la politica que haya EN ESE MOMENTO; `app.main` (y por tanto `app/__init__.py`) solo se importa DESPUES, dentro de la propia corutina que ese loop ya esta ejecutando (`config.load()`, llamado desde `_serve()`). Fijar la politica en ese punto no tiene ningun efecto sobre el loop que ya existe -- llega un paso tarde, siempre, sin excepcion, cuando se arranca asi.
+
+Esto nunca se habia detectado porque las verificaciones anteriores de Postgres en estos agentes (3.4/3.5, 4.4) corrian via `python -m scripts.verify_xxx`, donde el propio script hace `asyncio.run(main())` DESPUES de sus propios imports (que ya disparan el fix) -- ahi el orden es el correcto. El orquestador del grupo 6 es el primer camino que ejercita Postgres a traves de una peticion HTTP real servida por `uvicorn app.main:app`, asi que es tambien el primero en topar con esto.
+
+**Fix: un `run.py` por agente que importa `app` ANTES de llamar a `uvicorn.run(...)`**, en vez de usar la CLI `uvicorn app.main:app` directamente:
+
+```python
+import app  # el import en si es el fix: fija la policy ANTES de que exista ningun loop
+import uvicorn
+from app.config import get_settings
+
+if __name__ == "__main__":
+    settings = get_settings()
+    uvicorn.run("app.main:app", host=settings.agent_web_host, port=settings.agent_web_port)
+```
+
+Confirmado instrumentando ambos ordenes: con la CLI, `app/__init__.py` ve un loop ya corriendo (`asyncio.get_running_loop()` no lanza); con `python run.py`, no hay ningun loop todavia cuando `app/__init__.py` se ejecuta. Sin efecto en produccion (Docker/Linux): la condicion del fix de Windows nunca se cumple ahi, y `docker-compose.yml` (grupo 7) puede seguir usando `uvicorn app.main:app` tal cual en su `CMD`/`command` sin este problema. **A partir de ahora, arrancar cada agente en local con `python run.py`, no con `uvicorn app.main:app` directamente** -- aplica retroactivamente a cualquier verificacion futura de web/codigo/ejercicios en Windows, no solo a 6.7.
+
 ## Risks / Trade-offs
 
 - [Conexion directa a Postgres desde tres agentes mas el backend añade conexiones fuera del pool que gestiona Supabase via PostgREST] → Mantener el pool de conexiones de cada agente pequeño (1-2), y si se vuelve un problema, pasar por el pooler de Supabase (pgbouncer) sin cambiar el contrato de las specs.
