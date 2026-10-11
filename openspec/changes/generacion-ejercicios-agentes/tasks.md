@@ -33,7 +33,7 @@
 - [x] 5.1 Scaffold `agents/exercises/` y verificar su Agent Card
 - [x] 5.2 Implementar `search_saved_exercises` (conexion de solo lectura con el rol `agents_exercise_reader`, hasta 3 consultas por tarea, hasta 10 resultados, solo `saved = true` y `deleted_at` nulo) y verificar que un ejercicio no guardado o eliminado nunca aparece en el resultado
 - [x] 5.3 Implementar la decision y redaccion de 1 a 5 ejercicios candidatos (enunciado, codigo con el cambio en debug, respuesta esperada) a partir de los resultados de web/codigo, el tipo y el numero pedidos, y verificar con una llamada de prueba que la salida trae exactamente el numero pedido con esos cuatro campos
-- [ ] 5.4 Implementar memoria larga (clave = tipo; sin caducidad), incluyendo en el prompt los 20 enunciados mas recientes de ese tipo, y verificar que una segunda generacion del mismo tipo no repite el tema de un enunciado ya propuesto (requisito "El agente de ejercicios no repite temas ya propuestos")
+- [x] 5.4 Implementar memoria larga (clave = tipo; sin caducidad), incluyendo en el prompt los 20 enunciados mas recientes de ese tipo, y verificar que una segunda generacion del mismo tipo no repite el tema de un enunciado ya propuesto (requisito "El agente de ejercicios no repite temas ya propuestos")
 - [ ] 5.5 Propagar el `trace_id` de Langfuse recibido y verificar la traza de esta tarea
 
 ## 6. Orquestacion en FastAPI
