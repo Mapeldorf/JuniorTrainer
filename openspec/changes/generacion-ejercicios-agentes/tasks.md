@@ -22,7 +22,7 @@
 
 ## 4. Agente Codigo
 
-- [ ] 4.1 Scaffold `agents/code/` y verificar su Agent Card
+- [x] 4.1 Scaffold `agents/code/` y verificar su Agent Card
 - [ ] 4.2 Implementar `list_files`/`read_file` de solo lectura, limitadas a la carpeta del repo preparada, hasta 10 ficheros leidos por tarea, y verificar que una ruta fuera de esa carpeta se rechaza
 - [ ] 4.3 Conectar al modelo `generator` via LiteLLM y verificar con un repo de prueba que devuelve resumen, tecnologias detectadas y hasta 10 fragmentos (fichero, linea inicial, codigo, nota) de 12 lineas maximo
 - [ ] 4.4 Implementar memoria larga (clave = SHA-256 del repo o URL+commit, mas tecnologias; TTL 30 dias) y verificar que una segunda llamada con el mismo repo y tecnologias no relee ningun fichero (requisito "El agente de codigo no relee el mismo repositorio")
