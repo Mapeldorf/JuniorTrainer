@@ -2,9 +2,9 @@
 
 ## 1. Esquema de memoria y roles de Postgres
 
-- [ ] 1.1 Escribir `infra/supabase/migrations/0003_agents_memory.sql`: esquema `memory`, rol `agents_memory` (`USAGE`+`CREATE` solo sobre `memory`), rol `agents_exercise_reader` (`SELECT` solo sobre `public.exercise`), contraseñas via variables de entorno al aplicar (no hardcodeadas)
-- [ ] 1.2 Aplicar la migracion al proyecto `uwgqxdfpkkbenmynwlmk` y verificar con `execute_sql` que el esquema `memory` y los dos roles existen, y que `agents_memory` no tiene privilegios sobre `public`
-- [ ] 1.3 Añadir a `.env.example` las variables de conexion directa a Postgres (host/puerto/nombre de BD de Supabase, contraseñas de `agents_memory` y `agents_exercise_reader`), con comentarios de donde sacarlas
+- [x] 1.1 Escribir `infra/supabase/migrations/0003_agents_memory.sql`: esquema `memory`, rol `agents_memory` (`USAGE`+`CREATE` solo sobre `memory`), rol `agents_exercise_reader` (`SELECT` solo sobre `public.exercise`), contraseñas via variables de entorno al aplicar (no hardcodeadas)
+- [x] 1.2 Aplicar la migracion al proyecto `uwgqxdfpkkbenmynwlmk` y verificar con `execute_sql` que el esquema `memory` y los dos roles existen, y que `agents_memory` no tiene privilegios sobre `public`
+- [x] 1.3 Añadir a `.env.example` las variables de conexion directa a Postgres (host/puerto/nombre de BD de Supabase, contraseñas de `agents_memory` y `agents_exercise_reader`), con comentarios de donde sacarlas
 
 ## 2. Servicio A2A de prueba (desechable)
 
