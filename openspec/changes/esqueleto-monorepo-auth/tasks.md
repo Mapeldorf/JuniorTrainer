@@ -33,7 +33,7 @@
 - [x] 5.1 `docker-compose.yml` con `frontend`, `backend` y `litellm`; variables de entorno via `.env` en la raiz
 - [x] 5.2 `.env.example` con las variables que piden `app/config.py`, el frontend y LiteLLM (Supabase, redirect, modelos, Tavily, Langfuse)
 - [x] 5.3 `.github/workflows/ci.yml`: build/test de `frontend/` y `backend/` filtrado por ruta (`dorny/paths-filter`), en cada PR y en push a `main`
-- [ ] 5.4 Verificar `docker compose build` termina sin errores para los tres servicios (pendiente: este entorno no tiene un daemon de Docker disponible; `docker compose config` valida la sintaxis y los tres `Dockerfile` estan escritos y revisados, pero el build en si no se ha ejecutado)
+- [x] 5.4 Verificar `docker compose build` termina sin errores para los tres servicios (verificado por el usuario en su maquina: `frontend` y `backend` se construyen sin errores desde sus `Dockerfile`; `litellm` usa una imagen ya publicada, no se construye, se descarga al hacer `docker compose up`)
 
 ## Workflow follow-up
 
