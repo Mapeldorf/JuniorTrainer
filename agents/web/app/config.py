@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     agent_web_port: int = 8010
     agent_web_url: str = "http://agent-web:8010/"
 
+    tavily_api_key: str
+
 
 @lru_cache
 def get_settings() -> Settings:

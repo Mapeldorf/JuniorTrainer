@@ -10,12 +10,7 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
 
 from dataclasses import dataclass, field
 
-
-@dataclass
-class Source:
-    title: str
-    url: str
-    snippet: str
+from app.tools.tavily_search import Source
 
 
 @dataclass
