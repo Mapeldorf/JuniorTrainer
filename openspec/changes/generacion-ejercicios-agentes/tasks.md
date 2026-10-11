@@ -18,7 +18,7 @@
 - [x] 3.3 Conectar al modelo `generator` via el proxy de LiteLLM (`langchain-openai` contra `http://litellm:4000`, autenticado con `LITELLM_MASTER_KEY`) y verificar que una llamada de prueba responde con un resumen por tecnologia
 - [x] 3.4 Implementar memoria larga (`PostgresStore`, clave = tecnologias normalizadas, TTL 30 dias) y verificar que una segunda llamada con las mismas tecnologias no invoca `tavily_search` (requisito "El agente web no repite busquedas")
 - [x] 3.5 Implementar memoria corta (`PostgresSaver`, `thread_id` = id de generacion + nombre del agente) y verificar que sus checkpoints se borran al terminar la tarea (Ready o error)
-- [ ] 3.6 Leer el `trace_id` de Langfuse de los metadatos del mensaje A2A recibido y usarlo en las llamadas al modelo; verificar en Langfuse que la traza de esta tarea aparece bajo ese id, con `memory_hit=true` cuando aplica
+- [x] 3.6 Leer el `trace_id` de Langfuse de los metadatos del mensaje A2A recibido y usarlo en las llamadas al modelo; verificar en Langfuse que la traza de esta tarea aparece bajo ese id, con `memory_hit=true` cuando aplica
 
 ## 4. Agente Codigo
 
