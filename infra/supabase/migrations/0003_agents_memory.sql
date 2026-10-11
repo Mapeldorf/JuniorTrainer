@@ -54,6 +54,12 @@ grant usage, create on schema memory to agents_memory;
 -- crea el paquete al arrancar cada agente (su setup()), no esta migracion;
 -- por eso agents_memory necesita CREATE ademas de USAGE sobre el esquema.
 
+-- Sin esto, el search_path por defecto de una conexion nueva ("$user",
+-- public) no resuelve a nada que agents_memory pueda usar (no existe un
+-- esquema "agents_memory" y no tiene acceso a "public"), y el CREATE TABLE
+-- de setup() fallaria con "no schema has been selected to create in".
+alter role agents_memory set search_path = memory;
+
 -- =========================================================================
 -- rol agents_exercise_reader: solo lectura de public.exercise
 -- =========================================================================

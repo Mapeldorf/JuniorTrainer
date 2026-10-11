@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     litellm_master_key: str
     generator_model: str = "generator"
 
+    # Conexion directa a Postgres (esquema `memory`, rol agents_memory; ver
+    # infra/supabase/migrations/0003_agents_memory.sql y design.md). El
+    # pooler de Supabase exige el project ref como sufijo del usuario.
+    agents_pg_host: str
+    agents_pg_port: int = 5432
+    agents_pg_database: str = "postgres"
+    agents_memory_password: str
+    supabase_project_ref: str
+
 
 @lru_cache
 def get_settings() -> Settings:
