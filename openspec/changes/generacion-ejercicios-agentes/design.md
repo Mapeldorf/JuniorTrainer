@@ -32,6 +32,16 @@ Ver `proposal.md` - Why. Estado actual: el esquema de Supabase ya tiene `generat
 
 **No hay cambios de esquema en `generation`/`exercise`.** Ambas tablas, aplicadas en `esqueleto-monorepo-auth`, ya tienen las columnas que este change necesita (`status`, `error_message`, `kind`, y en `exercise` el candidato con `saved = false` por defecto). Solo hace falta la migracion nueva para el esquema `memory` y los dos roles.
 
+## Patron de cableado A2A confirmado (tarea 2.2)
+
+El servicio de prueba desechable (`a2a-sdk` 1.2.2, instalado y probado en esta sesion) confirmo lo siguiente, a reutilizar tal cual en `agents/web/`, `agents/code/` y `agents/exercises/`:
+
+- **Los tipos son protobuf, no pydantic.** `a2a.types.AgentCard`, `Message`, `Part`, etc. vienen de `a2a.types.a2a_pb2`. Construirlos a mano o, mejor, usar los helpers de `a2a.helpers.proto_helpers` (`new_text_message`, `new_data_message`, `get_message_text`, `get_stream_response_text`...) en vez de instanciar protobufs directamente.
+- **Instalar con el extra `fastapi`** (`a2a-sdk[fastapi]`) mas `fastapi` y `sse-starlette` explicitos — el extra no arrastra `sse-starlette` como dependencia transitiva resuelta y el import falla en caliente (`a2a.compat.v0_3.jsonrpc_adapter`) si falta.
+- **Servidor:** `AgentExecutor.execute(context, event_queue)` hace `await event_queue.enqueue_event(new_text_message(...))` para una respuesta inmediata (sin Task de larga duracion, que es nuestro caso: los tres agentes responden una vez y terminan). `DefaultRequestHandler(agent_executor, task_store, agent_card)` con `InMemoryTaskStore()` basta. Las rutas se montan en FastAPI con `add_a2a_routes_to_fastapi(app, agent_card_routes=create_agent_card_routes(card), jsonrpc_routes=create_jsonrpc_routes(handler, rpc_url="/"))`; la Agent Card queda servida automaticamente en `/.well-known/agent-card.json`.
+- **Cliente (a reutilizar en el orquestador FastAPI, tarea 6.1):** `await create_client(url, ClientConfig(streaming=False))` resuelve la Agent Card solo y da un cliente sincrono; `client.send_message(SendMessageRequest(message=new_text_message(texto, role=Role.ROLE_USER)))` devuelve un iterador async de `StreamResponse` (una sola respuesta en modo no streaming); `get_stream_response_text(response)` extrae el texto sin mirar a mano si vino como `message` o `task`.
+- **Metadatos y `trace_id`:** `RequestContext.metadata` expone `request.metadata` (nivel `SendMessageRequest`) como `dict`; `context.message.metadata` da los metadatos del propio `Message`. Para la tarea 3.6/4.5/5.5 (propagar `trace_id` de Langfuse), el mensaje A2A lo lleva en `message.metadata`, asi que se lee con `context.message.metadata.get("trace_id")` del lado agente, y se escribe pasando `metadata={"trace_id": ...}` a `new_text_message(...)` (o al `SendMessageRequest`) del lado orquestador.
+
 ## Risks / Trade-offs
 
 - [Conexion directa a Postgres desde tres agentes mas el backend añade conexiones fuera del pool que gestiona Supabase via PostgREST] → Mantener el pool de conexiones de cada agente pequeño (1-2), y si se vuelve un problema, pasar por el pooler de Supabase (pgbouncer) sin cambiar el contrato de las specs.

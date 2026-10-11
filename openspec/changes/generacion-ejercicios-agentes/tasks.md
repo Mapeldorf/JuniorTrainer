@@ -8,8 +8,8 @@
 
 ## 2. Servicio A2A de prueba (desechable)
 
-- [ ] 2.1 Montar un servicio A2A minimo local con `a2a-sdk` (Agent Card + una skill de eco) y verificar que un cliente A2A de prueba le manda una tarea y recibe el resultado esperado
-- [ ] 2.2 Confirmar el patron de cableado (Agent Card, cliente A2A sincrono sin streaming) a reutilizar en los tres agentes reales; este servicio de prueba no se añade al repo final ni a `docker-compose.yml`
+- [x] 2.1 Montar un servicio A2A minimo local con `a2a-sdk` (Agent Card + una skill de eco) y verificar que un cliente A2A de prueba le manda una tarea y recibe el resultado esperado
+- [x] 2.2 Confirmar el patron de cableado (Agent Card, cliente A2A sincrono sin streaming) a reutilizar en los tres agentes reales; este servicio de prueba no se añade al repo final ni a `docker-compose.yml`
 
 ## 3. Agente Web
 
