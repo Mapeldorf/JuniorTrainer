@@ -139,6 +139,16 @@ if __name__ == "__main__":
 
 Confirmado instrumentando ambos ordenes: con la CLI, `app/__init__.py` ve un loop ya corriendo (`asyncio.get_running_loop()` no lanza); con `python run.py`, no hay ningun loop todavia cuando `app/__init__.py` se ejecuta. Sin efecto en produccion (Docker/Linux): la condicion del fix de Windows nunca se cumple ahi, y `docker-compose.yml` (grupo 7) puede seguir usando `uvicorn app.main:app` tal cual en su `CMD`/`command` sin este problema. **A partir de ahora, arrancar cada agente en local con `python run.py`, no con `uvicorn app.main:app` directamente** -- aplica retroactivamente a cualquier verificacion futura de web/codigo/ejercicios en Windows, no solo a 6.7.
 
+## Bug encontrado en vivo: el cliente A2A cortaba a los 5s, no a los 120s (6.1/6.6)
+
+Con los dos bugs anteriores arreglados, el agente web ya respondia bien por su lado, pero el backend seguia fallando con `"Client Request timed out"` -- un mensaje que no es el de `A2ATaskTimeout` (que diria `"no respondio en 120s"`), asi que algo estaba cortando por debajo de nuestro `asyncio.wait_for`.
+
+Causa: `create_client(url, client_config=ClientConfig(streaming=False))` sin pasar `httpx_client` monta uno por su cuenta, un `httpx.AsyncClient()` A SECAS -- y el timeout por defecto de `httpx` es de **5 segundos** (`httpx._config.DEFAULT_TIMEOUT_CONFIG = Timeout(timeout=5.0)`), nada que ver con nuestro limite real de 2 minutos por tarea. Una tarea real (busqueda en Tavily + resumen con el modelo) facilmente pasa de 5s, asi que httpx cortaba la conexion mucho antes de que `asyncio.wait_for` pudiera activarse -- el `A2ATaskTimeout` que creiamos tener nunca llegaba a dispararse de verdad, saliendo en su lugar un `A2ATaskError` generico con el mensaje de httpx.
+
+**Fix: `send_a2a_task` construye su propio `httpx.AsyncClient(timeout=httpx.Timeout(timeout))` y se lo pasa a `ClientConfig(httpx_client=...)`**, para que el timeout real de la conexion HTTP coincida con el `timeout` que de verdad queremos (120s por defecto, el mismo parametro que ya tenia la funcion). Verificado con un servidor A2A real que tarda 8 segundos en responder: antes del fix habria cortado a los ~5s con el mismo mensaje generico que vio el usuario; despues del fix responde con exito a los ~8s. Sin regresion en el caso de agente inalcanzable (sigue fallando rapido y controladamente).
+
+Van ya tres bugs reales encontrados exclusivamente por la verificacion en vivo de 6.7 en Windows, ninguno detectado por el auto-verificado en contenedor de 6.1-6.6 -- los tres son del tipo "el transporte real tiene un comportamiento que el transporte simulado no ejercitaba" (metadata como Struct real, orden de arranque de uvicorn en Windows, timeout por defecto de httpx): un recordatorio de por que la verificacion en vivo contra servicios reales sigue siendo necesaria incluso con un auto-verificado exhaustivo.
+
 ## Risks / Trade-offs
 
 - [Conexion directa a Postgres desde tres agentes mas el backend añade conexiones fuera del pool que gestiona Supabase via PostgREST] → Mantener el pool de conexiones de cada agente pequeño (1-2), y si se vuelve un problema, pasar por el pooler de Supabase (pgbouncer) sin cambiar el contrato de las specs.

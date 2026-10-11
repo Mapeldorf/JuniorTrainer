@@ -11,6 +11,7 @@ no trae un helper equivalente al de texto para datos estructurados.
 import asyncio
 import logging
 
+import httpx
 from a2a.client import ClientConfig, create_client
 from a2a.helpers.proto_helpers import get_data_parts, new_data_message
 from a2a.types import Role
@@ -77,20 +78,32 @@ async def send_a2a_task(
 
     async def _call() -> dict:
         try:
-            client = await create_client(url, client_config=ClientConfig(streaming=False))
-            message = new_data_message(data, role=Role.ROLE_USER)
-            # `new_data_message` no acepta `metadata=` (confirmado inspeccionando
-            # la firma real del SDK, ver design.md -- corrige una nota anterior
-            # que asumia lo contrario sin haberlo probado). `Message.metadata`
-            # es un campo `Struct` normal del propio protobuf: se rellena
-            # despues de construir el mensaje, con `.update(...)`.
-            if trace_id:
-                message.metadata.update({"trace_id": trace_id})
-            request = SendMessageRequest(message=message)
+            # `create_client` sin `httpx_client` propio monta un
+            # `httpx.AsyncClient()` A SECAS -- y el timeout por defecto de
+            # httpx es de 5 SEGUNDOS (`httpx._config.DEFAULT_TIMEOUT_CONFIG`),
+            # muchisimo menos que una tarea real (busqueda web + resumen con
+            # el modelo facilmente pasa de eso). Sin esto, el `asyncio.wait_for`
+            # de mas abajo nunca llega a activarse: httpx corta antes, por
+            # debajo, con un generico "Client Request timed out" en vez del
+            # mensaje de `A2ATaskTimeout`. Encontrado por el usuario
+            # verificando 6.7 en vivo contra el agente web real.
+            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as httpx_client:
+                client = await create_client(
+                    url, client_config=ClientConfig(streaming=False, httpx_client=httpx_client)
+                )
+                message = new_data_message(data, role=Role.ROLE_USER)
+                # `new_data_message` no acepta `metadata=` (confirmado inspeccionando
+                # la firma real del SDK, ver design.md -- corrige una nota anterior
+                # que asumia lo contrario sin haberlo probado). `Message.metadata`
+                # es un campo `Struct` normal del propio protobuf: se rellena
+                # despues de construir el mensaje, con `.update(...)`.
+                if trace_id:
+                    message.metadata.update({"trace_id": trace_id})
+                request = SendMessageRequest(message=message)
 
-            results: list = []
-            async for response in client.send_message(request):
-                results.extend(_extract_data(response))
+                results: list = []
+                async for response in client.send_message(request):
+                    results.extend(_extract_data(response))
         except Exception as exc:  # noqa: BLE001 - se homogeneiza a proposito, ver docstring
             raise A2ATaskError(f"fallo llamando al agente en {url}: {exc}") from exc
 
