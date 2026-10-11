@@ -1,0 +1,26 @@
+-- Fix: agents_exercise_reader no podia consultar public.exercise.
+--
+-- public.exercise tiene RLS activado (0001_schema.sql) con dos politicas:
+--   - exercise_tech_lead: compara con current_profile_role() (lee public.profile).
+--   - exercise_student_select: hace JOIN con public.assignment_exercise y
+--     public.assignment para comprobar si el alumno tiene esa copia.
+--
+-- Para decidir si una politica aplica a una fila, Postgres necesita poder
+-- EVALUAR su condicion -- y eso exige privilegios sobre las tablas que esa
+-- condicion referencia, aunque la condicion termine siendo falsa. Como
+-- agents_exercise_reader (migracion 0003) solo tiene SELECT sobre
+-- public.exercise, evaluar exercise_student_select falla con
+-- "permission denied for table assignment" en cuanto se intenta cualquier
+-- SELECT, incluso uno que ninguna fila real necesitaria pasar por esa
+-- politica. Reproducido localmente antes de este fix (ver
+-- design.md "Agents_exercise_reader y RLS").
+--
+-- BYPASSRLS es el fix correcto y minimo: ignora la evaluacion de politicas
+-- RLS en las tablas que el rol YA puede leer por GRANT, pero no concede
+-- acceso a ninguna tabla nueva -- el rol sigue sin poder leer
+-- public.assignment, public.assignment_exercise ni public.profile
+-- (confirmado localmente: BYPASSRLS activado, SELECT sobre esas tres
+-- tablas sigue devolviendo "permission denied"). agents_exercise_reader
+-- mantiene exactamente el alcance que pedia design.md: solo lectura de
+-- public.exercise.
+alter role agents_exercise_reader bypassrls;
