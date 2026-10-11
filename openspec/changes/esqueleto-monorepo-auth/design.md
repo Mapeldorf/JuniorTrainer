@@ -32,6 +32,7 @@ Ver `proposal.md` - Why. Restricciones de la especificacion del TFM (artifact "A
 - [Validar el JWT contra la red en cada peticion añade latencia y un punto de fallo externo] → Si se vuelve un cuello de botella, migrar a verificacion JWKS local; no cambia el contrato de `user-auth`, solo la implementacion de `get_current_profile`.
 - [Los triggers de inmutabilidad (`exercise_lock_after_saved`, `reject_update`) son la unica barrera para esas reglas ahora mismo, ya que `service_role` también los atraviesa si el backend tiene un bug] → Cubrir estas reglas con tests de integracion contra Supabase antes del paso 3, cuando el backend empiece a escribir `answer` y `assignment_exercise` de verdad.
 - [snake_case diverge del nombre literal de la especificacion] → Documentado en el proposal y en este design; cualquiera que lea el SQL junto a la especificacion puede hacer el mapeo sin ambiguedad.
+- [La configuracion de Supabase Auth (Site URL, Redirect URLs permitidas para `redirect_to` en invitaciones y recuperacion) se gestiona a mano en el dashboard; no esta versionada como las migraciones de esquema] → Supabase CLI permite expresar `site_url` y `additional_redirect_urls` en `supabase/config.toml` y aplicarlos con `supabase config push`, igual que el esquema. Pendiente de evaluar como un change futuro si se quiere trazabilidad completa tambien sobre la configuracion de Auth, no solo sobre el SQL.
 
 ## Migration Plan
 
