@@ -23,6 +23,12 @@ class Settings(BaseSettings):
 
     tavily_api_key: str
 
+    # Proxy de LiteLLM (seccion 11 de la especificacion): modelo logico
+    # "generator", resuelto por LiteLLM via GENERATOR_MODEL/GENERATOR_API_KEY.
+    litellm_base_url: str = "http://litellm:4000/v1"
+    litellm_master_key: str
+    generator_model: str = "generator"
+
 
 @lru_cache
 def get_settings() -> Settings:
