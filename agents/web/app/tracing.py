@@ -62,9 +62,24 @@ def new_trace_id() -> str:
     return Langfuse.create_trace_id()
 
 
-def resolve_trace_id(message_metadata: dict | None) -> str:
-    """El `trace_id` recibido del orquestador, o uno nuevo si no hay."""
-    trace_id = (message_metadata or {}).get("trace_id")
+def resolve_trace_id(message_metadata) -> str:
+    """El `trace_id` recibido del orquestador, o uno nuevo si no hay.
+
+    `message_metadata` (`context.message.metadata`) llega como
+    `google.protobuf.struct_pb2.Struct` cuando el mensaje viene de verdad
+    por A2A -- NUNCA como `dict`, aunque la firma anterior lo sugiriera
+    (nadie habia probado esta funcion contra un mensaje A2A real hasta el
+    orquestador del grupo 6: 3.6/4.5/5.5 la verificaron llamando a la
+    logica de negocio directamente, sin pasar `context.message.metadata`
+    de verdad). `Struct` soporta `in` y `[...]` pero NO `.get()`
+    (confirmado: `AttributeError: get` con protobuf 7.x) -- de ahi que se
+    use `in`+`[...]` en vez de `.get()`, que funciona igual para un
+    `Struct` real, para un `dict` (los scripts de verificacion que llaman
+    a esta funcion con un dict a mano) y para `None`."""
+    if message_metadata and "trace_id" in message_metadata:
+        trace_id = message_metadata["trace_id"]
+    else:
+        trace_id = None
     return trace_id if trace_id else new_trace_id()
 
 

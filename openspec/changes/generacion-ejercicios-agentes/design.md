@@ -91,6 +91,32 @@ Reproducido localmente (Postgres efimero en el contenedor, replicando `exercise`
 
 **Verificacion de 6.1/6.4/6.5/6.6 (y del reparto de `kind='both'`) hecha en contenedor contra TRES servicios A2A reales y desechables** (uno por agente, puertos locales, comportamiento controlado por un fichero `control.json` reescrito entre escenarios: exito/fallo/lento), con el cliente admin de Supabase sustituido por uno en memoria (unico componente inalcanzable desde aqui, igual que LiteLLM/Tavily en los agentes) -- NO mocks de `a2a-sdk` ni de `asyncio`, las llamadas A2A son HTTP real contra procesos `uvicorn` reales. Se comprobaron los nueve escenarios: exito con repo, web falla con repo (degrada), codigo falla (error), web falla sin repo (error), ejercicios falla (error), timeout de la generacion completa, `kind='both'` con `count=3` (reparto 2+1) y con `count=1` (caso borde), y que sin repositorio el agente de codigo no se llega a llamar. Los endpoints HTTP (6.2/6.3) se verificaron con `TestClient` (entrada invalida -> 422 sin crear fila, generacion inexistente -> 404, sin autenticacion -> 401) y, para la propiedad de "responde antes de que los agentes terminen", con un `uvicorn` real (ver parrafo de `BackgroundTasks` arriba). Pendiente de que el usuario confirme en vivo (6.7, con Langfuse Cloud real) que las tres trazas de una misma generacion aparecen agrupadas bajo el mismo `trace_id`.
 
+## Bug encontrado en vivo: `resolve_trace_id` crasheaba con metadata real (6.7)
+
+Verificando 6.7 en vivo, el usuario lanzo `backend/scripts/verify_generation_e2e.py` contra el agente web real y obtuvo `AttributeError: get` dentro de `resolve_trace_id`, en `agents/web/app/tracing.py` (identico en `agents/code` y `agents/exercises`):
+
+```python
+def resolve_trace_id(message_metadata: dict | None) -> str:
+    trace_id = (message_metadata or {}).get("trace_id")
+    ...
+```
+
+Causa: `context.message.metadata` llega como `google.protobuf.struct_pb2.Struct`, NUNCA como `dict`, aunque la firma lo sugiriera. Confirmado con protobuf 7.x: `Struct` soporta `in` y `[...]` (y `.update()`, usado del lado cliente para escribirlo) pero **no tiene `.get()`** -- de ahi el `AttributeError: get` en cuanto `message_metadata` trae algun campo.
+
+Esto llevaba sin detectarse desde las tareas 3.6/4.5/5.5 porque sus verificaciones llamaban a la logica de negocio directamente (`research(technologies, trace_id)`, `generate_exercises(..., trace_id)`), sin pasar nunca `context.message.metadata` de verdad por el transporte A2A -- el orquestador del grupo 6 es el primer codigo de todo el proyecto que escribe metadata en un mensaje A2A saliente y lo manda de verdad, asi que es tambien el primero en ejercitar este camino.
+
+**Fix (en los tres agentes, misma funcion):** sustituir `.get()` por `in`+`[...]`, que funciona igual para un `Struct` real, un `dict` (los scripts de verificacion existentes que llaman a `resolve_trace_id` con un dict a mano) y `None`:
+
+```python
+if message_metadata and "trace_id" in message_metadata:
+    trace_id = message_metadata["trace_id"]
+else:
+    trace_id = None
+return trace_id if trace_id else new_trace_id()
+```
+
+Verificado localmente contra un servidor A2A real (no un `Struct` construido a mano: la funcion real importada tal cual, llamada con `context.message.metadata` de un mensaje que de verdad atraviesa el protocolo), con y sin `trace_id` presente. Pendiente de que el usuario reconfirme 6.7 completo (la traza agrupada en Langfuse Cloud) con este fix aplicado.
+
 ## Risks / Trade-offs
 
 - [Conexion directa a Postgres desde tres agentes mas el backend añade conexiones fuera del pool que gestiona Supabase via PostgREST] → Mantener el pool de conexiones de cada agente pequeño (1-2), y si se vuelve un problema, pasar por el pooler de Supabase (pgbouncer) sin cambiar el contrato de las specs.
