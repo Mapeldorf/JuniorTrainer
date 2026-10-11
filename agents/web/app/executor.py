@@ -5,8 +5,8 @@ from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events.event_queue_v2 import EventQueue
 from a2a.types import Role
 
+from app.checkpoint import research_with_checkpoint
 from app.input import parse_technologies
-from app.service import research
 
 
 class WebAgentExecutor(AgentExecutor):
@@ -14,7 +14,7 @@ class WebAgentExecutor(AgentExecutor):
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         technologies = parse_technologies(context.message)
-        result = await research(technologies)
+        result = await research_with_checkpoint(context.task_id, technologies)
 
         reply = new_data_message(
             dataclasses.asdict(result),

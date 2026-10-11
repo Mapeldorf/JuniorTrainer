@@ -20,7 +20,7 @@ from dataclasses import asdict
 from langgraph.store.base import TTLConfig
 from langgraph.store.postgres import AsyncPostgresStore
 
-from app.config import get_settings
+from app.db import conn_string
 from app.tools.tavily_search import Source
 
 logger = logging.getLogger(__name__)
@@ -33,19 +33,9 @@ def normalize_technologies(technologies: list[str]) -> str:
     return "|".join(sorted({t.strip().lower() for t in technologies if t.strip()}))
 
 
-def _conn_string() -> str:
-    settings = get_settings()
-    user = f"agents_memory.{settings.supabase_project_ref}"
-    return (
-        f"postgresql://{user}:{settings.agents_memory_password}"
-        f"@{settings.agents_pg_host}:{settings.agents_pg_port}"
-        f"/{settings.agents_pg_database}?sslmode=require"
-    )
-
-
 def _store_cm():
     return AsyncPostgresStore.from_conn_string(
-        _conn_string(),
+        conn_string(),
         ttl=TTLConfig(default_ttl=_TTL_MINUTES, refresh_on_read=True, omit_expired=True),
     )
 
