@@ -1,0 +1,29 @@
+# Tres nombres logicos (seccion 11 de la especificacion): generator para los
+# tres agentes de la generacion, evaluator y reviewer. El proveedor y el
+# modelo concreto de cada uno se resuelven via variables de entorno, para no
+# atar este fichero a un proveedor fijo.
+#
+# Placeholder de este paso: los agentes todavia no existen (llegan en el
+# paso 2 del plan de trabajo), asi que estos modelos no reciben trafico
+# real todavia. Rellena GENERATOR_MODEL / EVALUATOR_MODEL / REVIEWER_MODEL
+# en .env con el identificador de modelo que entienda LiteLLM para tu
+# proveedor (por ejemplo "anthropic/claude-sonnet-4-5" u "openrouter/...").
+model_list:
+  - model_name: generator
+    litellm_params:
+      model: os.environ/GENERATOR_MODEL
+      api_key: os.environ/GENERATOR_API_KEY
+
+  - model_name: evaluator
+    litellm_params:
+      model: os.environ/EVALUATOR_MODEL
+      api_key: os.environ/EVALUATOR_API_KEY
+
+  - model_name: reviewer
+    litellm_params:
+      model: os.environ/REVIEWER_MODEL
+      api_key: os.environ/REVIEWER_API_KEY
+
+litellm_settings:
+  success_callback: ["langfuse"]
+  failure_callback: ["langfuse"]

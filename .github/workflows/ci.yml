@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+      - uses: actions/setup-python@v5
+        if: steps.changes.outputs.backend == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        if: steps.changes.outputs.backend == 'true'
+        run: pip install -r requirements.txt
+      - name: Import check
+        if: steps.changes.outputs.backend == 'true'
+        env:
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_ANON_KEY: dummy
+          SUPABASE_SERVICE_ROLE_KEY: dummy
+        run: python -c "from app.main import app"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+      - uses: actions/setup-node@v4
+        if: steps.changes.outputs.frontend == 'true'
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        if: steps.changes.outputs.frontend == 'true'
+        run: npm ci
+      - name: Build
+        if: steps.changes.outputs.frontend == 'true'
+        run: npx ng build
+      - name: Test
+        if: steps.changes.outputs.frontend == 'true'
+        run: npx ng test --no-watch
