@@ -38,12 +38,12 @@
 
 ## 6. Orquestacion en FastAPI
 
-- [ ] 6.1 Cliente A2A en FastAPI para enviar tareas sincronas (sin streaming) a los tres agentes, y verificar con una llamada de prueba a cada uno que la respuesta llega como artefacto JSON
-- [ ] 6.2 Endpoint para iniciar una generacion (tecnologias, repo opcional, tipo, numero entre 1 y 5) que valida la entrada (requisitos "Entrada minima" y "Numero de ejercicios candidatos") y lanza la orquestacion en una tarea de fondo; verificar que la respuesta HTTP llega con un id de generacion antes de que los agentes terminen
-- [ ] 6.3 Endpoint para consultar el estado de una generacion (en curso / Ready con candidatos / error con mensaje) y verificar los tres estados con generaciones de prueba
-- [ ] 6.4 Orquestacion en paralelo de web+codigo (codigo solo si hay repositorio), espera a que ambos terminen, y entonces llamada a ejercicios con sus resultados, el tipo y el numero; verificar el caso con repositorio y el caso sin repositorio (requisito "Orquestacion en paralelo de los agentes de entrada")
-- [ ] 6.5 Manejo de fallos parciales: si falla el agente web habiendo repositorio, la generacion sigue sin fuentes de internet; si falla el de codigo, el de ejercicios, o el web sin repositorio, la generacion queda en error con el mensaje; verificar cada uno de los tres casos forzando el fallo del agente correspondiente
-- [ ] 6.6 Limites de tiempo (`asyncio.wait_for`: 2 minutos por tarea A2A, 5 minutos por generacion completa) y verificar con una tarea simulada lenta que la generacion termina en error por tiempo excedido
+- [x] 6.1 Cliente A2A en FastAPI para enviar tareas sincronas (sin streaming) a los tres agentes, y verificar con una llamada de prueba a cada uno que la respuesta llega como artefacto JSON
+- [x] 6.2 Endpoint para iniciar una generacion (tecnologias, repo opcional, tipo, numero entre 1 y 5) que valida la entrada (requisitos "Entrada minima" y "Numero de ejercicios candidatos") y lanza la orquestacion en una tarea de fondo; verificar que la respuesta HTTP llega con un id de generacion antes de que los agentes terminen
+- [x] 6.3 Endpoint para consultar el estado de una generacion (en curso / Ready con candidatos / error con mensaje) y verificar los tres estados con generaciones de prueba
+- [x] 6.4 Orquestacion en paralelo de web+codigo (codigo solo si hay repositorio), espera a que ambos terminen, y entonces llamada a ejercicios con sus resultados, el tipo y el numero; verificar el caso con repositorio y el caso sin repositorio (requisito "Orquestacion en paralelo de los agentes de entrada")
+- [x] 6.5 Manejo de fallos parciales: si falla el agente web habiendo repositorio, la generacion sigue sin fuentes de internet; si falla el de codigo, el de ejercicios, o el web sin repositorio, la generacion queda en error con el mensaje; verificar cada uno de los tres casos forzando el fallo del agente correspondiente
+- [x] 6.6 Limites de tiempo (`asyncio.wait_for`: 2 minutos por tarea A2A, 5 minutos por generacion completa) y verificar con una tarea simulada lenta que la generacion termina en error por tiempo excedido
 - [ ] 6.7 Generar un `trace_id` de Langfuse por generacion y propagarlo en los metadatos del mensaje A2A a los tres agentes; verificar en Langfuse que las llamadas de una misma generacion aparecen agrupadas bajo esa traza
 
 ## 7. docker-compose

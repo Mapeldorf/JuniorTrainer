@@ -3,3 +3,9 @@ uvicorn[standard]>=0.32,<0.33
 supabase>=2.9,<3
 pydantic-settings>=2.5,<3
 email-validator>=2.2,<3
+
+# Orquestacion de los agentes de generacion (grupo 6): solo el lado
+# cliente, por eso sin el extra [fastapi] que si necesitan los agentes
+# (ese extra trae las rutas de SERVIDOR A2A, que el backend no monta).
+a2a-sdk>=1.2,<2
+langfuse>=3.0,<5
