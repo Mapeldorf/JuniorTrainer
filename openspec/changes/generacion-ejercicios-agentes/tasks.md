@@ -25,7 +25,7 @@
 - [x] 4.1 Scaffold `agents/code/` y verificar su Agent Card
 - [x] 4.2 Implementar `list_files`/`read_file` de solo lectura, limitadas a la carpeta del repo preparada, hasta 10 ficheros leidos por tarea, y verificar que una ruta fuera de esa carpeta se rechaza
 - [x] 4.3 Conectar al modelo `generator` via LiteLLM y verificar con un repo de prueba que devuelve resumen, tecnologias detectadas y hasta 10 fragmentos (fichero, linea inicial, codigo, nota) de 12 lineas maximo
-- [ ] 4.4 Implementar memoria larga (clave = SHA-256 del repo o URL+commit, mas tecnologias; TTL 30 dias) y verificar que una segunda llamada con el mismo repo y tecnologias no relee ningun fichero (requisito "El agente de codigo no relee el mismo repositorio")
+- [x] 4.4 Implementar memoria larga (clave = SHA-256 del repo o URL+commit, mas tecnologias; TTL 30 dias) y verificar que una segunda llamada con el mismo repo y tecnologias no relee ningun fichero (requisito "El agente de codigo no relee el mismo repositorio")
 - [ ] 4.5 Propagar el `trace_id` de Langfuse recibido y verificar la traza de esta tarea, con `memory_hit=true` cuando aplica
 
 ## 5. Agente Ejercicios
