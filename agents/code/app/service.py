@@ -8,15 +8,16 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
     tecnologias detectadas y fragmentos. No es un bucle agentico con
     tool-calling (mas simple y mas facil de probar); el modelo decide una
     vez que leer, no fichero a fichero.
-  - 4.4: memoria larga (todavia no implementada aqui).
+  - 4.4 (este fichero, ahora): memoria larga (ver app/memory.py).
   - 4.5: trace_id de Langfuse (todavia no implementada aqui).
 """
 
 import json
 import logging
-from dataclasses import dataclass, field
 
 from app.llm import build_generator_model
+from app.memory import get_cached_analysis, save_analysis
+from app.models import CodeAnalysisResult, CodeFragment
 from app.tools.filesystem import FileBudget, FileBudgetExceeded, PathEscapesRepo, list_files, read_file
 
 logger = logging.getLogger(__name__)
@@ -63,25 +64,18 @@ class CodeAnalysisError(RuntimeError):
     """El modelo no devolvio una respuesta utilizable (JSON invalido, etc.)."""
 
 
-@dataclass
-class CodeFragment:
-    file: str
-    start_line: int
-    code: str
-    note: str
-
-
-@dataclass
-class CodeAnalysisResult:
-    summary: str
-    technologies: list[str] = field(default_factory=list)
-    fragments: list[CodeFragment] = field(default_factory=list)
-    memory_hit: bool = False
-
-
 async def analyze_repo(repo_path: str, technologies: list[str]) -> CodeAnalysisResult:
     if not technologies:
         raise ValueError("se necesita al menos una tecnologia")
+
+    cached = await get_cached_analysis(repo_path, technologies)
+    if cached is not None:
+        return CodeAnalysisResult(
+            summary=cached["summary"],
+            technologies=cached["technologies"],
+            fragments=[CodeFragment(**f) for f in cached["fragments"]],
+            memory_hit=True,
+        )
 
     entries = list_files(repo_path)
     if not entries:
@@ -109,10 +103,12 @@ async def analyze_repo(repo_path: str, technologies: list[str]) -> CodeAnalysisR
         )
 
     analysis = await _analyze(contents, technologies)
+    fragments = [CodeFragment(**f) for f in analysis["fragments"]]
+    await save_analysis(repo_path, technologies, analysis["summary"], analysis["technologies"], fragments)
     return CodeAnalysisResult(
         summary=analysis["summary"],
         technologies=analysis["technologies"],
-        fragments=[CodeFragment(**f) for f in analysis["fragments"]],
+        fragments=fragments,
         memory_hit=False,
     )
 
