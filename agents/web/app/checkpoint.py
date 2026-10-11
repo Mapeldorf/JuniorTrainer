@@ -42,6 +42,7 @@ _AGENT_NAME = "web"
 
 class _GraphState(TypedDict):
     technologies: list[str]
+    trace_id: str | None
     result: dict | None
 
 
@@ -50,7 +51,7 @@ def thread_id_for(task_id: str) -> str:
 
 
 async def _research_node(state: _GraphState) -> _GraphState:
-    result = await research(state["technologies"])
+    result = await research(state["technologies"], state.get("trace_id"))
     return {"result": asdict(result)}
 
 
@@ -62,12 +63,15 @@ def _build_graph(checkpointer: AsyncPostgresSaver):
     return graph.compile(checkpointer=checkpointer)
 
 
-async def research_with_checkpoint(task_id: str, technologies: list[str]) -> WebResearchResult:
+async def research_with_checkpoint(
+    task_id: str, technologies: list[str], trace_id: str | None = None
+) -> WebResearchResult:
     """Como `research()`, con un checkpoint de corto plazo durante la tarea.
 
     El checkpoint se borra siempre al terminar la tarea, acabe bien o mal:
     si `research()` lanza una excepcion, se repropaga tal cual despues de
-    borrar el checkpoint (nunca se traga el error).
+    borrar el checkpoint (nunca se traga el error). `trace_id` (tarea 3.6)
+    solo se reenvia a `research()`; este modulo no toca Langfuse.
     """
     thread_id = thread_id_for(task_id)
     config = {"configurable": {"thread_id": thread_id}}
@@ -76,7 +80,7 @@ async def research_with_checkpoint(task_id: str, technologies: list[str]) -> Web
         graph = _build_graph(saver)
         try:
             final_state = await graph.ainvoke(
-                {"technologies": technologies, "result": None}, config
+                {"technologies": technologies, "trace_id": trace_id, "result": None}, config
             )
         finally:
             try:

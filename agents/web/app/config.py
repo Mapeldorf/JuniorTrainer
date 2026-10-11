@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     agents_memory_password: str
     supabase_project_ref: str
 
+    # Langfuse Cloud (tarea 3.6): el SDK de Langfuse lee estas variables de
+    # os.environ por su cuenta, pero este servicio las pasa explicitamente
+    # al construir el cliente (app/tracing.py), igual que el resto de
+    # credenciales -- no confiamos en que .env (leido solo por
+    # pydantic-settings) haya llegado tambien al entorno real del proceso.
+    langfuse_public_key: str
+    langfuse_secret_key: str
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+
 
 @lru_cache
 def get_settings() -> Settings:
