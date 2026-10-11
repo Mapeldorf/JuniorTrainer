@@ -44,7 +44,7 @@
 - [x] 6.4 Orquestacion en paralelo de web+codigo (codigo solo si hay repositorio), espera a que ambos terminen, y entonces llamada a ejercicios con sus resultados, el tipo y el numero; verificar el caso con repositorio y el caso sin repositorio (requisito "Orquestacion en paralelo de los agentes de entrada")
 - [x] 6.5 Manejo de fallos parciales: si falla el agente web habiendo repositorio, la generacion sigue sin fuentes de internet; si falla el de codigo, el de ejercicios, o el web sin repositorio, la generacion queda en error con el mensaje; verificar cada uno de los tres casos forzando el fallo del agente correspondiente
 - [x] 6.6 Limites de tiempo (`asyncio.wait_for`: 2 minutos por tarea A2A, 5 minutos por generacion completa) y verificar con una tarea simulada lenta que la generacion termina en error por tiempo excedido
-- [ ] 6.7 Generar un `trace_id` de Langfuse por generacion y propagarlo en los metadatos del mensaje A2A a los tres agentes; verificar en Langfuse que las llamadas de una misma generacion aparecen agrupadas bajo esa traza
+- [x] 6.7 Generar un `trace_id` de Langfuse por generacion y propagarlo en los metadatos del mensaje A2A a los tres agentes; verificar en Langfuse que las llamadas de una misma generacion aparecen agrupadas bajo esa traza
 
 ## 7. docker-compose
 

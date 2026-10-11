@@ -149,6 +149,8 @@ Causa: `create_client(url, client_config=ClientConfig(streaming=False))` sin pas
 
 Van ya tres bugs reales encontrados exclusivamente por la verificacion en vivo de 6.7 en Windows, ninguno detectado por el auto-verificado en contenedor de 6.1-6.6 -- los tres son del tipo "el transporte real tiene un comportamiento que el transporte simulado no ejercitaba" (metadata como Struct real, orden de arranque de uvicorn en Windows, timeout por defecto de httpx): un recordatorio de por que la verificacion en vivo contra servicios reales sigue siendo necesaria incluso con un auto-verificado exhaustivo.
 
+**6.7 confirmada en Langfuse Cloud real** tras los tres fixes: una generacion con tecnologia "Git" (sin repositorio) termino en Ready con 1 candidato, y su traza (`6412b257b3424f568c43d48f5b703347`) agrupa el span `orquestacion` (backend) junto con el del agente web, bajo el mismo `trace_id`. Cierra el grupo 6 por completo.
+
 ## Risks / Trade-offs
 
 - [Conexion directa a Postgres desde tres agentes mas el backend añade conexiones fuera del pool que gestiona Supabase via PostgREST] → Mantener el pool de conexiones de cada agente pequeño (1-2), y si se vuelve un problema, pasar por el pooler de Supabase (pgbouncer) sin cambiar el contrato de las specs.
