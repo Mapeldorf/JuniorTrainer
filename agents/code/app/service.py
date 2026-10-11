@@ -8,8 +8,11 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
     tecnologias detectadas y fragmentos. No es un bucle agentico con
     tool-calling (mas simple y mas facil de probar); el modelo decide una
     vez que leer, no fichero a fichero.
-  - 4.4 (este fichero, ahora): memoria larga (ver app/memory.py).
-  - 4.5: trace_id de Langfuse (todavia no implementada aqui).
+  - 4.4: memoria larga (ver app/memory.py).
+  - 4.5 (este fichero, ahora): `trace_id` opcional que se reenvia a
+    LiteLLM (ver app/tracing.py) para agrupar las dos llamadas al modelo
+    (elegir ficheros + analizar) bajo la traza de la tarea en vez de una
+    traza suelta cada una.
 """
 
 import json
@@ -19,6 +22,7 @@ from app.llm import build_generator_model
 from app.memory import get_cached_analysis, save_analysis
 from app.models import CodeAnalysisResult, CodeFragment
 from app.tools.filesystem import FileBudget, FileBudgetExceeded, PathEscapesRepo, list_files, read_file
+from app.tracing import litellm_trace_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +68,9 @@ class CodeAnalysisError(RuntimeError):
     """El modelo no devolvio una respuesta utilizable (JSON invalido, etc.)."""
 
 
-async def analyze_repo(repo_path: str, technologies: list[str]) -> CodeAnalysisResult:
+async def analyze_repo(
+    repo_path: str, technologies: list[str], trace_id: str | None = None
+) -> CodeAnalysisResult:
     if not technologies:
         raise ValueError("se necesita al menos una tecnologia")
 
@@ -81,7 +87,7 @@ async def analyze_repo(repo_path: str, technologies: list[str]) -> CodeAnalysisR
     if not entries:
         raise ValueError(f"el repositorio en {repo_path!r} no tiene ningun fichero legible")
 
-    chosen_paths = await _pick_files(entries, technologies)
+    chosen_paths = await _pick_files(entries, technologies, trace_id)
 
     budget = FileBudget(max_calls=10)
     contents: dict[str, str] = {}
@@ -102,7 +108,7 @@ async def analyze_repo(repo_path: str, technologies: list[str]) -> CodeAnalysisR
             "no se pudo leer ningun fichero de los elegidos por el modelo"
         )
 
-    analysis = await _analyze(contents, technologies)
+    analysis = await _analyze(contents, technologies, trace_id)
     fragments = [CodeFragment(**f) for f in analysis["fragments"]]
     await save_analysis(repo_path, technologies, analysis["summary"], analysis["technologies"], fragments)
     return CodeAnalysisResult(
@@ -113,7 +119,7 @@ async def analyze_repo(repo_path: str, technologies: list[str]) -> CodeAnalysisR
     )
 
 
-async def _pick_files(entries, technologies: list[str]) -> list[str]:
+async def _pick_files(entries, technologies: list[str], trace_id: str | None = None) -> list[str]:
     model = build_generator_model()
 
     listing = "\n".join(f"- {e.path} ({e.size_bytes} bytes)" for e in entries[:_MAX_FILES_IN_LISTING])
@@ -129,7 +135,8 @@ async def _pick_files(entries, technologies: list[str]) -> list[str]:
         [
             {"role": "system", "content": _PICK_SYSTEM_PROMPT},
             {"role": "user", "content": human_prompt},
-        ]
+        ],
+        extra_body=litellm_trace_metadata(trace_id),
     )
     paths = _parse_json(response.content, expect=list)
     if not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
@@ -137,7 +144,9 @@ async def _pick_files(entries, technologies: list[str]) -> list[str]:
     return paths
 
 
-async def _analyze(contents: dict[str, str], technologies: list[str]) -> dict:
+async def _analyze(
+    contents: dict[str, str], technologies: list[str], trace_id: str | None = None
+) -> dict:
     model = build_generator_model()
 
     blocks = []
@@ -154,7 +163,8 @@ async def _analyze(contents: dict[str, str], technologies: list[str]) -> dict:
         [
             {"role": "system", "content": _ANALYZE_SYSTEM_PROMPT},
             {"role": "user", "content": human_prompt},
-        ]
+        ],
+        extra_body=litellm_trace_metadata(trace_id),
     )
     data = _parse_json(response.content, expect=dict)
     for key in ("summary", "technologies", "fragments"):
