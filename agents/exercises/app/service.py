@@ -3,14 +3,13 @@
 Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
   - 5.1: scaffold.
   - 5.2: `search_saved_exercises` (ver app/tools/saved_exercises.py).
-  - 5.3 (este fichero, ahora): una sola llamada al modelo `generator` via
-    LiteLLM que recibe los resultados de web/codigo, el tipo, el numero
-    pedido y los enunciados ya guardados (via `search_saved_exercises`),
-    y devuelve exactamente `count` candidatos. No hay memoria PROPIA
-    todavia (`recent_statements` se deja vacio hasta la 5.4) ni escritura
-    a memoria larga.
-  - 5.4: memoria larga propia (enunciados ya propuestos, no solo
-    guardados) y la logica de guardarlos tras generar.
+  - 5.3: una sola llamada al modelo `generator` via LiteLLM que recibe
+    los resultados de web/codigo, el tipo, el numero pedido y los
+    enunciados ya guardados (via `search_saved_exercises`), y devuelve
+    exactamente `count` candidatos.
+  - 5.4 (este fichero, ahora): memoria larga PROPIA (ver app/memory.py)
+    -- se suma al historial de enunciados a evitar (que antes solo
+    llevaba los guardados) y se escribe el historial tras generar.
   - 5.5: trace_id de Langfuse (todavia no en este fichero).
 """
 
@@ -19,6 +18,7 @@ import logging
 
 from app.db import exercise_reader_conn_string
 from app.llm import build_generator_model
+from app.memory import get_recent_statements, save_statements
 from app.models import CandidateExercise, ExerciseCodeBlock, ExerciseGenerationResult
 from app.tools.saved_exercises import SearchBudget, SearchBudgetExceeded, search_saved_exercises
 
@@ -57,7 +57,6 @@ async def generate_exercises(
     count: int,
     web_result: dict | None,
     code_result: dict | None,
-    recent_statements: list[str] | None = None,
 ) -> ExerciseGenerationResult:
     saved_statements: list[str] = []
     try:
@@ -74,9 +73,20 @@ async def generate_exercises(
         # sin la lista de guardados en vez de fallar la tarea entera.
         logger.warning("fallo consultando ejercicios guardados", exc_info=True)
 
-    avoid_statements = [*saved_statements, *(recent_statements or [])]
+    # Memoria larga PROPIA (tarea 5.4): enunciados ya propuestos antes para
+    # este tipo, guardados o no -- se suma a los guardados para formar la
+    # lista completa de temas a evitar. Un fallo de lectura ya se trata
+    # como "sin historial" dentro de get_recent_statements().
+    recent_statements = await get_recent_statements(exercise_type)
+
+    avoid_statements = [*saved_statements, *recent_statements]
 
     candidates = await _draft_candidates(exercise_type, count, web_result, code_result, avoid_statements)
+
+    # Se escribe DESPUES de generar con exito: si _draft_candidates lanza
+    # (JSON invalido, numero incorrecto...), no hay enunciados nuevos que
+    # guardar. Un fallo de escritura se ignora dentro de save_statements().
+    await save_statements(exercise_type, [c.statement for c in candidates])
 
     return ExerciseGenerationResult(
         candidates=candidates,
