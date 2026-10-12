@@ -181,3 +181,16 @@ Escribiendo el script de aceptacion de extremo a extremo (tareas 8.1-8.3) se det
 Confirmado el mecanismo exacto reproduciendo `_repo_identity` en un repo git real en este contenedor (sin instalar nada): con `git` en el `PATH` devuelve `"<remote>@<commit>"`; vaciando el `PATH` (simulando el contenedor sin el binario) cae exactamente al `repo_path` crudo, sin lanzar ninguna excepcion visible.
 
 **Fix**: mover el `apt-get install git` de `backend/Dockerfile` (donde no se usa) a `agents/code/Dockerfile` (donde si se usa). La reconstruccion real de las imagenes (`docker compose build`) queda pendiente de reverificar con el usuario junto con el resto de la preparacion del grupo 8 -- el cambio es un `RUN apt-get` estandar en una imagen slim, sin riesgo esperado, pero no se da por bueno sin esa confirmacion.
+
+## Prueba de aceptacion de extremo a extremo (grupo 8): resultado
+
+Ejecutada con `backend/scripts/verify_pokemon_e2e.py` contra el `docker-compose` completo (grupo 7) y un repo real (`pokemon-web`, Angular/TypeScript/RxJS), dos generaciones seguidas (`kind=both`, `count=3`):
+
+- **1a generacion**: `Ready`, 3 candidatos (2 `knowledge` + 1 `debug`, el reparto esperado de `_split_exercise_requests` para `count=3`), `web_memory_hit=False`, `code_memory_hit=False` (primera vez, sin cache). Trace: `43423911f1929f768ed2d752f1956d17`.
+- **2a generacion** (mismo repo y tecnologias): `Ready`, 3 candidatos, `web_memory_hit=True` y `code_memory_hit=True` -- confirma que el agente web no ha repetido `tavily_search` y el agente de codigo no ha reledo el repo (8.3). Trace: `c0bc07193bc4ecdb5fbed9d9581c5699`.
+- **Temas no repetidos (8.3, revision manual)**: 1a tanda sobre signals de Angular, Observables/RxJS, y un bug de paginacion con `HttpParams`; 2a tanda sobre `any`/`unknown` de TypeScript, componentes standalone sin NgModule, y un bug distinto (URL de sprite rota) -- ningun tema se repite entre las dos tandas.
+- **Agrupacion en Langfuse (8.2)**: el usuario confirmo visualmente que ambas trazas muestran `orquestacion` (backend), `agente-web`, `agente-code` y `agente-exercises` agrupados bajo el mismo `trace_id`.
+
+**Incidente durante la preparacion, no es un bug de este change**: el contenedor `litellm` (`ghcr.io/berriai/litellm:main-latest`, imagen pre-existente, no tocada por este change) murio con `Exited (139)` (segfault) sin imprimir ni una linea de log, incluso en primer plano. Confirmado que no era arquitectura (`linux/x86_64` nativo) ni memoria (32 GB). Se resolvio recreando el contenedor con una descarga limpia (`docker compose rm -sf litellm && docker compose pull litellm && docker compose up -d litellm`) -- compatible con una imagen corrupta en cache local o una build rota puntual del tag `main-latest` (tag "rolling", no una version fija). Queda anotado aqui por si se repite: no requiere ningun cambio en este repo, solo repetir ese repull.
+
+Cierra el grupo 8 y, con el, el change completo (grupos 1-8).

@@ -53,9 +53,9 @@
 
 ## 8. Prueba de aceptacion de extremo a extremo
 
-- [ ] 8.1 Lanzar una generacion con el repo real de Pokemon (clonado o subido) y tecnologias reales, y verificar que termina en Ready con entre 1 y 5 candidatos
-- [ ] 8.2 Verificar en Langfuse que las trazas de los tres agentes de esa generacion aparecen agrupadas bajo el mismo `trace_id`
-- [ ] 8.3 Repetir la generacion con el mismo repo y las mismas tecnologias, y verificar que el agente web no llama a `tavily_search`, el agente de codigo no relee ficheros (ambos con `memory_hit=true` en su traza), y el agente de ejercicios no repite el tema de un enunciado ya propuesto
+- [x] 8.1 Lanzar una generacion con el repo real de Pokemon (clonado o subido) y tecnologias reales, y verificar que termina en Ready con entre 1 y 5 candidatos
+- [x] 8.2 Verificar en Langfuse que las trazas de los tres agentes de esa generacion aparecen agrupadas bajo el mismo `trace_id`
+- [x] 8.3 Repetir la generacion con el mismo repo y las mismas tecnologias, y verificar que el agente web no llama a `tavily_search`, el agente de codigo no relee ficheros (ambos con `memory_hit=true` en su traza), y el agente de ejercicios no repite el tema de un enunciado ya propuesto
 
 ## Workflow follow-up
 
