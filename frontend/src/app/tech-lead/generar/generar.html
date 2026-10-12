@@ -1,0 +1,87 @@
+<div class="flex min-h-screen flex-col bg-zinc-50">
+  <app-tech-lead-nav />
+
+  <div class="flex flex-col gap-6 px-8 py-10">
+    <h1 class="text-2xl font-semibold tracking-tight">Generar ejercicios</h1>
+
+    <form
+      (submit)="$event.preventDefault(); generar()"
+      class="flex max-w-[480px] flex-col gap-6 rounded-xl border border-zinc-200 bg-white p-6"
+    >
+      @if (error()) {
+        <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+      }
+
+      <label class="flex flex-col gap-1.5 text-sm">
+        <span class="font-medium">Tecnologías a evaluar</span>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            placeholder="p. ej. Git"
+            [ngModel]="newTechnology()"
+            (ngModelChange)="newTechnology.set($event)"
+            name="newTechnology"
+            (keydown.enter)="$event.preventDefault(); addTechnology()"
+            class="h-10 w-full rounded-lg border border-zinc-300 px-3 text-sm"
+          />
+          <button
+            type="button"
+            (click)="addTechnology()"
+            class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium hover:bg-zinc-100"
+          >
+            Añadir
+          </button>
+        </div>
+        @if (technologies().length > 0) {
+          <ul class="flex flex-wrap gap-2 pt-1">
+            @for (tech of technologies(); track tech) {
+              <li class="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700">
+                {{ tech }}
+                <button
+                  type="button"
+                  (click)="removeTechnology(tech)"
+                  [attr.aria-label]="'Quitar ' + tech"
+                  class="font-medium hover:text-blue-900"
+                >
+                  ×
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <span class="text-sm text-zinc-500">Añade al menos una tecnología.</span>
+        }
+      </label>
+
+      <label class="flex flex-col gap-1.5 text-sm">
+        <span class="font-medium">Número de ejercicios candidatos (1 a 5)</span>
+        <input
+          type="number"
+          min="1"
+          max="5"
+          [ngModel]="count()"
+          (ngModelChange)="count.set($event)"
+          name="count"
+          class="h-10 w-28 rounded-lg border border-zinc-300 px-3 text-sm"
+        />
+      </label>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          [disabled]="!isValid() || submitting()"
+          class="flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+        >
+          {{ submitting() ? 'Generando…' : 'Generar' }}
+        </button>
+        <button
+          type="button"
+          (click)="cancelar()"
+          class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,120 @@
+<div class="flex min-h-screen flex-col bg-zinc-50">
+  <app-tech-lead-nav />
+
+  <div class="flex flex-col gap-10 px-8 py-10">
+    @if (error()) {
+      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+    }
+
+    <section class="flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold tracking-tight">Ejercicios guardados</h1>
+        <button
+          type="button"
+          (click)="generar()"
+          class="flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800"
+        >
+          Generar ejercicios
+        </button>
+      </div>
+
+      @if (loadingPending()) {
+        <p class="text-sm text-zinc-500">Cargando…</p>
+      } @else if (pending().length === 0) {
+        <p class="text-sm text-zinc-500">No hay ninguna generación pendiente de revisión.</p>
+      } @else {
+        <ul class="flex flex-col gap-2">
+          @for (generation of pending(); track generation.id) {
+            <li class="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4">
+              <div class="flex flex-col gap-1">
+                <span class="font-medium">{{ generation.technologies.join(', ') }}</span>
+                @if (generation.repo_path) {
+                  <span class="text-sm text-zinc-500">{{ generation.repo_path }}</span>
+                }
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  [class.text-amber-700]="generation.status === 'generating'"
+                  [class.text-blue-700]="generation.status === 'ready'"
+                  [class.text-red-700]="generation.status === 'error'"
+                  class="text-sm font-medium"
+                >
+                  {{ statusLabel(generation.status) }}
+                </span>
+                @if (generation.status === 'ready') {
+                  <button
+                    type="button"
+                    (click)="revisar(generation)"
+                    class="flex h-9 items-center justify-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium hover:bg-zinc-100"
+                  >
+                    Revisar
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="flex flex-col gap-4">
+      <h2 class="text-lg font-semibold">Guardados</h2>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <select
+          [ngModel]="filterType()"
+          (ngModelChange)="onFilterTypeChange($event)"
+          class="h-10 rounded-lg border border-zinc-300 px-3 text-sm"
+        >
+          <option value="">Todos los tipos</option>
+          <option value="knowledge">Conocimiento</option>
+          <option value="debug">Depuración</option>
+        </select>
+        <input
+          type="search"
+          placeholder="Buscar por enunciado…"
+          [ngModel]="searchText()"
+          (ngModelChange)="onSearchTextChange($event)"
+          class="h-10 w-full max-w-[320px] rounded-lg border border-zinc-300 px-3 text-sm"
+        />
+      </div>
+
+      @if (loadingSaved()) {
+        <p class="text-sm text-zinc-500">Cargando…</p>
+      } @else if (saved().length === 0) {
+        <p class="text-sm text-zinc-500">No hay ningún ejercicio guardado todavía.</p>
+      } @else {
+        <table class="w-full table-auto border-collapse text-left text-sm">
+          <thead>
+            <tr class="border-b border-zinc-200 text-zinc-500">
+              <th class="py-2 pr-4 font-medium">Enunciado</th>
+              <th class="py-2 pr-4 font-medium">Tipo</th>
+              <th class="py-2 pr-4 font-medium">Tecnologías</th>
+              <th class="py-2 pr-4 font-medium">Repositorio</th>
+              <th class="py-2 pr-4 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (exercise of saved(); track exercise.id) {
+              <tr class="border-b border-zinc-100">
+                <td class="max-w-[360px] truncate py-3 pr-4">{{ exercise.statement }}</td>
+                <td class="py-3 pr-4">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
+                <td class="py-3 pr-4">{{ exercise.technologies.join(', ') }}</td>
+                <td class="py-3 pr-4">{{ exercise.repo_path ?? '—' }}</td>
+                <td class="py-3 pr-4 text-right">
+                  <button
+                    type="button"
+                    (click)="eliminar(exercise)"
+                    class="text-sm font-medium text-red-700 hover:underline"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  </div>
+</div>
