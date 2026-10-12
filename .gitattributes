@@ -1,0 +1,10 @@
+# Normaliza los saltos de linea a LF para todo archivo de texto, tanto en
+# el repositorio como al hacer checkout, independientemente del sistema
+# operativo o de la configuracion local de `core.autocrlf` de cada quien
+# (evita el problema de que Windows pueda dejar CRLF en el working tree
+# mientras el repo ya guarda LF: con esto el propio repo fija la politica).
+* text=auto eol=lf
+
+# Binarios conocidos: nunca tocar sus saltos de linea ni intentar
+# diferenciarlos como texto.
+*.ico binary
