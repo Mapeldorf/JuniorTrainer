@@ -12,26 +12,37 @@ Verdict = Literal["correct", "incomplete", "incorrect"]
 
 
 class AssignmentSummary(BaseModel):
-    """Una fila de `GET /assignments` (tarea 2.2, requisito "Listar las
-    propias asignaciones")."""
+    """Una fila de `GET /assignments` (tarea 1.2, capacidad
+    `student-assignments`, requisito "Listar las propias asignaciones",
+    version modificada: incluye progreso para que el frontend separe
+    pendientes de hechos y distinga "Empezar" de "Continuar")."""
 
     id: str
     block_name: str
     assigned_at: datetime
+    answered_count: int
+    total_count: int
 
 
 class AssignmentExerciseItem(BaseModel):
     """Un ejercicio de la copia de una asignacion, para `GET
-    /assignments/{id}` (tarea 2.3, requisito "Ver el detalle de una
-    asignacion propia"). No incluye `expected_answer`: ensenarsela al
-    alumno antes de responder vaciaria el ejercicio -- decision de
-    implementacion, el requisito no dice nada sobre que campos exponer."""
+    /assignments/{id}` (tarea 1.3, capacidad `student-assignments`,
+    requisito "Ver el detalle de una asignacion propia", version
+    modificada: incluye la respuesta, el verdict y la justificacion de
+    cada ejercicio ya respondido, y el router deja de incluir los
+    ejercicios posteriores al primero sin responder). No incluye
+    `expected_answer`: ensenarsela al alumno antes de responder vaciaria
+    el ejercicio -- decision de implementacion, el requisito no dice nada
+    sobre ese campo."""
 
     exercise_id: str
     position: int
     statement: str
     code: list[ExerciseCodeBlock] = Field(default_factory=list)
     answered: bool
+    answer_text: str | None = None
+    verdict: Verdict | None = None
+    justification: str | None = None
 
 
 class AssignmentDetail(BaseModel):

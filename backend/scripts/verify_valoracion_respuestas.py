@@ -1,8 +1,12 @@
-"""Verificacion manual end-to-end del change valoracion-respuestas (grupos
-2, 5, 6 y 7): listar/ver asignaciones propias (student-assignments),
-responder un ejercicio y que la respuesta quede evaluada y persistida
-(answer-evaluation), progreso con verdict (block-assignment modificada) y
-listar alumnos (user-auth modificada).
+"""Verificacion manual end-to-end de valoracion-respuestas y de su
+ajuste posterior en frontend-alumno (tarea 1.4): listar/ver asignaciones
+propias (student-assignments), responder un ejercicio y que la respuesta
+quede evaluada y persistida (answer-evaluation), progreso con verdict
+(block-assignment modificada), listar alumnos (user-auth modificada), y
+-- lo que anade frontend-alumno -- que `GET /assignments` informe
+`answered_count`/`total_count` y que `GET /assignments/{id}` corte en el
+primer ejercicio sin responder exponiendo el texto/verdict/justificacion
+de los ya respondidos (student-assignments modificada otra vez).
 
 Llama directamente a las funciones de los routers (sin levantar un
 servidor HTTP), contra el proyecto Supabase REAL configurado en el .env de
@@ -210,9 +214,21 @@ async def main() -> None:
         print("OK: 2.2 GET /assignments del segundo alumno devuelve la suya (distinta)")
 
         detail_a = await assignments.get_my_assignment_detail(assignment_a_id, student=student_a)
-        assert {e.exercise_id for e in detail_a.exercises} == {ex_correct, ex_wrong, ex_deleted}
+        # frontend-alumno 1.3: con 0 de 3 respondidos, el detalle corta en el
+        # primer ejercicio sin responder (inclusive) -- con nada respondido
+        # todavia, eso es solo el primero por posicion (ex_correct), nunca
+        # ex_wrong ni ex_deleted.
+        assert {e.exercise_id for e in detail_a.exercises} == {ex_correct}, (
+            f"con 0 de 3 respondidos, el detalle debe devolver solo el primero por posicion (ex_correct); "
+            f"llego {[e.exercise_id for e in detail_a.exercises]!r}"
+        )
         assert all(not e.answered for e in detail_a.exercises)
-        print("OK: 2.3 GET /assignments/{id} devuelve los ejercicios de la copia, sin respuesta todavia")
+        print("OK: 2.3 GET /assignments/{id} corta en el primer ejercicio (sin responder todavia)")
+
+        listing_a_sin_respuestas = await assignments.list_my_assignments(student=student_a)
+        progreso_a = next(a for a in listing_a_sin_respuestas if a.id == assignment_a_id)
+        assert progreso_a.answered_count == 0 and progreso_a.total_count == 3
+        print("OK: frontend-alumno 1.2 GET /assignments informa 0/3 antes de responder nada")
 
         await expect_http_error(
             assignments.get_my_assignment_detail(assignment_b_id, student=student_a),
@@ -227,6 +243,26 @@ async def main() -> None:
         assert result_correct.verdict == "correct", f"se esperaba verdict=correct, llego {result_correct.verdict!r}"
         assert result_correct.justification
         print(f"OK: 5.4 respuesta correcta evaluada -> verdict={result_correct.verdict!r}")
+
+        detail_a_parcial = await assignments.get_my_assignment_detail(assignment_a_id, student=student_a)
+        assert {e.exercise_id for e in detail_a_parcial.exercises} == {ex_correct, ex_wrong}, (
+            "con 1 de 3 respondidos, el detalle para el alumno debe cortar en el siguiente sin "
+            f"responder (ex_wrong) y nunca llegar a ex_deleted; llego {[e.exercise_id for e in detail_a_parcial.exercises]!r}"
+        )
+        ex_correct_item = next(e for e in detail_a_parcial.exercises if e.exercise_id == ex_correct)
+        assert ex_correct_item.answered and ex_correct_item.answer_text == "4"
+        assert ex_correct_item.verdict == "correct" and ex_correct_item.justification
+        ex_wrong_item = next(e for e in detail_a_parcial.exercises if e.exercise_id == ex_wrong)
+        assert not ex_wrong_item.answered and ex_wrong_item.answer_text is None and ex_wrong_item.verdict is None
+        print(
+            "OK: frontend-alumno 1.3 GET /assignments/{id} corta en el siguiente sin responder "
+            "(no incluye ex_deleted) y expone texto/verdict/justificacion del ya respondido"
+        )
+
+        listing_a_parcial = await assignments.list_my_assignments(student=student_a)
+        progreso_a_parcial = next(a for a in listing_a_parcial if a.id == assignment_a_id)
+        assert progreso_a_parcial.answered_count == 1 and progreso_a_parcial.total_count == 3
+        print("OK: frontend-alumno 1.2 GET /assignments informa 1/3 tras responder un ejercicio")
 
         result_wrong = await assignments.answer_exercise(
             assignment_a_id, ex_wrong, AnswerRequest(text="una tortuga"), student=student_a
@@ -279,6 +315,16 @@ async def main() -> None:
         print("OK: responder un ejercicio cuyo exercise original ya tiene deleted_at usa igual la copia de la asignacion")
 
         # ---- block-assignment modificada (tarea 6.1) ----
+        listing_a_completa = await assignments.list_my_assignments(student=student_a)
+        progreso_a_completo = next(a for a in listing_a_completa if a.id == assignment_a_id)
+        assert progreso_a_completo.answered_count == 3 and progreso_a_completo.total_count == 3
+        print("OK: frontend-alumno 1.2 GET /assignments informa 3/3 con la asignacion completada")
+
+        detail_a_completo = await assignments.get_my_assignment_detail(assignment_a_id, student=student_a)
+        assert {e.exercise_id for e in detail_a_completo.exercises} == {ex_correct, ex_wrong, ex_deleted}
+        assert all(e.answered and e.verdict is not None and e.answer_text is not None for e in detail_a_completo.exercises)
+        print("OK: frontend-alumno 1.3 GET /assignments/{id} de una asignacion completada expone los 3 con su valoracion")
+
         progress = await blocks.get_block_progress(block.id, tech_lead)
         progress_a = next(p for p in progress if p.student_id == student_a.id)
         verdict_by_exercise = {e.exercise_id: e.verdict for e in progress_a.exercises}

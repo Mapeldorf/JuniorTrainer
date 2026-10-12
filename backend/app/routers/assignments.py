@@ -47,8 +47,12 @@ def _get_own_assignment_or_404(assignment_id: str, student_id: str) -> dict:
 async def list_my_assignments(
     student: Profile = Depends(require_student),
 ) -> list[AssignmentSummary]:
-    """Lista las asignaciones del alumno autenticado (tarea 2.2, capacidad
-    `student-assignments`, requisito "Listar las propias asignaciones")."""
+    """Lista las asignaciones del alumno autenticado, con su progreso
+    (tarea 1.2, capacidad `student-assignments`, requisito "Listar las
+    propias asignaciones", version modificada). El progreso se calcula
+    con dos conteos por asignacion -- mismo patron que ya usa
+    `get_block_progress` en `blocks.py` para el tech lead -- en vez de
+    una subconsulta por fila (ver design.md - Decisions)."""
     rows = (
         get_admin_client()
         .table("assignment")
@@ -59,7 +63,43 @@ async def list_my_assignments(
         .data
         or []
     )
-    return [AssignmentSummary(**row) for row in rows]
+    if not rows:
+        return []
+
+    assignment_ids = [row["id"] for row in rows]
+
+    total_by_assignment: dict[str, int] = {}
+    for row in (
+        get_admin_client()
+        .table("assignment_exercise")
+        .select("assignment_id")
+        .in_("assignment_id", assignment_ids)
+        .execute()
+        .data
+        or []
+    ):
+        total_by_assignment[row["assignment_id"]] = total_by_assignment.get(row["assignment_id"], 0) + 1
+
+    answered_by_assignment: dict[str, int] = {}
+    for row in (
+        get_admin_client()
+        .table("answer")
+        .select("assignment_id")
+        .in_("assignment_id", assignment_ids)
+        .execute()
+        .data
+        or []
+    ):
+        answered_by_assignment[row["assignment_id"]] = answered_by_assignment.get(row["assignment_id"], 0) + 1
+
+    return [
+        AssignmentSummary(
+            **row,
+            answered_count=answered_by_assignment.get(row["id"], 0),
+            total_count=total_by_assignment.get(row["id"], 0),
+        )
+        for row in rows
+    ]
 
 
 @router.get("/assignments/{assignment_id}")
@@ -67,12 +107,14 @@ async def get_my_assignment_detail(
     assignment_id: str,
     student: Profile = Depends(require_student),
 ) -> AssignmentDetail:
-    """Detalle de una asignacion propia: los ejercicios de la copia, en
-    orden, y si cada uno ya tiene respuesta (tarea 2.3, capacidad
+    """Detalle de una asignacion propia (tarea 1.3, capacidad
     `student-assignments`, requisito "Ver el detalle de una asignacion
-    propia"). El contenido (enunciado/codigo) se lee via `exercise_id`: la
-    copia en `assignment_exercise` no duplica ese contenido, se apoya en
-    que un `exercise` guardado es inmutable (ver design.md - Context)."""
+    propia", version modificada): los ejercicios de la copia, en orden,
+    hasta el primero sin responder inclusive -- nunca los posteriores --
+    cada uno con su respuesta, verdict y justificacion si ya la tiene. El
+    contenido (enunciado/codigo) se lee via `exercise_id`: la copia en
+    `assignment_exercise` no duplica ese contenido, se apoya en que un
+    `exercise` guardado es inmutable (ver design.md - Context)."""
     assignment = _get_own_assignment_or_404(assignment_id, student.id)
 
     exercise_rows = (
@@ -102,33 +144,52 @@ async def get_my_assignment_detail(
             )
         }
 
-    answered_ids = {
-        row["exercise_id"]
-        for row in (
-            get_admin_client()
-            .table("answer")
-            .select("exercise_id")
-            .eq("assignment_id", assignment_id)
-            .execute()
-            .data
-            or []
-        )
-    }
+    answers_by_exercise: dict[str, dict] = {}
+    if exercise_ids:
+        answers_by_exercise = {
+            row["exercise_id"]: row
+            for row in (
+                get_admin_client()
+                .table("answer")
+                .select("exercise_id, text, verdict, justification")
+                .eq("assignment_id", assignment_id)
+                .execute()
+                .data
+                or []
+            )
+        }
 
-    return AssignmentDetail(
-        id=assignment["id"],
-        block_name=assignment["block_name"],
-        assigned_at=assignment["assigned_at"],
-        exercises=[
+    # Al alumno no se le envian los ejercicios posteriores al primero sin
+    # responder (seccion 3/9 de la especificacion): se corta la lista nada
+    # mas encontrar uno sin respuesta, incluyendolo a el pero ninguno
+    # despues. `exercise_rows` ya viene en orden por `position`.
+    visible_rows: list[dict] = []
+    for row in exercise_rows:
+        visible_rows.append(row)
+        if row["exercise_id"] not in answers_by_exercise:
+            break
+
+    items: list[AssignmentExerciseItem] = []
+    for row in visible_rows:
+        answer = answers_by_exercise.get(row["exercise_id"])
+        items.append(
             AssignmentExerciseItem(
                 exercise_id=row["exercise_id"],
                 position=row["position"],
                 statement=exercises_by_id[row["exercise_id"]]["statement"],
                 code=exercises_by_id[row["exercise_id"]]["code"],
-                answered=row["exercise_id"] in answered_ids,
+                answered=answer is not None,
+                answer_text=answer["text"] if answer else None,
+                verdict=answer["verdict"] if answer else None,
+                justification=answer["justification"] if answer else None,
             )
-            for row in exercise_rows
-        ],
+        )
+
+    return AssignmentDetail(
+        id=assignment["id"],
+        block_name=assignment["block_name"],
+        assigned_at=assignment["assigned_at"],
+        exercises=items,
     )
 
 
