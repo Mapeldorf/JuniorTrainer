@@ -40,7 +40,7 @@ def _get_exercise_or_404(exercise_id: str) -> dict:
     return rows[0]
 
 
-def _to_saved_exercise_list_item(row: dict) -> SavedExerciseListItem:
+def _to_saved_exercise_list_item(row: dict, block_usage_count: int = 0) -> SavedExerciseListItem:
     """Aplana el embed de `generation` (tarea 1.5 de
     frontend-tech-lead-ejercicios) sobre los campos propios del ejercicio;
     solo para `GET /exercises` -- `SavedExercise` (guardar/eliminar) no
@@ -55,6 +55,7 @@ def _to_saved_exercise_list_item(row: dict) -> SavedExerciseListItem:
         expected_answer=row["expected_answer"],
         technologies=[t.strip() for t in technologies_raw.split(",") if t.strip()],
         repo_path=generation.get("repo_name") or None,
+        block_usage_count=block_usage_count,
     )
 
 
@@ -124,7 +125,30 @@ async def list_saved_exercises(
         query = query.ilike("statement", f"%{q}%")
 
     result = query.execute()
-    return [_to_saved_exercise_list_item(row) for row in (result.data or [])]
+    rows = result.data or []
+
+    # tarea 2.2, design.md - decision D4: en cuantos bloques (activos o
+    # eliminados) esta cada ejercicio, en una sola consulta agrupada sobre
+    # los ids de esta pagina, no una por ejercicio.
+    exercise_ids = [row["id"] for row in rows]
+    usage_counts: dict[str, int] = {}
+    if exercise_ids:
+        usage_rows = (
+            get_admin_client()
+            .table("block_exercise")
+            .select("exercise_id")
+            .in_("exercise_id", exercise_ids)
+            .execute()
+            .data
+            or []
+        )
+        for usage_row in usage_rows:
+            usage_counts[usage_row["exercise_id"]] = usage_counts.get(usage_row["exercise_id"], 0) + 1
+
+    return [
+        _to_saved_exercise_list_item(row, block_usage_count=usage_counts.get(row["id"], 0))
+        for row in rows
+    ]
 
 
 @router.patch("/exercises/{exercise_id}")

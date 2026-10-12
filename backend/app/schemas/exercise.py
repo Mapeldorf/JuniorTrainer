@@ -26,6 +26,11 @@ class SavedExerciseListItem(ExerciseCandidate):
 
     technologies: list[str]
     repo_path: str | None = None
+    # En cuantos bloques (activos o eliminados) esta este ejercicio
+    # actualmente (tarea 2.1/2.2, capacidad exercise-catalog, design.md -
+    # decision D4). No se anade a `SavedExercise`: lo usa solo el selector
+    # de la pantalla 6 "Nuevo/editar bloque de ejercicios".
+    block_usage_count: int = 0
 
 
 class SaveExerciseRequest(BaseModel):

@@ -6,6 +6,7 @@ from app.deps import require_tech_lead
 from app.schemas.block import (
     AssignBlockRequest,
     AssignBlockResponse,
+    AssignedStudentSummary,
     AssignmentResult,
     BlockCreateRequest,
     BlockDetail,
@@ -94,16 +95,30 @@ def _get_block_detail(block: dict) -> BlockDetail:
     rows = (
         get_admin_client()
         .table("block_exercise")
-        .select("position, exercise:exercise_id(id, type, statement, code, expected_answer)")
+        .select(
+            "position, "
+            "exercise:exercise_id(id, type, statement, code, expected_answer, deleted_at)"
+        )
         .eq("block_id", block["id"])
         .order("position")
         .execute()
     )
-    exercises = [
-        BlockExerciseItem(position=row["position"], exercise=SavedExercise(**row["exercise"]))
-        for row in (rows.data or [])
-    ]
-    return BlockDetail(**block, exercises=exercises)
+    exercises = []
+    for row in rows.data or []:
+        # tarea 1.3, design.md - decision D3: `deleted_at` solo se usa
+        # para derivar `exercise_deleted`, nunca llega a `SavedExercise`.
+        exercise_row = dict(row["exercise"])
+        exercise_deleted = exercise_row.pop("deleted_at", None) is not None
+        exercises.append(
+            BlockExerciseItem(
+                position=row["position"],
+                exercise=SavedExercise(**exercise_row),
+                exercise_deleted=exercise_deleted,
+            )
+        )
+    # tarea 1.3, design.md - decision D2: mismo significado y misma
+    # funcion que en el listado (tarea 1.2), aqui para un solo bloque.
+    return BlockDetail(**block, exercises=exercises, resolved=_block_has_answers(block["id"]))
 
 
 @router.post("/blocks", status_code=status.HTTP_201_CREATED)
@@ -171,8 +186,56 @@ async def list_blocks(
     for row in exercise_rows:
         counts[row["block_id"]] = counts.get(row["block_id"], 0) + 1
 
+    # tarea 1.2, design.md - decision D1/D2: una sola consulta extra de
+    # asignaciones (con el nombre del alumno) para toda la pagina, en vez
+    # de pedir el detalle de cada bloque por separado.
+    assignment_rows = (
+        get_admin_client()
+        .table("assignment")
+        .select("id, block_id, student_id, profile:student_id(name)")
+        .in_("block_id", block_ids)
+        .execute()
+        .data
+        or []
+    )
+    assigned_students_by_block: dict[str, list[AssignedStudentSummary]] = {}
+    assignment_ids_by_block: dict[str, list[str]] = {}
+    for row in assignment_rows:
+        assigned_students_by_block.setdefault(row["block_id"], []).append(
+            AssignedStudentSummary(id=row["student_id"], name=row["profile"]["name"])
+        )
+        assignment_ids_by_block.setdefault(row["block_id"], []).append(row["id"])
+
+    # "Resuelto" = alguna de las asignaciones del bloque tiene al menos
+    # una respuesta registrada (misma regla que `_block_has_answers`,
+    # aqui resuelta para todos los bloques de la pagina de una vez).
+    resolved_block_ids: set[str] = set()
+    all_assignment_ids = [row["id"] for row in assignment_rows]
+    if all_assignment_ids:
+        answered_assignment_ids = {
+            row["assignment_id"]
+            for row in (
+                get_admin_client()
+                .table("answer")
+                .select("assignment_id")
+                .in_("assignment_id", all_assignment_ids)
+                .execute()
+                .data
+                or []
+            )
+        }
+        for block_id, assignment_ids in assignment_ids_by_block.items():
+            if any(aid in answered_assignment_ids for aid in assignment_ids):
+                resolved_block_ids.add(block_id)
+
     return [
-        BlockSummary(**block, exercise_count=counts.get(block["id"], 0)) for block in blocks
+        BlockSummary(
+            **block,
+            exercise_count=counts.get(block["id"], 0),
+            assigned_students=assigned_students_by_block.get(block["id"], []),
+            resolved=block["id"] in resolved_block_ids,
+        )
+        for block in blocks
     ]
 
 
@@ -384,10 +447,15 @@ async def get_block_progress(
 
     assignment_ids = [a["id"] for a in assignments]
 
+    # tarea 3.2, design.md - decision D5: tipo y enunciado se leen desde
+    # la copia propia de cada asignacion (join con `exercise` aqui), nunca
+    # desde la composicion actual del bloque -- pueden diferir si el
+    # bloque se edito entre dos asignaciones, ambas antes de la primera
+    # respuesta.
     exercise_rows = (
         get_admin_client()
         .table("assignment_exercise")
-        .select("assignment_id, exercise_id, position")
+        .select("assignment_id, exercise_id, position, exercise:exercise_id(type, statement)")
         .in_("assignment_id", assignment_ids)
         .order("position")
         .execute()
@@ -397,17 +465,17 @@ async def get_block_progress(
     answer_rows = (
         get_admin_client()
         .table("answer")
-        .select("assignment_id, exercise_id, verdict")
+        .select("assignment_id, exercise_id, verdict, text, justification")
         .in_("assignment_id", assignment_ids)
         .execute()
         .data
         or []
     )
-    # tarea 6.1 (requisito "Consultar el progreso de un bloque asignado",
-    # version modificada): ya no basta con saber SI hay respuesta, tambien
-    # se informa el verdict de cada una.
-    verdict_by_pair: dict[tuple[str, str], str] = {
-        (row["assignment_id"], row["exercise_id"]): row["verdict"] for row in answer_rows
+    # tarea 3.2 (requisito "Consultar el progreso de un bloque asignado",
+    # version modificada): ya no basta con el verdict, tambien se informa
+    # el texto de la respuesta y la justificacion de cada una.
+    answer_by_pair: dict[tuple[str, str], dict] = {
+        (row["assignment_id"], row["exercise_id"]): row for row in answer_rows
     }
 
     exercises_by_assignment: dict[str, list[dict]] = {}
@@ -417,20 +485,29 @@ async def get_block_progress(
     progress: list[StudentProgress] = []
     for assignment in assignments:
         assignment_id = assignment["id"]
+        exercises: list[ExerciseProgress] = []
+        for row in exercises_by_assignment.get(assignment_id, []):
+            answer = answer_by_pair.get((assignment_id, row["exercise_id"]))
+            exercises.append(
+                ExerciseProgress(
+                    exercise_id=row["exercise_id"],
+                    position=row["position"],
+                    type=row["exercise"]["type"],
+                    statement=row["exercise"]["statement"],
+                    answered=answer is not None,
+                    verdict=answer["verdict"] if answer is not None else None,
+                    # la columna de la tabla es `text`; el DTO la expone como
+                    # `answer_text` (mismo mapeo que `assignments.py`).
+                    answer_text=answer["text"] if answer is not None else None,
+                    justification=answer["justification"] if answer is not None else None,
+                )
+            )
         progress.append(
             StudentProgress(
                 student_id=assignment["student_id"],
                 student_name=assignment["profile"]["name"],
                 assignment_id=assignment_id,
-                exercises=[
-                    ExerciseProgress(
-                        exercise_id=row["exercise_id"],
-                        position=row["position"],
-                        answered=(assignment_id, row["exercise_id"]) in verdict_by_pair,
-                        verdict=verdict_by_pair.get((assignment_id, row["exercise_id"])),
-                    )
-                    for row in exercises_by_assignment.get(assignment_id, [])
-                ],
+                exercises=exercises,
             )
         )
     return progress

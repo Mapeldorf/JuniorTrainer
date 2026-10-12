@@ -87,6 +87,10 @@ export type SavedExercise = ExerciseCandidate;
 export interface SavedExerciseListItem extends ExerciseCandidate {
   technologies: string[];
   repo_path: string | null;
+  /** En cuantos bloques (activos o eliminados) esta este ejercicio
+   * actualmente (tarea 2.1/5.3 de backend/frontend-tech-lead-bloques):
+   * "Sin usar" / "En N bloque(s)" en el selector de la pantalla 6. */
+  block_usage_count: number;
 }
 
 /** Filtros opcionales de `GET /exercises` (tarea 2.3 de backend). */

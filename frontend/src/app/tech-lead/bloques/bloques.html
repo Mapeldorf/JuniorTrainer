@@ -1,0 +1,114 @@
+<div class="flex min-h-screen flex-col bg-zinc-50">
+  <app-tech-lead-nav />
+
+  <div class="flex flex-col gap-10 px-8 py-10">
+    @if (error()) {
+      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+    }
+
+    <section class="flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold tracking-tight">Bloques de ejercicios</h1>
+        <button
+          type="button"
+          (click)="nuevoBloque()"
+          class="flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800"
+        >
+          Nuevo bloque de ejercicios
+        </button>
+      </div>
+
+      @if (loadingActivos()) {
+        <p class="text-sm text-zinc-500">Cargando…</p>
+      } @else if (activos().length === 0) {
+        <p class="text-sm text-zinc-500">
+          No hay ningún bloque todavía. Crea el primero con "Nuevo bloque de ejercicios".
+        </p>
+      } @else {
+        <table class="w-full table-auto border-collapse text-left text-sm">
+          <thead>
+            <tr class="border-b border-zinc-200 text-zinc-500">
+              <th class="py-2 pr-4 font-medium">Nombre</th>
+              <th class="py-2 pr-4 font-medium">Ejercicios</th>
+              <th class="py-2 pr-4 font-medium">Alumnos asignados</th>
+              <th class="py-2 pr-4 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (block of activos(); track block.id) {
+              <tr class="border-b border-zinc-100">
+                <td class="py-3 pr-4">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium">{{ block.name }}</span>
+                    @if (block.resolved) {
+                      <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        Resuelto · no editable
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="py-3 pr-4">{{ block.exercise_count }}</td>
+                <td class="max-w-[320px] truncate py-3 pr-4">{{ nombresAlumnos(block) }}</td>
+                <td class="py-3 pr-4 text-right">
+                  <button
+                    type="button"
+                    (click)="verDetalle(block)"
+                    class="text-sm font-medium text-blue-700 hover:underline"
+                  >
+                    Ver detalle
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <button
+        type="button"
+        (click)="toggleEliminados()"
+        class="flex items-center gap-2 text-left text-sm font-medium text-zinc-700"
+      >
+        <span>{{ mostrarEliminados() ? '▾' : '▸' }}</span>
+        Bloques de ejercicios eliminados ({{ eliminados().length }})
+      </button>
+
+      @if (mostrarEliminados()) {
+        @if (loadingEliminados()) {
+          <p class="text-sm text-zinc-500">Cargando…</p>
+        } @else if (eliminados().length === 0) {
+          <p class="text-sm text-zinc-500">No hay ningún bloque eliminado.</p>
+        } @else {
+          <table class="w-full table-auto border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-zinc-200 text-zinc-500">
+                <th class="py-2 pr-4 font-medium">Nombre</th>
+                <th class="py-2 pr-4 font-medium">Eliminado el</th>
+                <th class="py-2 pr-4 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (block of eliminados(); track block.id) {
+                <tr class="border-b border-zinc-100 text-zinc-500">
+                  <td class="py-3 pr-4">{{ block.name }}</td>
+                  <td class="py-3 pr-4">{{ block.deleted_at ? formatFecha(block.deleted_at) : '—' }}</td>
+                  <td class="py-3 pr-4 text-right">
+                    <button
+                      type="button"
+                      (click)="verDetalle(block)"
+                      class="text-sm font-medium text-blue-700 hover:underline"
+                    >
+                      Ver resultados
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    </section>
+  </div>
+</div>

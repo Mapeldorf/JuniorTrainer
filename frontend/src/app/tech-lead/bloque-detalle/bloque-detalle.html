@@ -1,0 +1,167 @@
+<div class="flex min-h-screen flex-col bg-zinc-50">
+  <app-tech-lead-nav />
+
+  <div class="flex flex-col gap-8 px-8 py-10">
+    @if (error()) {
+      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+    }
+
+    @if (loading()) {
+      <p class="text-sm text-zinc-500">Cargando…</p>
+    } @else if (block()) {
+      <section class="flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-semibold tracking-tight">{{ block()!.name }}</h1>
+              @if (block()!.resolved) {
+                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                  Resuelto · no editable
+                </span>
+              }
+              @if (isDeleted) {
+                <span class="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                  Eliminado
+                </span>
+              }
+            </div>
+            <span class="text-sm text-zinc-500">{{ block()!.exercises.length }} ejercicios</span>
+          </div>
+
+          @if (!isDeleted) {
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                [disabled]="block()!.resolved"
+                (click)="editar()"
+                class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
+              >
+                Editar bloque
+              </button>
+              <button
+                type="button"
+                (click)="eliminar()"
+                class="flex h-10 items-center justify-center rounded-lg border border-red-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Eliminar bloque
+              </button>
+            </div>
+          }
+        </div>
+
+        <p class="rounded-lg bg-blue-50 px-3.5 py-2.5 text-sm text-blue-900">
+          Editar o eliminar este bloque solo afecta a asignaciones futuras: los alumnos ya
+          asignados siguen viendo su copia tal y como se les asignó. Un bloque se vuelve
+          "resuelto" (ya no editable, pero sí eliminable) en cuanto algún alumno ha respondido
+          alguno de sus ejercicios.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Alumnos asignados ({{ progress().length }})</h2>
+          <input
+            type="search"
+            placeholder="Buscar por nombre…"
+            [ngModel]="studentSearch()"
+            (ngModelChange)="studentSearch.set($event)"
+            class="h-10 w-full max-w-[280px] rounded-lg border border-zinc-300 px-3 text-sm"
+          />
+        </div>
+
+        @if (filteredProgress.length === 0) {
+          <p class="text-sm text-zinc-500">Todavía no hay ningún alumno asignado.</p>
+        } @else {
+          <ul class="flex flex-col gap-2">
+            @for (p of filteredProgress; track p.assignment_id) {
+              <li class="rounded-xl border border-zinc-200 bg-white">
+                <button
+                  type="button"
+                  (click)="toggleExpanded(p.assignment_id)"
+                  class="flex w-full items-center justify-between px-4 py-3 text-left"
+                >
+                  <span class="font-medium">{{ p.student_name }}</span>
+                  <span class="flex items-center gap-3 text-sm text-zinc-500">
+                    <span>{{ statusLabel(p) }}</span>
+                    <span>{{ answeredCount(p) }} de {{ p.exercises.length }} respondidas</span>
+                    <span class="text-emerald-700">{{ verdictCounts(p).correct }} correctas</span>
+                    <span class="text-amber-700">{{ verdictCounts(p).incomplete }} incompletas</span>
+                    <span class="text-red-700">{{ verdictCounts(p).incorrect }} incorrectas</span>
+                  </span>
+                </button>
+
+                @if (isExpanded(p.assignment_id)) {
+                  <ul class="flex flex-col gap-2 border-t border-zinc-100 px-4 py-3">
+                    @for (e of p.exercises; track e.exercise_id) {
+                      <li class="flex flex-col gap-1 rounded-lg bg-zinc-50 px-3 py-2 text-sm">
+                        <span class="font-medium">{{ e.statement }}</span>
+                        @if (e.answered) {
+                          <span class="text-zinc-700">{{ e.answer_text }}</span>
+                          <span
+                            [class.text-emerald-700]="e.verdict === 'correct'"
+                            [class.text-amber-700]="e.verdict === 'incomplete'"
+                            [class.text-red-700]="e.verdict === 'incorrect'"
+                            class="font-medium"
+                          >
+                            {{ e.verdict }}
+                          </span>
+                          @if (e.justification) {
+                            <span class="text-zinc-500">{{ e.justification }}</span>
+                          }
+                        } @else {
+                          <span class="text-zinc-400">Sin responder</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      @if (!isDeleted) {
+        <section class="flex flex-col gap-3">
+          <h2 class="text-lg font-semibold">Asignar a más alumnos</h2>
+          @if (unassignedStudents.length === 0) {
+            <p class="text-sm text-zinc-500">Todos los alumnos ya tienen este bloque asignado.</p>
+          } @else {
+            <ul class="flex flex-col gap-2">
+              @for (s of unassignedStudents; track s.id) {
+                <li class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-2">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelectedToAssign(s.id)"
+                    (change)="toggleToAssign(s.id)"
+                  />
+                  <span>{{ s.name }}</span>
+                </li>
+              }
+            </ul>
+            <button
+              type="button"
+              [disabled]="selectedToAssign().length === 0"
+              (click)="asignar()"
+              class="flex h-10 w-fit items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            >
+              Asignar
+            </button>
+          }
+        </section>
+      }
+
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold">Ejercicios del bloque</h2>
+        <ol class="flex flex-col gap-2">
+          @for (item of block()!.exercises; track item.exercise.id) {
+            <li class="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm">
+              <span class="text-zinc-500">{{ item.exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }} ·</span>
+              {{ item.exercise.statement }}
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  </div>
+</div>

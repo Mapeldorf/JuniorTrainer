@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.exercise import SavedExercise
+from app.schemas.generation import ExerciseType
 
 
 class BlockCreateRequest(BaseModel):
@@ -46,6 +47,19 @@ class BlockUpdateRequest(BaseModel):
 class BlockExerciseItem(BaseModel):
     position: int
     exercise: SavedExercise
+    # True si el ejercicio fue eliminado del catalogo (soft-delete via
+    # `exercise.deleted_at`) desde que se anadio a este bloque (tarea 1.3,
+    # design.md - decision D3). No se anade a `SavedExercise`: esa misma
+    # consulta no une con `generation` y se reutiliza en otros sitios.
+    exercise_deleted: bool = False
+
+
+class AssignedStudentSummary(BaseModel):
+    """Alumno asignado a un bloque, para el resumen de `BlockSummary`
+    (tarea 1.2, design.md - decision D1)."""
+
+    id: str
+    name: str
 
 
 class BlockSummary(BaseModel):
@@ -55,6 +69,13 @@ class BlockSummary(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None = None
     exercise_count: int
+    # Alumnos actualmente asignados a este bloque (tarea 1.2, design.md -
+    # decision D1).
+    assigned_students: list[AssignedStudentSummary] = Field(default_factory=list)
+    # True si alguna asignacion de este bloque tiene al menos una
+    # respuesta registrada (tarea 1.2, design.md - decision D2): reusa la
+    # misma regla que ya bloquea la edicion en `_block_has_answers`.
+    resolved: bool = False
 
 
 class BlockDetail(BaseModel):
@@ -64,6 +85,9 @@ class BlockDetail(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None = None
     exercises: list[BlockExerciseItem] = Field(default_factory=list)
+    # Mismo significado que en `BlockSummary` (tarea 1.3, design.md -
+    # decision D2).
+    resolved: bool = False
 
 
 class AssignBlockRequest(BaseModel):
@@ -87,8 +111,20 @@ class AssignBlockResponse(BaseModel):
 class ExerciseProgress(BaseModel):
     exercise_id: str
     position: int
+    # Tipo y enunciado del ejercicio, leidos siempre desde la copia
+    # inmutable de esta asignacion (`assignment_exercise`/`exercise`), no
+    # desde la composicion actual del bloque (tarea 3.1, design.md -
+    # decision D5): un bloque puede haberse editado entre dos asignaciones
+    # distintas antes de que existiera ninguna respuesta.
+    type: ExerciseType
+    statement: str
     answered: bool
     verdict: Literal["correct", "incomplete", "incorrect"] | None = None
+    # Texto de la respuesta y justificacion de la valoracion, solo cuando
+    # `answered` es True (tarea 3.1, design.md - decision D5); ya existen
+    # en `answer` desde el change archivado "valoracion-respuestas".
+    answer_text: str | None = None
+    justification: str | None = None
 
 
 class StudentProgress(BaseModel):

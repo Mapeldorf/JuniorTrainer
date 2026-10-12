@@ -22,6 +22,29 @@ export const routes: Routes = [
     loadComponent: () => import('./tech-lead/revisar/revisar').then((m) => m.RevisarComponent),
   },
   {
+    path: 'bloques',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () => import('./tech-lead/bloques/bloques').then((m) => m.BloquesComponent),
+  },
+  {
+    path: 'bloques/nuevo',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () =>
+      import('./tech-lead/bloque-editar/bloque-editar').then((m) => m.BloqueEditarComponent),
+  },
+  {
+    path: 'bloques/:blockId/editar',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () =>
+      import('./tech-lead/bloque-editar/bloque-editar').then((m) => m.BloqueEditarComponent),
+  },
+  {
+    path: 'bloques/:blockId',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () =>
+      import('./tech-lead/bloque-detalle/bloque-detalle').then((m) => m.BloqueDetalleComponent),
+  },
+  {
     path: 'mis-bloques',
     canActivate: [authGuard, studentGuard],
     loadComponent: () =>
