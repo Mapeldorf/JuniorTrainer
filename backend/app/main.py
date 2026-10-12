@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import health, users
+from app.routers import generations, health, users
 
 settings = get_settings()
 
@@ -18,8 +18,8 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(users.router)
+app.include_router(generations.router)
 
 # El resto de /users (listar alumnos, ver sus asignaciones) y los routers de
-# generaciones, bloques, asignaciones y respuestas (seccion 9 de la
-# especificacion) llegan en los pasos 2 y 3 del plan de trabajo, junto con los
-# agentes que los alimentan.
+# bloques, asignaciones y respuestas (seccion 9 de la especificacion) llegan
+# en el paso 3 del plan de trabajo.

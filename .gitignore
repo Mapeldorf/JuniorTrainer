@@ -9,12 +9,20 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/.venv/
 backend/*.egg-info/
+agents/**/__pycache__/
+agents/**/.venv/
+agents/**/.venv-test/
+agents/**/*.egg-info/
 *.pyc
 
 # Env
 .env
 .env.*
 !.env.example
+
+# Repos preparados para el agente de codigo (grupo 7, REPOS_DIR en .env.example)
+/data/repos/*
+!/data/repos/.gitkeep
 
 # OS
 .DS_Store

@@ -24,6 +24,19 @@ class Settings(BaseSettings):
     # Origen del frontend, para CORS y para el redirect_to de las invitaciones.
     frontend_url: str = "http://localhost:4200"
 
+    # URLs internas de los tres agentes de generacion (grupo 6), red interna
+    # de docker-compose (grupo 7) -- mismos valores por defecto que cada
+    # agente anuncia en su propia Agent Card (ver agents/*/app/config.py).
+    agent_web_url: str = "http://agent-web:8010/"
+    agent_code_url: str = "http://agent-code:8011/"
+    agent_exercises_url: str = "http://agent-exercises:8012/"
+
+    # Langfuse Cloud: el backend genera un trace_id por generacion (tarea
+    # 6.7) y abre su propio span de orquestacion bajo esa traza.
+    langfuse_public_key: str
+    langfuse_secret_key: str
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+
 
 @lru_cache
 def get_settings() -> Settings:
