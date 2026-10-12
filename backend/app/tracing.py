@@ -68,3 +68,39 @@ def record_generation(
             trace_id,
             exc_info=True,
         )
+
+
+def record_answer_evaluation(
+    trace_id: str,
+    assignment_id: str,
+    exercise_id: str,
+    *,
+    status: str,
+    verdict: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Marca en Langfuse que esta evaluacion de respuesta (`trace_id`,
+    grupo 5 del change `valoracion-respuestas`) ha terminado, con su
+    resultado final. Analoga a `record_generation`; un fallo aqui se
+    registra y se ignora: la respuesta ya ha terminado de evaluarse de
+    verdad (o de fallar), independientemente de si esto consigue
+    escribirse en Langfuse."""
+    try:
+        init_client()
+        client = get_client()
+        with client.start_as_current_observation(
+            name="orquestacion-respuesta",
+            as_type="span",
+            trace_context={"trace_id": trace_id},
+            input={"assignment_id": assignment_id, "exercise_id": exercise_id},
+            output={"status": status, "verdict": verdict, "error_message": error_message},
+            metadata={"status": status},
+        ):
+            pass
+        client.flush()
+    except Exception:
+        logger.warning(
+            "fallo marcando el resultado de la evaluacion en Langfuse (trace_id=%s)",
+            trace_id,
+            exc_info=True,
+        )

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.config import get_settings
 from app.deps import require_tech_lead
-from app.schemas.profile import InviteStudentRequest, Profile
+from app.schemas.profile import InviteStudentRequest, Profile, StudentSummary
 from app.supabase_client import get_admin_client
 
 router = APIRouter(tags=["users"])
@@ -39,3 +39,22 @@ async def invite_student(
         ) from exc
 
     return {"email": email, "status": "invited"}
+
+
+@router.get("/users")
+async def list_students(
+    _tech_lead: Profile = Depends(require_tech_lead),
+) -> list[StudentSummary]:
+    """Listado de alumnos (tarea 7.1, capacidad user-auth modificada,
+    requisito "Listar alumnos"): solo tech lead, solo perfiles
+    role='student'."""
+    rows = (
+        get_admin_client()
+        .table("profile")
+        .select("id, name, email")
+        .eq("role", "student")
+        .execute()
+        .data
+        or []
+    )
+    return [StudentSummary(**row) for row in rows]
