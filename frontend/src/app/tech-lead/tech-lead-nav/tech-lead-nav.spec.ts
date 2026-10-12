@@ -20,32 +20,36 @@ describe('TechLeadNavComponent', () => {
   it('"Ejercicios guardados" es un enlace a /ejercicios', () => {
     const fixture = createComponent();
     const el = fixture.nativeElement as HTMLElement;
-    const link = el.querySelector('a');
+    const links = el.querySelectorAll('a');
+    const link = Array.from(links).find((a) => a.textContent?.includes('Ejercicios guardados'));
     expect(link).toBeTruthy();
     expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/ejercicios');
-    expect(link!.textContent).toContain('Ejercicios guardados');
   });
 
-  it('"Bloques de ejercicios" y "Alumnos" no son clicables: sin <a>, con aria-disabled', () => {
+  it('"Bloques de ejercicios" es un enlace a /bloques (tarea 6.1)', () => {
+    const fixture = createComponent();
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('a');
+    const link = Array.from(links).find((a) => a.textContent?.includes('Bloques de ejercicios'));
+    expect(link).toBeTruthy();
+    expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/bloques');
+  });
+
+  it('"Alumnos" sigue sin ser clicable: sin <a>, con aria-disabled', () => {
     const fixture = createComponent();
     const el = fixture.nativeElement as HTMLElement;
 
-    // Ninguna de las dos pestanas deshabilitadas debe ser un <a> (ni
-    // tener routerLink), solo la activa lo es.
+    // Solo "Alumnos" sigue deshabilitada; las otras dos ya son <a>.
     const links = el.querySelectorAll('a');
-    expect(links.length).toBe(1);
+    expect(links.length).toBe(2);
 
     const disabled = el.querySelectorAll('[aria-disabled="true"]');
-    expect(disabled.length).toBe(2);
-    const disabledText = Array.from(disabled).map((n) => n.textContent ?? '').join(' ');
-    expect(disabledText).toContain('Bloques de ejercicios');
-    expect(disabledText).toContain('Alumnos');
-    disabled.forEach((node) => {
-      expect(node.tagName.toLowerCase()).not.toBe('a');
-    });
+    expect(disabled.length).toBe(1);
+    expect(disabled[0].textContent).toContain('Alumnos');
+    expect(disabled[0].tagName.toLowerCase()).not.toBe('a');
   });
 
-  it('las pestanas deshabilitadas muestran "Próximamente"', () => {
+  it('la pestana deshabilitada muestra "Próximamente"', () => {
     const fixture = createComponent();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Próximamente');

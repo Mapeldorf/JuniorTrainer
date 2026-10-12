@@ -26,6 +26,7 @@ const SAVED_ITEM: SavedExerciseListItem = {
   expected_answer: 'respuesta esperada',
   technologies: ['Git'],
   repo_path: null,
+  block_usage_count: 0,
 };
 
 describe('EjerciciosComponent', () => {

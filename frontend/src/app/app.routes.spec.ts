@@ -29,4 +29,26 @@ describe('routes', () => {
     const revisar = routes.find((r) => r.path === 'ejercicios/:generationId/revisar');
     expect(revisar?.canActivate).toEqual([authGuard, techLeadGuard]);
   });
+
+  it('bloques usa authGuard y techLeadGuard', () => {
+    const bloques = routes.find((r) => r.path === 'bloques');
+    expect(bloques?.canActivate).toEqual([authGuard, techLeadGuard]);
+  });
+
+  it('bloques/nuevo y bloques/:blockId/editar usan authGuard y techLeadGuard', () => {
+    const nuevo = routes.find((r) => r.path === 'bloques/nuevo');
+    const editar = routes.find((r) => r.path === 'bloques/:blockId/editar');
+    expect(nuevo?.canActivate).toEqual([authGuard, techLeadGuard]);
+    expect(editar?.canActivate).toEqual([authGuard, techLeadGuard]);
+  });
+
+  it('bloques/:blockId usa authGuard y techLeadGuard, y va despues de nuevo/editar', () => {
+    const detalle = routes.find((r) => r.path === 'bloques/:blockId');
+    expect(detalle?.canActivate).toEqual([authGuard, techLeadGuard]);
+    const indexNuevo = routes.findIndex((r) => r.path === 'bloques/nuevo');
+    const indexEditar = routes.findIndex((r) => r.path === 'bloques/:blockId/editar');
+    const indexDetalle = routes.findIndex((r) => r.path === 'bloques/:blockId');
+    expect(indexNuevo).toBeLessThan(indexDetalle);
+    expect(indexEditar).toBeLessThan(indexDetalle);
+  });
 });
