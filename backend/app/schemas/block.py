@@ -88,6 +88,7 @@ class ExerciseProgress(BaseModel):
     exercise_id: str
     position: int
     answered: bool
+    verdict: Literal["correct", "incomplete", "incorrect"] | None = None
 
 
 class StudentProgress(BaseModel):

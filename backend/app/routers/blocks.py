@@ -364,9 +364,10 @@ async def get_block_progress(
     block_id: str,
     _tech_lead: Profile = Depends(require_tech_lead),
 ) -> list[StudentProgress]:
-    """Progreso por alumno asignado (tarea 4.3, capacidad block-assignment:
-    "Consultar el progreso de un bloque asignado"): que ejercicios de su
-    copia tienen respuesta, sin ningun dato de valoracion todavia."""
+    """Progreso por alumno asignado (tarea 4.3, modificado por la tarea 6.1
+    de la capacidad block-assignment: "Consultar el progreso de un bloque
+    asignado"): que ejercicios de su copia tienen respuesta y, si la hay,
+    el verdict (correct/incomplete/incorrect) de la valoracion."""
     _get_block_or_404(block_id)
 
     assignments = (
@@ -396,13 +397,18 @@ async def get_block_progress(
     answer_rows = (
         get_admin_client()
         .table("answer")
-        .select("assignment_id, exercise_id")
+        .select("assignment_id, exercise_id, verdict")
         .in_("assignment_id", assignment_ids)
         .execute()
         .data
         or []
     )
-    answered: set[tuple[str, str]] = {(row["assignment_id"], row["exercise_id"]) for row in answer_rows}
+    # tarea 6.1 (requisito "Consultar el progreso de un bloque asignado",
+    # version modificada): ya no basta con saber SI hay respuesta, tambien
+    # se informa el verdict de cada una.
+    verdict_by_pair: dict[tuple[str, str], str] = {
+        (row["assignment_id"], row["exercise_id"]): row["verdict"] for row in answer_rows
+    }
 
     exercises_by_assignment: dict[str, list[dict]] = {}
     for row in exercise_rows:
@@ -420,7 +426,8 @@ async def get_block_progress(
                     ExerciseProgress(
                         exercise_id=row["exercise_id"],
                         position=row["position"],
-                        answered=(assignment_id, row["exercise_id"]) in answered,
+                        answered=(assignment_id, row["exercise_id"]) in verdict_by_pair,
+                        verdict=verdict_by_pair.get((assignment_id, row["exercise_id"])),
                     )
                     for row in exercises_by_assignment.get(assignment_id, [])
                 ],

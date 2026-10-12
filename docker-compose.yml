@@ -18,6 +18,8 @@ services:
       - agent-web
       - agent-code
       - agent-exercises
+      - agent-evaluator
+      - agent-reviewer
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -28,11 +30,12 @@ services:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
 
-  # Los tres agentes de generacion (grupos 3-5): servicios A2A internos,
-  # sin puerto publicado al host (tarea 7.1) -- solo el backend les habla,
-  # dentro de la red interna de Compose, por su nombre de servicio (que
-  # coincide con el host que cada uno ya anuncia por defecto en su propia
-  # Agent Card, ver agents/*/app/config.py y backend/app/config.py).
+  # Los agentes A2A internos (generacion, grupos 3-5; valoracion de
+  # respuestas -- evaluador/revisor, grupos 3-4 de valoracion-respuestas):
+  # sin puerto publicado al host (tarea 7.1 / 8.1) -- solo el backend les
+  # habla, dentro de la red interna de Compose, por su nombre de servicio
+  # (que coincide con el host que cada uno ya anuncia por defecto en su
+  # propia Agent Card, ver agents/*/app/config.py y backend/app/config.py).
   agent-web:
     build: ./agents/web
     expose:
@@ -62,6 +65,22 @@ services:
     build: ./agents/exercises
     expose:
       - "8012"
+    env_file: .env
+    depends_on:
+      - litellm
+
+  agent-evaluator:
+    build: ./agents/evaluator
+    expose:
+      - "8013"
+    env_file: .env
+    depends_on:
+      - litellm
+
+  agent-reviewer:
+    build: ./agents/reviewer
+    expose:
+      - "8014"
     env_file: .env
     depends_on:
       - litellm

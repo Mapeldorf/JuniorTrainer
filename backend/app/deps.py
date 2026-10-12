@@ -72,3 +72,14 @@ async def require_tech_lead(
             detail="Requiere rol tech_lead",
         )
     return profile
+
+
+async def require_student(
+    profile: Profile = Depends(get_current_profile),
+) -> Profile:
+    if profile.role != "student":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requiere rol student",
+        )
+    return profile
