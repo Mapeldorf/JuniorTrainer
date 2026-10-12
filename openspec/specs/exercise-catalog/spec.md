@@ -26,7 +26,7 @@ El sistema SHALL permitir a un tech lead marcar como definitivo (`saved = true`)
 - **THEN** la peticion responde 403 y el ejercicio no cambia
 
 ### Requirement: Listar y buscar ejercicios definitivos
-El sistema SHALL permitir a un tech lead listar los ejercicios definitivos (`saved = true`, no eliminados), filtrables por tipo y buscables por texto en el enunciado, incluyendo para cada uno las tecnologias y el repositorio de la generacion de la que proviene, independientemente de si esa generacion sigue pendiente o ya esta cerrada (`done`).
+El sistema SHALL permitir a un tech lead listar los ejercicios definitivos (`saved = true`, no eliminados), filtrables por tipo y buscables por texto en el enunciado, incluyendo para cada uno las tecnologias y el repositorio de la generacion de la que proviene, independientemente de si esa generacion sigue pendiente o ya esta cerrada (`done`), y en cuantos bloques de ejercicios esta incluido actualmente.
 
 #### Scenario: Listar sin filtros
 - **WHEN** un tech lead lista los ejercicios definitivos sin ningun filtro
@@ -47,6 +47,10 @@ El sistema SHALL permitir a un tech lead listar los ejercicios definitivos (`sav
 #### Scenario: Las tecnologias y el repositorio se incluyen aunque la generacion ya este cerrada
 - **WHEN** un ejercicio definitivo proviene de una generacion que ya esta en `done`
 - **THEN** sus tecnologias y repositorio siguen incluyendose en el listado de definitivos
+
+#### Scenario: Un ejercicio guardado indica en cuantos bloques esta
+- **WHEN** un tech lead lista los ejercicios definitivos
+- **THEN** cada ejercicio incluye en cuantos bloques de ejercicios esta incluido actualmente, aunque sea en ninguno
 
 ### Requirement: Eliminar logicamente un ejercicio definitivo
 El sistema SHALL permitir a un tech lead eliminar un ejercicio definitivo marcando su `deleted_at`, de modo que deje de aparecer en el listado de definitivos y de poder anadirse a bloques nuevos, sin alterar los bloques que ya lo contengan ni las copias de asignacion ya creadas.

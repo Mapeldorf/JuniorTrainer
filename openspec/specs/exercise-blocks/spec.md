@@ -22,7 +22,7 @@ El sistema SHALL permitir a un tech lead crear un bloque con un nombre y entre 1
 - **THEN** la peticion se rechaza y no se crea ningun bloque
 
 ### Requirement: Listar y ver el detalle de un bloque
-El sistema SHALL permitir a un tech lead listar sus bloques (activos y eliminados por separado) y ver el detalle de uno, incluyendo sus ejercicios.
+El sistema SHALL permitir a un tech lead listar sus bloques (activos y eliminados por separado), con un resumen de los alumnos asignados a cada uno y si esta resuelto, y ver el detalle de uno, incluyendo sus ejercicios, si cada uno de ellos esta eliminado de la app y si el bloque esta resuelto.
 
 #### Scenario: Listar bloques activos
 - **WHEN** un tech lead lista los bloques sin pedir los eliminados
@@ -35,6 +35,18 @@ El sistema SHALL permitir a un tech lead listar sus bloques (activos y eliminado
 #### Scenario: Ver el detalle de un bloque
 - **WHEN** un tech lead consulta el detalle de un bloque, eliminado o no
 - **THEN** devuelve su nombre y sus ejercicios en orden
+
+#### Scenario: El listado incluye un resumen de los alumnos asignados
+- **WHEN** un tech lead lista sus bloques
+- **THEN** cada bloque incluye cuantos alumnos lo tienen asignado y quienes son
+
+#### Scenario: El detalle marca los ejercicios eliminados de la app
+- **WHEN** un tech lead consulta el detalle de un bloque que contiene un ejercicio eliminado de la app desde que se anadio al bloque
+- **THEN** ese ejercicio aparece marcado como eliminado en la respuesta, sin afectar al resto de su composicion
+
+#### Scenario: El listado y el detalle indican si el bloque esta resuelto
+- **WHEN** un tech lead lista sus bloques o consulta el detalle de uno
+- **THEN** cada bloque indica si esta resuelto (alguna de sus asignaciones tiene al menos una respuesta registrada)
 
 ### Requirement: Editar un bloque solo si nadie lo ha resuelto
 El sistema SHALL permitir a un tech lead editar el nombre y la composicion de un bloque (anadir o quitar ejercicios definitivos) unicamente mientras ninguna de sus asignaciones tenga todavia una respuesta registrada; quitar un ejercicio de un bloque SHALL dejar intacto su `deleted_at` en la tabla de ejercicios.
