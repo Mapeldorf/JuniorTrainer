@@ -181,10 +181,15 @@ async def main() -> None:
 
     block = None
     try:
-        await exercises.save_exercise(ex_correct, tech_lead)
-        await exercises.save_exercise(ex_wrong, tech_lead)
-        await exercises.save_exercise(ex_outside, tech_lead)
-        await exercises.save_exercise(ex_deleted, tech_lead)
+        # body=None (bug preexistente arreglado aqui: estas llamadas
+        # pasaban tech_lead como segundo posicional -- el parametro body --
+        # desde que bloques-asignaciones le anadio ese parametro a
+        # save_exercise(); ahora va como _tech_lead=, igual que el resto
+        # de llamadas en este archivo).
+        await exercises.save_exercise(ex_correct, body=None, _tech_lead=tech_lead)
+        await exercises.save_exercise(ex_wrong, body=None, _tech_lead=tech_lead)
+        await exercises.save_exercise(ex_outside, body=None, _tech_lead=tech_lead)
+        await exercises.save_exercise(ex_deleted, body=None, _tech_lead=tech_lead)
 
         # Bloque con 3 de los 4 ejercicios: ex_outside se queda fuera a
         # proposito, para el escenario "responder un ejercicio que no esta
@@ -203,10 +208,14 @@ async def main() -> None:
         print("OK: bloque asignado a los dos alumnos de prueba")
 
         # ---- student-assignments (tareas 2.2/2.3) ----
+        # Busqueda por pertenencia, no por indice/longitud exacta (mismo
+        # ajuste que en verify_bloques_asignaciones.py): student_a es el
+        # alumno real de pruebas manuales, que puede tener otras
+        # asignaciones ajenas a esta ejecucion.
         listing_a = await assignments.list_my_assignments(student=student_a)
-        assert len(listing_a) == 1 and listing_a[0].block_name == f"{TAG} bloque"
-        assignment_a_id = listing_a[0].id
-        print("OK: 2.2 GET /assignments devuelve solo las asignaciones propias")
+        asignacion_a = next(a for a in listing_a if a.block_name == f"{TAG} bloque")
+        assignment_a_id = asignacion_a.id
+        print("OK: 2.2 GET /assignments devuelve la asignacion propia (entre posiblemente otras)")
 
         listing_b = await assignments.list_my_assignments(student=student_b)
         assert len(listing_b) == 1

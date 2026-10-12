@@ -132,3 +132,18 @@ class StudentProgress(BaseModel):
     student_name: str
     assignment_id: str
     exercises: list[ExerciseProgress] = Field(default_factory=list)
+
+
+class StudentBlockAssignment(BaseModel):
+    """Una asignacion de un alumno, vista desde el alumno (tarea 1.1,
+    capacidad `block-assignment`, requisito "Consultar las asignaciones de
+    un alumno a traves de sus bloques"): mismo detalle por ejercicio que
+    `StudentProgress`, pero el dato que identifica a cada fila es el
+    bloque de origen (su nombre), no el alumno -- es la vista simetrica de
+    `GET /blocks/{id}/assignments` para `GET /users/{id}/blocks`. Incluye
+    asignaciones de bloques ya eliminados (design.md - decision D3)."""
+
+    assignment_id: str
+    block_id: str
+    block_name: str
+    exercises: list[ExerciseProgress] = Field(default_factory=list)

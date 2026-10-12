@@ -1,0 +1,120 @@
+<div class="flex min-h-screen flex-col bg-zinc-50">
+  <app-tech-lead-nav />
+
+  <div class="flex flex-col gap-7 px-8 py-10">
+    <a routerLink="/alumnos" class="flex w-fit items-center gap-2 text-sm font-medium text-zinc-700 hover:underline">
+      ← Alumnos
+    </a>
+
+    @if (error()) {
+      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+    }
+
+    @if (loading()) {
+      <p class="text-sm text-zinc-500">Cargando…</p>
+    } @else {
+      <div class="flex flex-col gap-1">
+        <h1 class="text-2xl font-semibold tracking-tight">{{ student()?.name ?? 'Alumno' }}</h1>
+        <p class="text-sm text-zinc-500">
+          {{ student()?.email ?? '—' }} · {{ assignments().length }} bloques de ejercicios asignados
+        </p>
+      </div>
+
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold">
+          Bloques de ejercicios asignados ({{ assignments().length }})
+        </h2>
+
+        @if (assignments().length === 0) {
+          <p class="text-sm text-zinc-500">Este alumno todavía no tiene ningún bloque asignado.</p>
+        } @else {
+          <ul class="flex flex-col gap-2">
+            @for (a of assignments(); track a.assignment_id) {
+              <li class="rounded-xl border border-zinc-200 bg-white">
+                <button
+                  type="button"
+                  (click)="toggleExpanded(a.assignment_id)"
+                  class="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left"
+                >
+                  <span class="font-medium">{{ a.block_name }}</span>
+                  <span class="flex flex-wrap items-center gap-3 text-sm text-zinc-500">
+                    <span
+                      [class.bg-zinc-100]="statusLabel(a) === 'Sin empezar'"
+                      [class.text-zinc-600]="statusLabel(a) === 'Sin empezar'"
+                      [class.bg-blue-100]="statusLabel(a) === 'En curso'"
+                      [class.text-blue-900]="statusLabel(a) === 'En curso'"
+                      [class.bg-emerald-100]="statusLabel(a) === 'Completado'"
+                      [class.text-emerald-900]="statusLabel(a) === 'Completado'"
+                      class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      {{ statusLabel(a) }} · {{ answeredCount(a) }} de {{ a.exercises.length }}
+                    </span>
+                    <span>{{ verdictSummary(a) }}</span>
+                  </span>
+                </button>
+
+                @if (isExpanded(a.assignment_id)) {
+                  <div class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-3">
+                    <a
+                      [routerLink]="['/bloques', a.block_id]"
+                      class="w-fit text-sm font-medium text-blue-700 hover:underline"
+                    >
+                      Ver detalle del bloque
+                    </a>
+
+                    <ol class="flex flex-col gap-2">
+                      @for (e of a.exercises; track e.exercise_id) {
+                        <li class="flex flex-col gap-1.5 rounded-lg bg-zinc-50 px-3 py-2 text-sm">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-semibold">{{ e.position }}</span>
+                            <span
+                              [class.bg-blue-100]="e.type === 'knowledge'"
+                              [class.text-blue-900]="e.type === 'knowledge'"
+                              [class.bg-violet-100]="e.type === 'debug'"
+                              [class.text-violet-900]="e.type === 'debug'"
+                              class="rounded-full px-2 py-0.5 text-xs font-medium"
+                            >
+                              {{ tipoLabel(e.type) }}
+                            </span>
+                            <span class="min-w-0 flex-1">{{ e.statement }}</span>
+                            @if (e.answered) {
+                              <span
+                                [class.text-emerald-700]="e.verdict === 'correct'"
+                                [class.text-amber-700]="e.verdict === 'incomplete'"
+                                [class.text-red-700]="e.verdict === 'incorrect'"
+                                class="text-xs font-semibold"
+                              >
+                                {{ verdictLabel(e.verdict) }}
+                              </span>
+                            } @else {
+                              <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
+                                Sin responder
+                              </span>
+                            }
+                          </div>
+                          @if (e.answered) {
+                            <div class="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                              <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                                Respuesta del alumno
+                              </div>
+                              <div>{{ e.answer_text }}</div>
+                            </div>
+                            @if (e.justification) {
+                              <div class="text-zinc-600">
+                                <span class="font-semibold">Justificación.</span> {{ e.justification }}
+                              </div>
+                            }
+                          }
+                        </li>
+                      }
+                    </ol>
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+</div>
