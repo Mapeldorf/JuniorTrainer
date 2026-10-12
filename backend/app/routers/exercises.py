@@ -3,7 +3,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.deps import require_tech_lead
-from app.schemas.exercise import ExerciseDeleteRequest, SavedExercise
+from app.schemas.exercise import (
+    ExerciseDeleteRequest,
+    SaveExerciseRequest,
+    SavedExercise,
+    SavedExerciseListItem,
+)
 from app.schemas.generation import ExerciseType
 from app.schemas.profile import Profile
 from app.supabase_client import get_admin_client
@@ -11,6 +16,13 @@ from app.supabase_client import get_admin_client
 router = APIRouter(tags=["exercises"])
 
 _EXERCISE_FIELDS = "id, type, statement, code, expected_answer, saved, deleted_at"
+# `generation(technologies, repo_name)` es un embed de PostgREST por la
+# unica FK de exercise a generation (exercise.generation_id); no hace
+# falta alias ni hint de columna porque no hay ambiguedad (0001_schema.sql).
+_SAVED_EXERCISE_FIELDS = (
+    "id, type, statement, code, expected_answer, saved, deleted_at, "
+    "generation(technologies, repo_name)"
+)
 
 
 def _get_exercise_or_404(exercise_id: str) -> dict:
@@ -28,15 +40,39 @@ def _get_exercise_or_404(exercise_id: str) -> dict:
     return rows[0]
 
 
+def _to_saved_exercise_list_item(row: dict) -> SavedExerciseListItem:
+    """Aplana el embed de `generation` (tarea 1.5 de
+    frontend-tech-lead-ejercicios) sobre los campos propios del ejercicio;
+    solo para `GET /exercises` -- `SavedExercise` (guardar/eliminar) no
+    cambia de forma."""
+    generation = row.get("generation") or {"technologies": "", "repo_name": None}
+    technologies_raw = generation.get("technologies") or ""
+    return SavedExerciseListItem(
+        id=row["id"],
+        type=row["type"],
+        statement=row["statement"],
+        code=row["code"],
+        expected_answer=row["expected_answer"],
+        technologies=[t.strip() for t in technologies_raw.split(",") if t.strip()],
+        repo_path=generation.get("repo_name") or None,
+    )
+
+
 @router.post("/exercises/{exercise_id}/save")
 async def save_exercise(
     exercise_id: str,
+    body: SaveExerciseRequest | None = None,
     _tech_lead: Profile = Depends(require_tech_lead),
 ) -> SavedExercise:
     """Guarda un ejercicio candidato como definitivo (tarea 2.2, capacidad
     exercise-catalog: "Guardar un ejercicio candidato como definitivo").
     A partir de aqui la base de datos ya hace el ejercicio inmutable salvo
-    `deleted_at` (trigger `exercise_lock_after_saved`, 0001_schema.sql)."""
+    `deleted_at` (trigger `exercise_lock_after_saved`, 0001_schema.sql).
+
+    `body.expected_answer` (tarea 1.4 de frontend-tech-lead-ejercicios) es
+    opcional: si viene informado, sustituye a la respuesta esperada
+    generada antes de guardar; si se omite -- o se omite el body entero --
+    se guarda la original (comportamiento sin cambios)."""
     exercise = _get_exercise_or_404(exercise_id)
 
     if exercise["deleted_at"] is not None:
@@ -50,12 +86,12 @@ async def save_exercise(
             detail="El ejercicio ya esta guardado",
         )
 
+    update = {"saved": True}
+    if body is not None and body.expected_answer is not None:
+        update["expected_answer"] = body.expected_answer
+
     result = (
-        get_admin_client()
-        .table("exercise")
-        .update({"saved": True})
-        .eq("id", exercise_id)
-        .execute()
+        get_admin_client().table("exercise").update(update).eq("id", exercise_id).execute()
     )
     return SavedExercise(**result.data[0])
 
@@ -65,15 +101,19 @@ async def list_saved_exercises(
     type: ExerciseType | None = Query(default=None),
     q: str | None = Query(default=None, description="Texto a buscar en el enunciado"),
     _tech_lead: Profile = Depends(require_tech_lead),
-) -> list[SavedExercise]:
+) -> list[SavedExerciseListItem]:
     """Lista los ejercicios definitivos (tarea 2.3, capacidad exercise-catalog:
     "Listar y buscar ejercicios definitivos"): `saved = true`, no eliminados,
     filtrables por tipo y buscables por texto en el enunciado. Es la fuente
-    para componer un bloque (POST /blocks)."""
+    para componer un bloque (POST /blocks). Incluye las tecnologias y el
+    repositorio de la generacion de cada ejercicio (tarea 1.5 de
+    frontend-tech-lead-ejercicios), sin filtrar por el estado de esa
+    generacion -- la pantalla de guardados los necesita incluso cuando ya
+    esta `done` (design.md decision 9)."""
     query = (
         get_admin_client()
         .table("exercise")
-        .select(_EXERCISE_FIELDS)
+        .select(_SAVED_EXERCISE_FIELDS)
         .eq("saved", True)
         .is_("deleted_at", "null")
         .order("created_at", desc=True)
@@ -84,7 +124,7 @@ async def list_saved_exercises(
         query = query.ilike("statement", f"%{q}%")
 
     result = query.execute()
-    return [SavedExercise(**row) for row in (result.data or [])]
+    return [_to_saved_exercise_list_item(row) for row in (result.data or [])]
 
 
 @router.patch("/exercises/{exercise_id}")

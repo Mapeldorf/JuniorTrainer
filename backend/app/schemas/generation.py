@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 GenerationKind = Literal["knowledge", "debug", "both"]
-GenerationStatus = Literal["generating", "ready", "error"]
+GenerationStatus = Literal["generating", "ready", "done", "error"]
 ExerciseType = Literal["knowledge", "debug"]
 
 
@@ -63,3 +63,19 @@ class GenerationStatusResponse(BaseModel):
     status: GenerationStatus
     error_message: str | None = None
     candidates: list[ExerciseCandidate] = Field(default_factory=list)
+
+
+class GenerationSummary(BaseModel):
+    """Fila de `GET /generations` (tarea 1.2 de frontend-tech-lead-ejercicios,
+    capacidad exercise-generation: "Listar las generaciones pendientes").
+    Sin `candidates` -- el listado es solo para que el tech lead vea y actue
+    sobre sus generaciones no cerradas, no para revisar candidatos (eso sigue
+    siendo `GET /generations/{id}`)."""
+
+    id: str
+    status: GenerationStatus
+    technologies: list[str]
+    repo_path: str | None = None
+    kind: GenerationKind
+    error_message: str | None = None
+    created_at: str

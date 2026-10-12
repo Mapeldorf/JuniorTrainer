@@ -20,9 +20,10 @@ describe('homeRedirectGuard', () => {
     expect((result as UrlTree).toString()).toBe('/mis-bloques');
   });
 
-  it('deja pasar a un tech lead', async () => {
+  it('redirige a /ejercicios a un tech lead', async () => {
     const result = await run(async () => 'tech_lead');
-    expect(result).toBe(true);
+    expect(result instanceof UrlTree).toBe(true);
+    expect((result as UrlTree).toString()).toBe('/ejercicios');
   });
 
   it('deja pasar si no hay rol (lo resuelve authGuard por separado)', async () => {

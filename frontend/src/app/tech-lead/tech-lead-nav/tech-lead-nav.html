@@ -1,0 +1,41 @@
+<div class="flex items-center justify-between border-b border-zinc-200 bg-white px-8 py-4">
+  <div class="flex items-center gap-10">
+    <app-brand-mark />
+    <nav class="flex items-center gap-1" aria-label="Secciones del tech lead">
+      <a
+        routerLink="/ejercicios"
+        routerLinkActive="bg-blue-50 text-blue-700"
+        class="flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+      >
+        Ejercicios guardados
+      </a>
+      <span
+        aria-disabled="true"
+        title="Próximamente"
+        class="flex h-9 cursor-not-allowed items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium text-zinc-400"
+      >
+        Bloques de ejercicios
+        <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
+          Próximamente
+        </span>
+      </span>
+      <span
+        aria-disabled="true"
+        title="Próximamente"
+        class="flex h-9 cursor-not-allowed items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium text-zinc-400"
+      >
+        Alumnos
+        <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
+          Próximamente
+        </span>
+      </span>
+    </nav>
+  </div>
+  <button
+    type="button"
+    (click)="signOut()"
+    class="flex h-9 items-center justify-center rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100"
+  >
+    Cerrar sesión
+  </button>
+</div>

@@ -2,8 +2,25 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 import { homeRedirectGuard } from './core/home-redirect.guard';
 import { studentGuard } from './core/student.guard';
+import { techLeadGuard } from './core/tech-lead.guard';
 
 export const routes: Routes = [
+  {
+    path: 'ejercicios',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () =>
+      import('./tech-lead/ejercicios/ejercicios').then((m) => m.EjerciciosComponent),
+  },
+  {
+    path: 'ejercicios/generar',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () => import('./tech-lead/generar/generar').then((m) => m.GenerarComponent),
+  },
+  {
+    path: 'ejercicios/:generationId/revisar',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () => import('./tech-lead/revisar/revisar').then((m) => m.RevisarComponent),
+  },
   {
     path: 'mis-bloques',
     canActivate: [authGuard, studentGuard],
@@ -31,8 +48,11 @@ export const routes: Routes = [
   },
   {
     path: '',
-    // tarea 2.5: un alumno autenticado se redirige a "Mis bloques de
-    // ejercicios" (design.md - Decisions); un tech lead se queda aqui.
+    // tarea 2.5 (frontend-alumno) y 2.4 (frontend-tech-lead-ejercicios):
+    // un alumno autenticado se redirige a "Mis bloques de ejercicios", un
+    // tech lead a "Ejercicios guardados" (design.md - Decisions de cada
+    // change); el `home` placeholder solo se ve ya si ningun rol
+    // reconocido aplica.
     canActivate: [authGuard, homeRedirectGuard],
     loadComponent: () => import('./home/home').then((m) => m.HomeComponent),
   },
