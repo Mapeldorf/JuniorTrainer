@@ -20,7 +20,8 @@ import uuid
 
 from fastapi import HTTPException
 
-from app.routers import blocks, exercises
+from app.deps import require_tech_lead
+from app.routers import blocks, exercises, users
 from app.schemas.block import AssignBlockRequest, BlockCreateRequest, BlockUpdateRequest
 from app.schemas.exercise import ExerciseDeleteRequest
 from app.schemas.profile import Profile
@@ -68,6 +69,7 @@ async def main() -> None:
     )
 
     block = None
+    block2 = None
     try:
         # ---- exercise-catalog (2.2, 2.3, 2.4) ----
         saved1 = await exercises.save_exercise(ex1, body=None, _tech_lead=tech_lead)
@@ -150,6 +152,13 @@ async def main() -> None:
         assert {s.id for s in listed_assigned.assigned_students} == {student.id}
         print("OK: 1.2 GET /blocks muestra al alumno en assigned_students, resolved sigue false")
 
+        # ---- block-assignment (1.2 frontend-tech-lead-alumnos): segundo
+        # bloque para el mismo alumno, usado mas abajo para comprobar
+        # GET /users/{id}/blocks a traves de varios bloques.
+        block2 = await blocks.create_block(BlockCreateRequest(name=f"{TAG} bloque 2", exercise_ids=[ex1]), tech_lead)
+        await blocks.assign_block(block2.id, AssignBlockRequest(student_ids=[student.id]), tech_lead)
+        print("OK: 4.2 segundo bloque creado y asignado al mismo alumno")
+
         progress = await blocks.get_block_progress(block.id, tech_lead)
         assert len(progress) == 1 and progress[0].exercises[0].answered is False
         assert progress[0].exercises[0].type == "knowledge"
@@ -212,20 +221,57 @@ async def main() -> None:
         assert block.id in {b.id for b in listing_deleted}
         print("OK: 4.4/3.5 eliminar el bloque no cambia la copia ya asignada; aparece en 'Bloques eliminados'")
 
+        # ---- block-assignment (1.2 frontend-tech-lead-alumnos): "Consultar
+        # las asignaciones de un alumno a traves de sus bloques" ----
+        # Comprobaciones por pertenencia, no por igualdad exacta (mismo
+        # ajuste que en 2.3): el entorno real puede tener otras
+        # asignaciones de este alumno ajenas a esta prueba.
+        student_blocks = await users.get_student_blocks(student.id, _tech_lead=tech_lead)
+        by_block_id = {sba.block_id: sba for sba in student_blocks}
+        assert block.id in by_block_id and block2.id in by_block_id, (
+            "se esperaban ambas asignaciones de prueba en GET /users/{id}/blocks"
+        )
+        our_blocks_order = [sba.block_id for sba in student_blocks if sba.block_id in (block.id, block2.id)]
+        assert our_blocks_order == [block.id, block2.id], (
+            "se esperaba el orden de asignacion (block1 antes que block2)"
+        )
+        assert by_block_id[block.id].block_name == f"{TAG} editado"
+        assert by_block_id[block.id].exercises[0].answered is True
+        assert by_block_id[block.id].exercises[0].answer_text == "respuesta de prueba"
+        assert by_block_id[block2.id].block_name == f"{TAG} bloque 2"
+        assert by_block_id[block2.id].exercises[0].answered is False
+        print("OK: GET /users/{id}/blocks incluye ambos bloques (incluido el ya eliminado), con su block_name y detalle por ejercicio")
+
+        # get_student_blocks() en si no comprueba el rol -- lo hace la
+        # propia dependencia require_tech_lead, asi que se prueba esa
+        # dependencia directamente con el Profile del alumno (mismo patron
+        # que verify_valoracion_respuestas.py).
+        await expect_http_error(
+            require_tech_lead(profile=student),
+            403,
+            "GET /users/{id}/blocks: un alumno no puede llamarlo (require_tech_lead rechaza su Profile)",
+        )
+
+        await expect_http_error(
+            users.get_student_blocks(tech_lead.id, _tech_lead=tech_lead), 404, "GET /users/{id}/blocks con un id que no es alumno"
+        )
+
         print("\nTODAS LAS COMPROBACIONES PASARON")
 
     finally:
-        if block is not None:
+        for b in (block, block2):
+            if b is None:
+                continue
             assignment_ids = [
                 row["id"]
-                for row in admin.table("assignment").select("id").eq("block_id", block.id).execute().data or []
+                for row in admin.table("assignment").select("id").eq("block_id", b.id).execute().data or []
             ]
             if assignment_ids:
                 admin.table("answer").delete().in_("assignment_id", assignment_ids).execute()
                 admin.table("assignment_exercise").delete().in_("assignment_id", assignment_ids).execute()
                 admin.table("assignment").delete().in_("id", assignment_ids).execute()
-            admin.table("block_exercise").delete().eq("block_id", block.id).execute()
-            admin.table("block").delete().eq("id", block.id).execute()
+            admin.table("block_exercise").delete().eq("block_id", b.id).execute()
+            admin.table("block").delete().eq("id", b.id).execute()
         admin.table("exercise").delete().in_("id", [ex1, ex2, ex3]).execute()
         admin.table("generation").delete().eq("id", gen["id"]).execute()
         print("limpieza de datos de prueba completada")

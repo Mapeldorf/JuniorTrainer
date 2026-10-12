@@ -35,24 +35,21 @@ describe('TechLeadNavComponent', () => {
     expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/bloques');
   });
 
-  it('"Alumnos" sigue sin ser clicable: sin <a>, con aria-disabled', () => {
+  it('"Alumnos" es un enlace a /alumnos (tarea 4.2)', () => {
     const fixture = createComponent();
     const el = fixture.nativeElement as HTMLElement;
-
-    // Solo "Alumnos" sigue deshabilitada; las otras dos ya son <a>.
     const links = el.querySelectorAll('a');
-    expect(links.length).toBe(2);
-
-    const disabled = el.querySelectorAll('[aria-disabled="true"]');
-    expect(disabled.length).toBe(1);
-    expect(disabled[0].textContent).toContain('Alumnos');
-    expect(disabled[0].tagName.toLowerCase()).not.toBe('a');
+    const link = Array.from(links).find((a) => a.textContent?.includes('Alumnos'));
+    expect(link).toBeTruthy();
+    expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/alumnos');
   });
 
-  it('la pestana deshabilitada muestra "Próximamente"', () => {
+  it('las tres pestanas son enlaces, ninguna deshabilitada', () => {
     const fixture = createComponent();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Próximamente');
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('a');
+    expect(links.length).toBe(3);
+    expect(el.querySelectorAll('[aria-disabled="true"]').length).toBe(0);
   });
 
   it('incluye "Cerrar sesión"', () => {

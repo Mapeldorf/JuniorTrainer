@@ -45,6 +45,17 @@ export const routes: Routes = [
       import('./tech-lead/bloque-detalle/bloque-detalle').then((m) => m.BloqueDetalleComponent),
   },
   {
+    path: 'alumnos',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () => import('./tech-lead/alumnos/alumnos').then((m) => m.AlumnosComponent),
+  },
+  {
+    path: 'alumnos/:studentId',
+    canActivate: [authGuard, techLeadGuard],
+    loadComponent: () =>
+      import('./tech-lead/alumno-detalle/alumno-detalle').then((m) => m.AlumnoDetalleComponent),
+  },
+  {
     path: 'mis-bloques',
     canActivate: [authGuard, studentGuard],
     loadComponent: () =>

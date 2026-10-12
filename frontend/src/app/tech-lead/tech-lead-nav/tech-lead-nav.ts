@@ -6,13 +6,13 @@ import { SupabaseService } from '../../core/supabase.service';
 /**
  * Cabecera de navegacion del tech lead (tarea 3.1 de
  * frontend-tech-lead-ejercicios, ampliada en la tarea 6.1 de
- * frontend-tech-lead-bloques): las tres pestanas de la seccion 10 --
- * "Ejercicios guardados" (`/ejercicios`) y "Bloques de ejercicios"
- * (`/bloques`) ya estan activas; "Alumnos" sigue deshabilitada
- * ("Proximamente"), sin `routerLink`, hasta el siguiente change de paso
- * 5. Incluye "Cerrar sesion" (igual que `home`/`mis-bloques`): es el
- * shell compartido de todas las pantallas del tech lead, que ya no
- * aterriza en el `home` placeholder.
+ * frontend-tech-lead-bloques y en la tarea 4.2 de
+ * frontend-tech-lead-alumnos): las tres pestanas de la seccion 10 --
+ * "Ejercicios guardados" (`/ejercicios`), "Bloques de ejercicios"
+ * (`/bloques`) y "Alumnos" (`/alumnos`) -- ya estan todas activas.
+ * Incluye "Cerrar sesion" (igual que `home`/`mis-bloques`): es el shell
+ * compartido de todas las pantallas del tech lead, que ya no aterriza en
+ * el `home` placeholder.
  */
 @Component({
   selector: 'app-tech-lead-nav',
