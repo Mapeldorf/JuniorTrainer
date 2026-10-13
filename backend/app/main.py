@@ -8,15 +8,13 @@ from app.body_size_limit import BodySizeLimitMiddleware
 from app.config import get_settings
 from app.rate_limit import limiter
 from app.routers import assignments, blocks, exercises, generations, health, users
+from app.security_headers import SecurityHeadersMiddleware
 
 settings = get_settings()
 
 app = FastAPI(title="JuniorTrainer API")
 
-# Limite de tamaño de body (propuesta limite-tamano-body): se añade antes
-# que el resto de middlewares para cortar lo antes posible en la cadena
-# ASGI, sin que CORS ni el rate limiting lleguen siquiera a procesar una
-# peticion con un body demasiado grande.
+# Limite de tamaño de body (propuesta limite-tamano-body).
 app.add_middleware(BodySizeLimitMiddleware)
 
 app.add_middleware(
@@ -33,6 +31,16 @@ app.add_middleware(
 # que exponer la configuracion del limite superado.
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+
+# Cabeceras de seguridad HTTP (propuesta cabeceras-seguridad-http): en
+# Starlette, `add_middleware` inserta cada middleware al PRINCIPIO de la
+# lista interna, asi que el ultimo en añadirse termina siendo el mas
+# exterior de la cadena (lo contrario de lo que podria parecer a simple
+# vista). Tiene que ser el ultimo `add_middleware` de todos para envolver
+# tambien las respuestas de error que generan los middlewares de arriba
+# (413 del limite de body, 429 del rate limiting), que de otro modo
+# saldrian sin estas cabeceras.
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.exception_handler(RateLimitExceeded)
