@@ -6,7 +6,14 @@ la copia de la asignacion, nunca del `exercise` original -- eso lo
 decide quien llama, no este agente) junto con la respuesta del alumno, y
 devuelve un `verdict` (`correct`/`incomplete`/`incorrect`) con su
 justificacion. Ver design.md del change `valoracion-respuestas`,
-"Contrato de entrada/salida de los agentes"."""
+"Contrato de entrada/salida de los agentes".
+
+Change `ejercicios-nivel-junior` (ver design.md, decisiones 6-7): la
+`justification` que se persiste SHALL tener como maximo
+`_MAX_JUSTIFICATION_WORDS` palabras. El limite se garantiza en codigo
+(no solo en el prompt), con un unico reintento correctivo antes de
+fallar la tarea -- el revisor (`agents/reviewer`) aplica el mismo
+limite a la version final, que es la que realmente se persiste."""
 
 import json
 import logging
@@ -19,6 +26,11 @@ logger = logging.getLogger(__name__)
 
 _VALID_VERDICTS = {"correct", "incomplete", "incorrect"}
 
+# Garantia en codigo del limite de palabras de la justificacion
+# (design.md decision 6): duplicada a proposito en evaluador y revisor,
+# no extraida a una libreria comun (decision 7).
+_MAX_JUSTIFICATION_WORDS = 50
+
 _SYSTEM_PROMPT = (
     "Eres un asistente que evalua la respuesta de un alumno a un "
     "ejercicio de programacion. Se te da el enunciado, codigo de apoyo "
@@ -28,14 +40,15 @@ _SYSTEM_PROMPT = (
     '"verdict" (uno de exactamente estos tres valores: "correct" si la '
     'respuesta es correcta y completa, "incomplete" si va en la '
     'direccion correcta pero le falta algo relevante, "incorrect" si es '
-    'equivocada) y "justification" (en español, explicando con '
-    "precision por que mereces ese veredicto, citando que falta o que "
-    "esta mal cuando no sea \"correct\")."
+    'equivocada) y "justification" (en español, de COMO MAXIMO 50 '
+    "PALABRAS, priorizando decir que falta o que esta mal sobre "
+    "explicar teoria: ve directo al grano, citando que falta o que "
+    "esta mal cuando el veredicto no sea \"correct\")."
 )
 
 
 class EvaluationError(RuntimeError):
-    """El modelo no devolvio una evaluacion valida (JSON invalido, verdict fuera de rango, etc.)."""
+    """El modelo no devolvio una evaluacion valida (JSON invalido, verdict fuera de rango, limite de palabras incumplido tras el reintento, etc.)."""
 
 
 async def evaluate_answer(
@@ -60,13 +73,57 @@ async def evaluate_answer(
 
     human_prompt = "\n\n".join(blocks)
 
-    response = await model.ainvoke(
-        [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": human_prompt},
-        ],
-        extra_body=litellm_trace_metadata(trace_id),
-    )
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": human_prompt},
+    ]
+
+    verdict, justification, raw_content = await _invoke_and_parse(model, messages, trace_id)
+
+    # Garantia en codigo del limite de palabras (design.md decision 6):
+    # un unico reintento correctivo si la justificacion propuesta se
+    # pasa, antes de que llegue al revisor.
+    word_count = len(justification.split())
+    if word_count > _MAX_JUSTIFICATION_WORDS:
+        logger.warning(
+            "justification por encima del limite de %d palabras (%d), reintentando una vez",
+            _MAX_JUSTIFICATION_WORDS,
+            word_count,
+        )
+        messages = [
+            *messages,
+            {"role": "assistant", "content": raw_content},
+            {
+                "role": "user",
+                "content": (
+                    f'La justification que acabas de devolver tiene {word_count} palabras, '
+                    f"{word_count - _MAX_JUSTIFICATION_WORDS} mas de las {_MAX_JUSTIFICATION_WORDS} "
+                    "permitidas. Vuelve a responder con el mismo objeto JSON (mismo verdict), "
+                    f"acortando la justification a {_MAX_JUSTIFICATION_WORDS} palabras o menos sin "
+                    "perder lo esencial de por que merece ese veredicto."
+                ),
+            },
+        ]
+        verdict, justification, raw_content = await _invoke_and_parse(model, messages, trace_id)
+
+        word_count = len(justification.split())
+        if word_count > _MAX_JUSTIFICATION_WORDS:
+            raise EvaluationError(
+                f"tras el reintento, la justification sigue teniendo {word_count} palabras "
+                f"(limite {_MAX_JUSTIFICATION_WORDS}): {justification!r}"
+            )
+
+    return EvaluationResult(verdict=verdict, justification=justification)
+
+
+async def _invoke_and_parse(model, messages: list[dict], trace_id: str | None) -> tuple[str, str, str]:
+    """Una llamada al modelo + parseo de su respuesta en `(verdict,
+    justification)`. Factorizado para poder llamarse dos veces (intento
+    inicial y, si la justificacion se pasa del limite, el reintento
+    correctivo de `evaluate_answer`). Devuelve tambien el contenido
+    crudo de la respuesta, para anadirlo como turno `assistant` en el
+    reintento."""
+    response = await model.ainvoke(messages, extra_body=litellm_trace_metadata(trace_id))
     item = _parse_json(response.content, expect=dict)
 
     verdict = item.get("verdict")
@@ -77,7 +134,7 @@ async def evaluate_answer(
     if not isinstance(justification, str) or not justification.strip():
         raise EvaluationError(f"justification debe ser un texto no vacio, se recibio: {justification!r}")
 
-    return EvaluationResult(verdict=verdict, justification=justification)
+    return verdict, justification, response.content
 
 
 def _parse_json(raw: str, *, expect: type):

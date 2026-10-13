@@ -38,7 +38,8 @@ def build_agent_card() -> AgentCard:
                 description=(
                     "Dado el enunciado, la respuesta del alumno, y el "
                     "verdict+justification del evaluador, devuelve la "
-                    "justificacion final revisada."
+                    "justificacion final revisada, de maximo 50 "
+                    "palabras (acortandola si llegaba mas larga)."
                 ),
                 tags=["evaluacion", "revision"],
                 examples=["statement=..., verdict=correct, justification=..."],
