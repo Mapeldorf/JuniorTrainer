@@ -17,11 +17,11 @@ describe('TechLeadNavComponent', () => {
     return fixture;
   }
 
-  it('"Ejercicios guardados" es un enlace a /ejercicios', () => {
+  it('"Ejercicios" es un enlace a /ejercicios', () => {
     const fixture = createComponent();
     const el = fixture.nativeElement as HTMLElement;
     const links = el.querySelectorAll('a');
-    const link = Array.from(links).find((a) => a.textContent?.includes('Ejercicios guardados'));
+    const link = Array.from(links).find((a) => a.textContent?.includes('Ejercicios'));
     expect(link).toBeTruthy();
     expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/ejercicios');
   });

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { ConfirmDialogService } from '../../core/confirm-dialog.service';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import { GenerationDetail } from '../../core/generations-api.model';
 import { SupabaseService } from '../../core/supabase.service';
@@ -135,28 +136,30 @@ describe('RevisarComponent', () => {
     expect(selectAllCheckbox.checked).toBe(false);
   });
 
-  // Tarea 3.1: confirmarPerdida().
-  it('confirmarPerdida() envuelve confirm() y el mensaje nombra cuantos candidatos se pierden', () => {
+  // Tarea 3.1 (change `dialogo-confirmacion-tailwind`): confirmarPerdida()
+  // usa ConfirmDialogService en vez de confirm() nativo.
+  it('confirmarPerdida() pide confirmacion con un mensaje que nombra cuantos candidatos se pierden', async () => {
     const fixture = createComponent({ getDetail: () => READY_DETAIL });
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmDialog = TestBed.inject(ConfirmDialogService);
+    const confirmSpy = vi.spyOn(confirmDialog, 'confirm').mockResolvedValue(true);
 
-    const result = fixture.componentInstance.confirmarPerdida(2);
+    const result = await fixture.componentInstance.confirmarPerdida(2);
 
     expect(result).toBe(true);
     expect(confirmSpy).toHaveBeenCalledTimes(1);
-    expect(confirmSpy.mock.calls[0][0]).toContain('2');
+    expect(confirmSpy.mock.calls[0][0].message).toContain('2');
   });
 
   // Tarea 3.2: guardar() con seleccion parcial, cancelando la confirmacion.
-  it('guardar() con candidatos sin marcar: si se cancela la confirmacion, no guarda ni cierra', () => {
+  it('guardar() con candidatos sin marcar: si se cancela la confirmacion, no guarda ni cierra', async () => {
     const save = vi.fn().mockReturnValue(of({}));
     const close = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
     const component = fixture.componentInstance;
-    const confirmSpy = vi.spyOn(component, 'confirmarPerdida').mockReturnValue(false);
+    const confirmSpy = vi.spyOn(component, 'confirmarPerdida').mockResolvedValue(false);
 
     component.toggleSelected('c2'); // c2 queda sin marcar, c1 sigue marcado
-    component.guardar();
+    await component.guardar();
 
     expect(confirmSpy).toHaveBeenCalledWith(1);
     expect(save).not.toHaveBeenCalled();
@@ -168,15 +171,15 @@ describe('RevisarComponent', () => {
   });
 
   // Tarea 3.2: guardar() con seleccion parcial, confirmando la perdida.
-  it('guardar() con candidatos sin marcar: si se confirma, guarda los marcados y cierra', () => {
+  it('guardar() con candidatos sin marcar: si se confirma, guarda los marcados y cierra', async () => {
     const save = vi.fn().mockReturnValue(of({}));
     const close = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
     const component = fixture.componentInstance;
-    vi.spyOn(component, 'confirmarPerdida').mockReturnValue(true);
+    vi.spyOn(component, 'confirmarPerdida').mockResolvedValue(true);
 
     component.toggleSelected('c2'); // c2 queda sin marcar, c1 sigue marcado
-    component.guardar();
+    await component.guardar();
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: undefined });
@@ -184,21 +187,21 @@ describe('RevisarComponent', () => {
   });
 
   // Tarea 3.2: con todo marcado (el default) no se pide confirmacion.
-  it('guardar() con todos los candidatos marcados: no pide confirmacion', () => {
+  it('guardar() con todos los candidatos marcados: no pide confirmacion', async () => {
     const save = vi.fn().mockReturnValue(of({}));
     const close = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
     const component = fixture.componentInstance;
     const confirmSpy = vi.spyOn(component, 'confirmarPerdida');
 
-    component.guardar(); // nada desmarcado: queda tal cual la preseleccion
+    await component.guardar(); // nada desmarcado: queda tal cual la preseleccion
 
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(save).toHaveBeenCalledTimes(2);
     expect(close).toHaveBeenCalledWith('g1');
   });
 
-  it('guardar() con la respuesta editada de un candidato marcado', () => {
+  it('guardar() con la respuesta editada de un candidato marcado', async () => {
     const save = vi.fn().mockReturnValue(of({}));
     const close = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
@@ -208,46 +211,46 @@ describe('RevisarComponent', () => {
     component.setAnswer('c1', 'respuesta 1 editada');
     // c2 no esta marcado: no deberia guardarse aunque se edite su respuesta
     component.setAnswer('c2', 'respuesta 2 editada, pero no marcada');
-    vi.spyOn(component, 'confirmarPerdida').mockReturnValue(true);
+    vi.spyOn(component, 'confirmarPerdida').mockResolvedValue(true);
 
-    component.guardar();
+    await component.guardar();
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalledWith('c1', { expected_answer: 'respuesta 1 editada', name: undefined });
     expect(close).toHaveBeenCalledWith('g1');
   });
 
-  it('guardar() omite expected_answer y name si no cambiaron respecto a los originales', () => {
+  it('guardar() omite expected_answer y name si no cambiaron respecto a los originales', async () => {
     const save = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save });
     const component = fixture.componentInstance;
 
     // Todo sigue marcado por defecto (tarea 1.1); no se edita nada.
-    component.guardar();
+    await component.guardar();
 
     expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: undefined });
     expect(save).toHaveBeenCalledWith('c2', { expected_answer: undefined, name: undefined });
   });
 
-  it('guardar() guarda el nombre editado si cambio', () => {
+  it('guardar() guarda el nombre editado si cambio', async () => {
     const save = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save });
     const component = fixture.componentInstance;
 
     component.setName('c1', 'Nombre 1 editado');
-    component.guardar();
+    await component.guardar();
 
     expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: 'Nombre 1 editado' });
   });
 
-  it('si close() falla, muestra un error y no navega', () => {
+  it('si close() falla, muestra un error y no navega', async () => {
     const close = vi.fn().mockReturnValue(throwError(() => new Error('fallo')));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, close });
     const component = fixture.componentInstance;
     const router = TestBed.inject(Router);
     const navigateSpy = vi.spyOn(router, 'navigate');
 
-    component.guardar();
+    await component.guardar();
 
     expect(component.error()).not.toBeNull();
     expect(navigateSpy).not.toHaveBeenCalled();

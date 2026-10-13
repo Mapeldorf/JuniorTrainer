@@ -2,6 +2,7 @@ import { Component, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BlocksApiService } from '../../core/blocks-api.service';
+import { ConfirmDialogService } from '../../core/confirm-dialog.service';
 import { BlockDetail, StudentProgress } from '../../core/blocks-api.model';
 import { UsersApiService } from '../../core/users-api.service';
 import { StudentSummary } from '../../core/users-api.model';
@@ -27,6 +28,7 @@ export class BloqueDetalleComponent {
   private readonly blocksApi = inject(BlocksApiService);
   private readonly usersApi = inject(UsersApiService);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly block = signal<BlockDetail | null>(null);
   readonly progress = signal<StudentProgress[]>([]);
@@ -158,8 +160,10 @@ export class BloqueDetalleComponent {
     void this.router.navigate(['/bloques', this.blockId(), 'editar']);
   }
 
-  eliminar(): void {
-    if (!this.confirmarEliminar()) {
+  /** change `dialogo-confirmacion-tailwind`: dialogo propio en vez de
+   * `confirm()` nativo, por eso async. */
+  async eliminar(): Promise<void> {
+    if (!(await this.confirmarEliminar())) {
       return;
     }
     this.blocksApi.delete(this.blockId()).subscribe({
@@ -170,7 +174,13 @@ export class BloqueDetalleComponent {
 
   /** Envuelto en un metodo propio para poder sustituirlo en los tests
    * (mismo patron que `EjerciciosComponent.confirmarEliminar`). */
-  confirmarEliminar(): boolean {
-    return confirm(`¿Eliminar el bloque "${this.block()?.name}"?`);
+  confirmarEliminar(): Promise<boolean> {
+    return this.confirmDialog.confirm({
+      title: 'Eliminar bloque',
+      message: `¿Eliminar el bloque "${this.block()?.name}"?`,
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
   }
 }
