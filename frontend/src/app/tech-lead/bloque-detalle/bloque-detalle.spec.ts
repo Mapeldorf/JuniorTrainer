@@ -114,6 +114,28 @@ describe('BloqueDetalleComponent', () => {
     expect(text).not.toContain('Asignar a más alumnos');
   });
 
+  it('eliminar() pide confirmacion: si se confirma, llama a delete', async () => {
+    const deleteFn = vi.fn().mockReturnValue(of({ ...BLOCK, deleted_at: '2026-03-01' }));
+    const fixture = createComponent({ deleteFn });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarEliminar').mockResolvedValue(true);
+
+    await component.eliminar();
+
+    expect(deleteFn).toHaveBeenCalledWith('b1');
+  });
+
+  it('eliminar() no llama a delete si no se confirma', async () => {
+    const deleteFn = vi.fn().mockReturnValue(of({ ...BLOCK, deleted_at: '2026-03-01' }));
+    const fixture = createComponent({ deleteFn });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarEliminar').mockResolvedValue(false);
+
+    await component.eliminar();
+
+    expect(deleteFn).not.toHaveBeenCalled();
+  });
+
   it('al desplegar un alumno, muestra el detalle de su ejercicio (respuesta, veredicto, justificacion)', () => {
     const fixture = createComponent({});
     const el = fixture.nativeElement as HTMLElement;

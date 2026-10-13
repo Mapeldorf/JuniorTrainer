@@ -140,7 +140,7 @@ describe('EjerciciosComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios', READY.id, 'revisar']);
   });
 
-  it('eliminar() pide confirmacion: si se confirma, llama a delete y refresca la lista', () => {
+  it('eliminar() pide confirmacion: si se confirma, llama a delete y refresca la lista', async () => {
     let listSavedCalls = 0;
     const listSaved = vi.fn(() => {
       listSavedCalls += 1;
@@ -150,22 +150,22 @@ describe('EjerciciosComponent', () => {
 
     const fixture = createComponent({ listSaved, deleteFn });
     const component = fixture.componentInstance;
-    vi.spyOn(component, 'confirmarEliminar').mockReturnValue(true);
+    vi.spyOn(component, 'confirmarEliminar').mockResolvedValue(true);
 
-    component.eliminar(SAVED_ITEM);
+    await component.eliminar(SAVED_ITEM);
 
     expect(deleteFn).toHaveBeenCalledWith(SAVED_ITEM.id);
     expect(listSavedCalls).toBe(2);
     expect(component.saved()).toEqual([]);
   });
 
-  it('eliminar() no llama a delete si no se confirma', () => {
+  it('eliminar() no llama a delete si no se confirma', async () => {
     const deleteFn = vi.fn().mockReturnValue(of(SAVED_ITEM));
     const fixture = createComponent({ deleteFn });
     const component = fixture.componentInstance;
-    vi.spyOn(component, 'confirmarEliminar').mockReturnValue(false);
+    vi.spyOn(component, 'confirmarEliminar').mockResolvedValue(false);
 
-    component.eliminar(SAVED_ITEM);
+    await component.eliminar(SAVED_ITEM);
 
     expect(deleteFn).not.toHaveBeenCalled();
   });

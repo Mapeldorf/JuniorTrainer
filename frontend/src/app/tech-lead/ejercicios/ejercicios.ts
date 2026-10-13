@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ConfirmDialogService } from '../../core/confirm-dialog.service';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import {
   ExerciseType,
@@ -28,6 +29,7 @@ const POLL_INTERVAL_MS = 3000;
 export class EjerciciosComponent implements OnInit, OnDestroy {
   private readonly api = inject(GenerationsApiService);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly pending = signal<GenerationSummary[]>([]);
   readonly saved = signal<SavedExerciseListItem[]>([]);
@@ -133,9 +135,10 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   }
 
   /** Tarea 4.3: boton Eliminar en cada ejercicio guardado, con
-   * confirmacion previa. */
-  eliminar(exercise: SavedExerciseListItem): void {
-    if (!this.confirmarEliminar(exercise)) {
+   * confirmacion previa (change `dialogo-confirmacion-tailwind`: dialogo
+   * propio en vez de `confirm()` nativo, por eso async). */
+  async eliminar(exercise: SavedExerciseListItem): Promise<void> {
+    if (!(await this.confirmarEliminar(exercise))) {
       return;
     }
     this.api.delete(exercise.id).subscribe({
@@ -145,8 +148,14 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   }
 
   /** Envuelto en un metodo propio para poder sustituirlo en los tests
-   * sin depender del `confirm()` global del navegador. */
-  confirmarEliminar(exercise: SavedExerciseListItem): boolean {
-    return confirm(`¿Eliminar el ejercicio "${exercise.name}"?`);
+   * sin depender del dialogo real. */
+  confirmarEliminar(exercise: SavedExerciseListItem): Promise<boolean> {
+    return this.confirmDialog.confirm({
+      title: 'Eliminar ejercicio',
+      message: `¿Eliminar el ejercicio "${exercise.name}"?`,
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
   }
 }

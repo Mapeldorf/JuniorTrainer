@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { forkJoin, of, switchMap } from 'rxjs';
+import { ConfirmDialogService } from '../../core/confirm-dialog.service';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import { GenerationDetail } from '../../core/generations-api.model';
 import { TechLeadNavComponent } from '../tech-lead-nav/tech-lead-nav';
@@ -24,6 +25,7 @@ export class RevisarComponent {
 
   private readonly api = inject(GenerationsApiService);
   private readonly router = inject(Router);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly detail = signal<GenerationDetail | null>(null);
   readonly loading = signal(true);
@@ -126,7 +128,7 @@ export class RevisarComponent {
    * despues cierra la revision; funciona igual con 0 candidatos
    * marcados (requisito "Cerrar la revision con candidatos sin
    * guardar"). */
-  guardar(): void {
+  async guardar(): Promise<void> {
     if (this.saving()) {
       return;
     }
@@ -137,8 +139,10 @@ export class RevisarComponent {
     // queda algun candidato sin marcar, se pierde para siempre al cerrar
     // la revision -- se avisa antes de proceder. Si todo esta marcado no
     // hay nada que perder y se omite el aviso (comportamiento sin cambios).
+    // change `dialogo-confirmacion-tailwind`: dialogo propio en vez de
+    // `confirm()` nativo, por eso async.
     const unmarkedCount = candidates.length - marked.length;
-    if (unmarkedCount > 0 && !this.confirmarPerdida(unmarkedCount)) {
+    if (unmarkedCount > 0 && !(await this.confirmarPerdida(unmarkedCount))) {
       return;
     }
 
@@ -172,12 +176,16 @@ export class RevisarComponent {
 
   /** Envuelto en un metodo propio (mismo patron que `confirmarEliminar()`
    * en `ejercicios.ts`/`bloque-detalle.ts`) para poder sustituirlo en los
-   * tests sin depender del `confirm()` global del navegador. */
-  confirmarPerdida(count: number): boolean {
+   * tests sin depender del dialogo real. */
+  confirmarPerdida(count: number): Promise<boolean> {
     const plural = count === 1 ? 'ejercicio' : 'ejercicios';
-    return confirm(
-      `${count} ${plural} sin marcar se van a perder para siempre. ¿Continuar y guardar solo los marcados?`,
-    );
+    return this.confirmDialog.confirm({
+      title: 'Candidatos sin marcar',
+      message: `${count} ${plural} sin marcar se van a perder para siempre. ¿Continuar y guardar solo los marcados?`,
+      confirmLabel: 'Continuar y guardar solo los marcados',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
   }
 
   statusMessage(detail: GenerationDetail): string {
