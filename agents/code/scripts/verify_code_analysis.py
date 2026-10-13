@@ -1,12 +1,10 @@
-"""Verificacion manual de la tarea 4.3: analisis real de un repo con el modelo.
+"""Verificacion manual de la tarea 4.3 (actualizada por `acceso-repo-github-tool`):
+analisis real de un repositorio de GitHub con el modelo, leido via API.
 
-Uso (desde agents/code/, con LITELLM_MASTER_KEY en el .env de la raiz del
-repo, LiteLLM corriendo y accesible):
-    python -m scripts.verify_code_analysis <repo_path> <tecnologia> [<tecnologia> ...]
-
-Por ejemplo, usando el propio repo de JuniorTrainer como repo de prueba
-(no hace falta clonar nada aparte):
-    python -m scripts.verify_code_analysis ../web FastAPI LangChain
+Uso (desde agents/code/, con LITELLM_MASTER_KEY y GITHUB_APP_* en el .env
+de la raiz del repo, LiteLLM corriendo y accesible, y la GitHub App
+instalada en el repo de prueba):
+    python -m scripts.verify_code_analysis <owner> <repo> <commit_sha> <tecnologia> [<tecnologia> ...]
 """
 
 import asyncio
@@ -19,17 +17,18 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def main() -> None:
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 5:
         print(
-            "Uso: python -m scripts.verify_code_analysis <repo_path> <tecnologia> [<tecnologia> ...]",
+            "Uso: python -m scripts.verify_code_analysis <owner> <repo> <commit_sha> "
+            "<tecnologia> [<tecnologia> ...]",
             file=sys.stderr,
         )
         raise SystemExit(1)
 
-    repo_path = sys.argv[1]
-    technologies = sys.argv[2:]
+    owner, repo, commit_sha = sys.argv[1], sys.argv[2], sys.argv[3]
+    technologies = sys.argv[4:]
 
-    result = await analyze_repo(repo_path, technologies)
+    result = await analyze_repo(owner, repo, commit_sha, technologies)
 
     print(f"memory_hit: {result.memory_hit}")
     print(f"\nresumen:\n{result.summary}")

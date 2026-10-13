@@ -19,13 +19,16 @@ export interface ExerciseCodeBlock {
   code: string;
 }
 
-/** Body de `POST /generations` (tarea 6.2 de backend). Esta parte solo
- * expone `kind: 'knowledge'` y `repo_path: null` en el formulario
- * (design.md - Decisions "sin repositorio solo conocimiento"), pero el
- * tipo admite los tres valores del backend. */
+/** Body de `POST /generations` (tarea 6.2 de backend, actualizado por el
+ * change `acceso-repo-github-tool`: el repositorio ya no es una ruta
+ * local/URL libre, es una referencia `owner`/`repo` de GitHub). Esta
+ * parte solo expone `kind: 'knowledge'` y `owner`/`repo: null` en el
+ * formulario (design.md - Decisions "sin repositorio solo
+ * conocimiento"), pero el tipo admite los tres valores del backend. */
 export interface StartGenerationRequest {
   technologies: string[];
-  repo_path: string | null;
+  owner: string | null;
+  repo: string | null;
   kind: GenerationKind;
   count: number;
 }
@@ -41,7 +44,7 @@ export interface GenerationSummary {
   id: string;
   status: GenerationStatus;
   technologies: string[];
-  repo_path: string | null;
+  repo: string | null;
   kind: GenerationKind;
   error_message: string | null;
   created_at: string;
@@ -92,7 +95,7 @@ export type SavedExercise = ExerciseCandidate;
  * (seccion 10, pantalla 2). */
 export interface SavedExerciseListItem extends ExerciseCandidate {
   technologies: string[];
-  repo_path: string | null;
+  repo: string | null;
   /** En cuantos bloques (activos o eliminados) esta este ejercicio
    * actualmente (tarea 2.1/5.3 de backend/frontend-tech-lead-bloques):
    * "Sin usar" / "En N bloque(s)" en el selector de la pantalla 6. */

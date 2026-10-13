@@ -23,14 +23,15 @@ from app.tracing import record_task, resolve_trace_id
 
 class CodeAgentExecutor(AgentExecutor):
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        repo_path, technologies = parse_repo_input(context.message)
+        owner, repo, commit_sha, technologies = parse_repo_input(context.message)
         # trace_id (tarea 4.5): lo pone el orquestador en los metadatos del
         # mensaje; si no hay ninguno (agente en solitario, sin orquestador),
         # resolve_trace_id() genera uno nuevo para que la traza exista igual.
         trace_id = resolve_trace_id(context.message.metadata)
-        result = await analyze_repo(repo_path, technologies, trace_id)
+        result = await analyze_repo(owner, repo, commit_sha, technologies, trace_id)
         record_task(
-            trace_id, repo_path, technologies, memory_hit=result.memory_hit, fragments=len(result.fragments)
+            trace_id, f"{owner}/{repo}@{commit_sha}", technologies,
+            memory_hit=result.memory_hit, fragments=len(result.fragments),
         )
 
         reply = new_data_message(

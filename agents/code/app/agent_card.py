@@ -45,7 +45,7 @@ def build_agent_card() -> AgentCard:
                     "guardado sin releer ningun fichero."
                 ),
                 tags=["codigo", "repositorio"],
-                examples=["repo_path=/repos/pokemon, technologies=React,Redux"],
+                examples=["owner=octocat, repo=pokemon, commit_sha=deadbeef, technologies=React,Redux"],
             )
         ],
     )

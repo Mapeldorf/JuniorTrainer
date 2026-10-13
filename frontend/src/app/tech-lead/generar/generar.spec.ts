@@ -55,7 +55,7 @@ describe('GenerarComponent', () => {
     expect(start).not.toHaveBeenCalled();
   });
 
-  it('con datos validos, generar() llama a start() con kind knowledge y repo_path null, y navega a /ejercicios', () => {
+  it('con datos validos y sin repositorio, generar() llama a start() con kind knowledge y owner/repo null, y navega a /ejercicios', () => {
     const start = vi.fn().mockReturnValue(of({ id: 'g1' }));
     const fixture = createComponent({ start });
     const component = fixture.componentInstance;
@@ -68,9 +68,74 @@ describe('GenerarComponent', () => {
 
     expect(start).toHaveBeenCalledWith({
       technologies: ['Git', 'Python'],
-      repo_path: null,
+      owner: null,
+      repo: null,
       kind: 'knowledge',
       count: 2,
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios']);
+  });
+
+  it('con solo owner o solo repo (no ambos), el formulario no es valido', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    component.technologies.set(['Git']);
+
+    component.owner.set('acme');
+    expect(component.isValid()).toBe(false);
+
+    component.repo.set('widgets');
+    expect(component.isValid()).toBe(true);
+  });
+
+  it('sin repositorio, elegir debug u both no es valido', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    component.technologies.set(['Git']);
+
+    component.kind.set('debug');
+    expect(component.isValid()).toBe(false);
+
+    component.kind.set('both');
+    expect(component.isValid()).toBe(false);
+
+    component.kind.set('knowledge');
+    expect(component.isValid()).toBe(true);
+  });
+
+  it('onOwnerOrRepoChange() vuelve a knowledge si se vacia el repositorio', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    component.owner.set('acme');
+    component.repo.set('widgets');
+    component.kind.set('debug');
+
+    component.repo.set('');
+    component.onOwnerOrRepoChange();
+
+    expect(component.kind()).toBe('knowledge');
+  });
+
+  it('con repositorio y tipo debug, generar() llama a start() con owner/repo/kind reales', () => {
+    const start = vi.fn().mockReturnValue(of({ id: 'g1' }));
+    const fixture = createComponent({ start });
+    const component = fixture.componentInstance;
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+
+    component.technologies.set(['Git']);
+    component.owner.set('acme');
+    component.repo.set('widgets');
+    component.kind.set('debug');
+    component.count.set(1);
+    component.generar();
+
+    expect(start).toHaveBeenCalledWith({
+      technologies: ['Git'],
+      owner: 'acme',
+      repo: 'widgets',
+      kind: 'debug',
+      count: 1,
     });
     expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios']);
   });

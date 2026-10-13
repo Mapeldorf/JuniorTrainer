@@ -55,7 +55,7 @@ def _to_saved_exercise_list_item(row: dict, block_usage_count: int = 0) -> Saved
         code=row["code"],
         expected_answer=row["expected_answer"],
         technologies=[t.strip() for t in technologies_raw.split(",") if t.strip()],
-        repo_path=generation.get("repo_name") or None,
+        repo=generation.get("repo_name") or None,
         block_usage_count=block_usage_count,
     )
 

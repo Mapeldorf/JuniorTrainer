@@ -39,6 +39,29 @@ Rellena en `.env` al menos `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`
 (Supabase dashboard → Project Settings → API). Las variables de LiteLLM/Tavily/Langfuse
 no hacen falta todavía: los agentes llegan en el paso 2 del plan de trabajo.
 
+### GitHub App (generación de ejercicios con repositorio)
+
+El backend y el agente de código leen repositorios de GitHub (públicos o
+corporativos privados) con una GitHub App de solo lectura, nunca clonando
+ni almacenando nada en disco (change `acceso-repo-github-tool`).
+
+1. Crea la App en **https://github.com/settings/apps/new** (o la de tu
+   organización): nombre cualquiera, sin webhook, y en "Repository
+   permissions" marca **Contents: Read-only** (ningún otro permiso).
+2. Genera una clave privada para la App (botón "Generate a private key"
+   en su página de ajustes) y descarga el `.pem`.
+3. Instala la App (botón "Install App") solo en los repositorios que
+   necesites usar para generar ejercicios.
+4. En `.env`, rellena:
+   - `GITHUB_APP_ID`: el "App ID" de la página de ajustes de la App.
+   - `GITHUB_APP_PRIVATE_KEY`: el contenido del `.pem` descargado, con los
+     saltos de línea escapados como `\n` en una sola línea (ver el
+     ejemplo en `.env.example`).
+
+No hace falta fijar un ID de instalación: se resuelve en cada llamada a
+partir de `owner`/`repo` (`GET /repos/{owner}/{repo}/installation`), así
+que la misma App vale para cualquier repositorio en el que esté instalada.
+
 ## Arrancar en local
 
 ### Con Docker Compose (frontend + backend + litellm)

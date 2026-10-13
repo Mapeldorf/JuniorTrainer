@@ -53,6 +53,67 @@
         }
       </label>
 
+      <fieldset class="flex flex-col gap-1.5 text-sm">
+        <legend class="font-medium">Repositorio de GitHub (opcional)</legend>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            placeholder="propietario (owner)"
+            [ngModel]="owner()"
+            (ngModelChange)="owner.set($event); onOwnerOrRepoChange()"
+            name="owner"
+            class="h-10 w-1/2 rounded-lg border border-zinc-300 px-3 text-sm"
+          />
+          <input
+            type="text"
+            placeholder="repositorio"
+            [ngModel]="repo()"
+            (ngModelChange)="repo.set($event); onOwnerOrRepoChange()"
+            name="repo"
+            class="h-10 w-1/2 rounded-lg border border-zinc-300 px-3 text-sm"
+          />
+        </div>
+        <span class="text-sm text-zinc-500">
+          Déjalo vacío para generar solo a partir de las tecnologías, sin código real.
+        </span>
+      </fieldset>
+
+      <fieldset class="flex flex-col gap-1.5 text-sm">
+        <legend class="font-medium">Tipo de ejercicio</legend>
+        <label class="flex items-center gap-2">
+          <input
+            type="radio"
+            name="kind"
+            value="knowledge"
+            [ngModel]="kind()"
+            (ngModelChange)="kind.set($event)"
+          />
+          Conocimiento
+        </label>
+        <label class="flex items-center gap-2">
+          <input
+            type="radio"
+            name="kind"
+            value="debug"
+            [disabled]="!hasRepo()"
+            [ngModel]="kind()"
+            (ngModelChange)="kind.set($event)"
+          />
+          Depuración (exige repositorio)
+        </label>
+        <label class="flex items-center gap-2">
+          <input
+            type="radio"
+            name="kind"
+            value="both"
+            [disabled]="!hasRepo()"
+            [ngModel]="kind()"
+            (ngModelChange)="kind.set($event)"
+          />
+          Ambos (exige repositorio)
+        </label>
+      </fieldset>
+
       <label class="flex flex-col gap-1.5 text-sm">
         <span class="font-medium">Número de ejercicios candidatos (1 a 5)</span>
         <input

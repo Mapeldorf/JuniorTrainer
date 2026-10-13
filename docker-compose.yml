@@ -49,15 +49,8 @@ services:
     expose:
       - "8011"
     env_file: .env
-    volumes:
-      # Carpeta de repos ya preparados (clonados/subidos fuera de este
-      # compose, ver design.md "Contrato de entrada del agente de codigo" --
-      # su preparacion es un Non-Goal de este change). Solo-lectura: el
-      # agente de codigo unicamente lee (tarea 4.2). `REPOS_DIR` (host) y la
-      # ruta fija dentro del contenedor son las mismas para quien prepara el
-      # repo y para quien lo lee, para que un `repo_path` relativo a esa raiz
-      # sea valido en ambos lados.
-      - ${REPOS_DIR:-./data/repos}:/data/repos:ro
+    # Sin volumen de repos: lee el contenido directamente de la API de
+    # GitHub (change acceso-repo-github-tool), nunca de una carpeta local.
     depends_on:
       - litellm
 

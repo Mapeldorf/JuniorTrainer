@@ -246,7 +246,7 @@ async def main() -> None:
         assert saved_with.expected_answer == "respuesta editada B"
         print("OK: 1.4 guardar con expected_answer sustituye la respuesta original")
 
-        # --- 1.5: GET /exercises incluye technologies/repo_path, incluso
+        # --- 1.5: GET /exercises incluye technologies/repo, incluso
         # con la generacion ya done ---
         listing = await exercises.list_saved_exercises(type=None, q=TAG, _tech_lead=tech_lead)
         by_id = {e.id: e for e in listing}
@@ -254,10 +254,10 @@ async def main() -> None:
         assert unsaved_candidate["id"] not in by_id, "un candidato sin guardar no debe listarse"
         item = by_id[candidate_a["id"]]
         assert item.technologies == ["Git", f"Python ({TAG})"], item.technologies
-        assert item.repo_path is None
+        assert item.repo is None
         print(
             f"OK: 1.5 GET /exercises incluye technologies ({item.technologies}) y "
-            f"repo_path de una generacion que ya esta done"
+            f"repo de una generacion que ya esta done"
         )
 
         print("TODAS LAS COMPROBACIONES PASARON")
@@ -293,7 +293,7 @@ async def verify_full_flow(tech_lead: Profile) -> None:
 
     try:
         print(f"generando (agentes reales)... generation_id={generation_id}")
-        await orchestrator.run_generation(generation_id, ["Git"], None, "knowledge", 1)
+        await orchestrator.run_generation(generation_id, ["Git"], None, None, "knowledge", 1, tech_lead.id)
 
         gen_after = (
             admin.table("generation")
@@ -342,7 +342,7 @@ async def verify_full_flow(tech_lead: Profile) -> None:
         assert candidate.id in saved_by_id, "el ejercicio guardado deberia aparecer en GET /exercises"
         listed = saved_by_id[candidate.id]
         assert listed.technologies == [f"Git ({TAG} full)"], listed.technologies
-        assert listed.repo_path is None
+        assert listed.repo is None
         print(
             f"OK: 1.6 el ejercicio guardado aparece en GET /exercises con "
             f"technologies={listed.technologies}"

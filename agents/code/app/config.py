@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     langfuse_secret_key: str
     langfuse_base_url: str = "https://cloud.langfuse.com"
 
+    # GitHub App (change acceso-repo-github-tool): el agente de codigo la
+    # usa para leer el arbol y el contenido del repositorio (ver
+    # app/github_app.py, app/tools/github_repo.py). Mismas credenciales que
+    # el backend (backend/app/config.py), sin compartir codigo entre
+    # servicios.
+    github_app_id: str
+    github_app_private_key: str
+
 
 @lru_cache
 def get_settings() -> Settings:
