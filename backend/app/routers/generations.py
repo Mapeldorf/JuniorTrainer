@@ -1,7 +1,8 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
 from app.deps import require_tech_lead
 from app.orchestrator import run_generation
+from app.rate_limit import START_GENERATION_LIMIT, limiter
 from app.schemas.generation import (
     ExerciseCandidate,
     GenerationStatusResponse,
@@ -31,7 +32,9 @@ def _to_generation_summary(row: dict) -> GenerationSummary:
 
 
 @router.post("/generations", status_code=status.HTTP_201_CREATED)
+@limiter.limit(START_GENERATION_LIMIT)
 async def start_generation(
+    request: Request,
     body: StartGenerationRequest,
     background_tasks: BackgroundTasks,
     profile: Profile = Depends(require_tech_lead),

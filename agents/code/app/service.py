@@ -106,9 +106,20 @@ async def analyze_repo(
 
     chosen_paths = await _pick_files(entries, technologies, trace_id)
 
+    # Validacion contra path traversal/inyeccion (propuesta
+    # validar-path-agente-codigo): el modelo puede alucinar o, si el
+    # contenido del repo intenta manipularlo, elegir deliberadamente una
+    # ruta fuera del repositorio. Solo se lee lo que de verdad esta en el
+    # listado real para este commit -- mas seguro que validar el formato
+    # de la cadena, porque las rutas legitimas pueden tener casi
+    # cualquier caracter.
+    valid_paths = {e.path for e in entries}
     budget = FileBudget(max_calls=10)
     contents: dict[str, str] = {}
     for path in chosen_paths[:10]:
+        if path not in valid_paths:
+            logger.warning("el modelo eligio una ruta fuera del repositorio: %r", path)
+            continue
         try:
             contents[path] = await read_file(owner, repo, commit_sha, path, budget)
         except FileBudgetExceeded:
