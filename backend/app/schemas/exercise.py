@@ -36,11 +36,14 @@ class SavedExerciseListItem(ExerciseCandidate):
 class SaveExerciseRequest(BaseModel):
     """Body opcional de `POST /exercises/{id}/save` (tarea 1.4 de
     frontend-tech-lead-ejercicios, capacidad exercise-catalog: "Guardar un
-    ejercicio candidato como definitivo"). Si `expected_answer` viene
-    informado, sustituye a la respuesta esperada generada antes de que el
-    ejercicio se vuelva inmutable; si se omite el body entero, el
-    comportamiento es el mismo de antes (se guarda la respuesta original)."""
+    ejercicio candidato como definitivo"). Si `expected_answer` y/o `name`
+    vienen informados, sustituyen a los generados antes de que el
+    ejercicio se vuelva inmutable (change `ejercicios-con-nombre`,
+    requisito "Guardar un candidato con el nombre editado"); si se omite
+    el body entero, el comportamiento es el mismo de antes (se guardan
+    los valores originales)."""
 
+    name: str | None = None
     expected_answer: str | None = None
 
 

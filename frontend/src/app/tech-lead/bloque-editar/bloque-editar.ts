@@ -16,6 +16,7 @@ const MAX_EXERCISES = 100;
 interface ExerciseRow {
   id: string;
   type: ExerciseType;
+  name: string;
   statement: string;
   technologies: string[] | null;
   repoPath: string | null;
@@ -90,6 +91,7 @@ export class BloqueEditarComponent {
           const row: ExerciseRow = {
             id: item.exercise.id,
             type: item.exercise.type,
+            name: item.exercise.name,
             statement: item.exercise.statement,
             technologies: null,
             repoPath: null,
@@ -133,6 +135,7 @@ export class BloqueEditarComponent {
     return {
       id: item.id,
       type: item.type,
+      name: item.name,
       statement: item.statement,
       technologies: item.technologies,
       repoPath: item.repo_path,

@@ -15,12 +15,12 @@ from app.supabase_client import get_admin_client
 
 router = APIRouter(tags=["exercises"])
 
-_EXERCISE_FIELDS = "id, type, statement, code, expected_answer, saved, deleted_at"
+_EXERCISE_FIELDS = "id, type, name, statement, code, expected_answer, saved, deleted_at"
 # `generation(technologies, repo_name)` es un embed de PostgREST por la
 # unica FK de exercise a generation (exercise.generation_id); no hace
 # falta alias ni hint de columna porque no hay ambiguedad (0001_schema.sql).
 _SAVED_EXERCISE_FIELDS = (
-    "id, type, statement, code, expected_answer, saved, deleted_at, "
+    "id, type, name, statement, code, expected_answer, saved, deleted_at, "
     "generation(technologies, repo_name)"
 )
 
@@ -50,6 +50,7 @@ def _to_saved_exercise_list_item(row: dict, block_usage_count: int = 0) -> Saved
     return SavedExerciseListItem(
         id=row["id"],
         type=row["type"],
+        name=row["name"],
         statement=row["statement"],
         code=row["code"],
         expected_answer=row["expected_answer"],
@@ -70,10 +71,12 @@ async def save_exercise(
     A partir de aqui la base de datos ya hace el ejercicio inmutable salvo
     `deleted_at` (trigger `exercise_lock_after_saved`, 0001_schema.sql).
 
-    `body.expected_answer` (tarea 1.4 de frontend-tech-lead-ejercicios) es
-    opcional: si viene informado, sustituye a la respuesta esperada
-    generada antes de guardar; si se omite -- o se omite el body entero --
-    se guarda la original (comportamiento sin cambios)."""
+    `body.expected_answer` (tarea 1.4 de frontend-tech-lead-ejercicios) y
+    `body.name` (change `ejercicios-con-nombre`, requisito "Guardar un
+    candidato con el nombre editado") son opcionales: si vienen
+    informados, sustituyen a la respuesta esperada y/o al nombre
+    generados antes de guardar; si se omiten -- o se omite el body
+    entero -- se guardan los originales (comportamiento sin cambios)."""
     exercise = _get_exercise_or_404(exercise_id)
 
     if exercise["deleted_at"] is not None:
@@ -90,6 +93,8 @@ async def save_exercise(
     update = {"saved": True}
     if body is not None and body.expected_answer is not None:
         update["expected_answer"] = body.expected_answer
+    if body is not None and body.name is not None:
+        update["name"] = body.name
 
     result = (
         get_admin_client().table("exercise").update(update).eq("id", exercise_id).execute()
@@ -100,17 +105,19 @@ async def save_exercise(
 @router.get("/exercises")
 async def list_saved_exercises(
     type: ExerciseType | None = Query(default=None),
-    q: str | None = Query(default=None, description="Texto a buscar en el enunciado"),
+    q: str | None = Query(default=None, description="Texto a buscar en el nombre o en el enunciado"),
     _tech_lead: Profile = Depends(require_tech_lead),
 ) -> list[SavedExerciseListItem]:
     """Lista los ejercicios definitivos (tarea 2.3, capacidad exercise-catalog:
     "Listar y buscar ejercicios definitivos"): `saved = true`, no eliminados,
-    filtrables por tipo y buscables por texto en el enunciado. Es la fuente
-    para componer un bloque (POST /blocks). Incluye las tecnologias y el
-    repositorio de la generacion de cada ejercicio (tarea 1.5 de
-    frontend-tech-lead-ejercicios), sin filtrar por el estado de esa
-    generacion -- la pantalla de guardados los necesita incluso cuando ya
-    esta `done` (design.md decision 9)."""
+    filtrables por tipo y buscables por texto en el nombre o en el enunciado
+    (change `ejercicios-con-nombre`, design.md decision 5: union aditiva,
+    cualquier busqueda que antes encontraba algo por su enunciado lo sigue
+    encontrando). Es la fuente para componer un bloque (POST /blocks).
+    Incluye las tecnologias y el repositorio de la generacion de cada
+    ejercicio (tarea 1.5 de frontend-tech-lead-ejercicios), sin filtrar por
+    el estado de esa generacion -- la pantalla de guardados los necesita
+    incluso cuando ya esta `done` (design.md decision 9)."""
     query = (
         get_admin_client()
         .table("exercise")
@@ -122,7 +129,7 @@ async def list_saved_exercises(
     if type is not None:
         query = query.eq("type", type)
     if q:
-        query = query.ilike("statement", f"%{q}%")
+        query = query.or_(f"name.ilike.%{q}%,statement.ilike.%{q}%")
 
     result = query.execute()
     rows = result.data or []

@@ -72,7 +72,7 @@
         </select>
         <input
           type="search"
-          placeholder="Buscar por enunciado…"
+          placeholder="Buscar por nombre o enunciado…"
           [ngModel]="searchText()"
           (ngModelChange)="onSearchTextChange($event)"
           class="h-10 w-full max-w-[320px] rounded-lg border border-zinc-300 px-3 text-sm"
@@ -87,7 +87,7 @@
         <table class="w-full table-auto border-collapse text-left text-sm">
           <thead>
             <tr class="border-b border-zinc-200 text-zinc-500">
-              <th class="py-2 pr-4 font-medium">Enunciado</th>
+              <th class="py-2 pr-4 font-medium">Nombre</th>
               <th class="py-2 pr-4 font-medium">Tipo</th>
               <th class="py-2 pr-4 font-medium">Tecnologías</th>
               <th class="py-2 pr-4 font-medium">Repositorio</th>
@@ -97,7 +97,7 @@
           <tbody>
             @for (exercise of saved(); track exercise.id) {
               <tr class="border-b border-zinc-100">
-                <td class="max-w-[360px] truncate py-3 pr-4">{{ exercise.statement }}</td>
+                <td class="py-3 pr-4">{{ exercise.name }}</td>
                 <td class="py-3 pr-4">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
                 <td class="py-3 pr-4">{{ exercise.technologies.join(', ') }}</td>
                 <td class="py-3 pr-4">{{ exercise.repo_path ?? '—' }}</td>

@@ -49,10 +49,14 @@ export interface GenerationSummary {
 
 /** Un ejercicio candidato de una generacion, tal como lo devuelve `GET
  * /generations/{id}` (tarea 6.3 de backend) -- solo cuando esta
- * `ready`. */
+ * `ready`. `name` (change `ejercicios-con-nombre`) es una etiqueta corta
+ * distinta del enunciado, pensada como identificador visual en
+ * listados/selectores -- nunca sustituye a `statement`, que sigue siendo
+ * el texto que resuelve el alumno. */
 export interface ExerciseCandidate {
   id: string;
   type: ExerciseType;
+  name: string;
   statement: string;
   code: ExerciseCodeBlock[];
   expected_answer: string | null;
@@ -67,9 +71,11 @@ export interface GenerationDetail {
   candidates: ExerciseCandidate[];
 }
 
-/** Body opcional de `POST /exercises/{id}/save` (tarea 1.4 de backend):
- * si se omite, se guarda la respuesta esperada generada. */
+/** Body opcional de `POST /exercises/{id}/save` (tarea 1.4 de backend y
+ * change `ejercicios-con-nombre`): si se omite `expected_answer` y/o
+ * `name`, se guardan los generados. */
 export interface SaveExerciseRequest {
+  name?: string | null;
   expected_answer?: string | null;
 }
 

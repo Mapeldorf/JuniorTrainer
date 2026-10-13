@@ -18,7 +18,7 @@ const BLOCK: BlockDetail = {
   exercises: [
     {
       position: 1,
-      exercise: { id: 'e1', type: 'knowledge', statement: 'Explica git rebase', code: [], expected_answer: null },
+      exercise: { id: 'e1', type: 'knowledge', name: 'Rebase en Git', statement: 'Explica git rebase', code: [], expected_answer: null },
       exercise_deleted: false,
     },
   ],
@@ -33,6 +33,7 @@ const PROGRESS: StudentProgress[] = [
       {
         exercise_id: 'e1',
         position: 1,
+        name: 'Rebase en Git',
         type: 'knowledge',
         statement: 'Explica git rebase',
         answered: true,

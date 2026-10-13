@@ -147,6 +147,6 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   /** Envuelto en un metodo propio para poder sustituirlo en los tests
    * sin depender del `confirm()` global del navegador. */
   confirmarEliminar(exercise: SavedExerciseListItem): boolean {
-    return confirm(`¿Eliminar el ejercicio "${exercise.statement}"?`);
+    return confirm(`¿Eliminar el ejercicio "${exercise.name}"?`);
   }
 }

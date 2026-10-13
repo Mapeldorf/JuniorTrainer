@@ -32,6 +32,7 @@ export class RevisarComponent {
 
   private readonly selected = signal<Record<string, boolean>>({});
   private readonly editedAnswers = signal<Record<string, string>>({});
+  private readonly editedNames = signal<Record<string, string>>({});
 
   constructor() {
     // Igual que `EjercicioComponent`: leer `generationId()` dentro de un
@@ -51,10 +52,13 @@ export class RevisarComponent {
       next: (detail) => {
         this.detail.set(detail);
         const answers: Record<string, string> = {};
+        const names: Record<string, string> = {};
         for (const candidate of detail.candidates) {
           answers[candidate.id] = candidate.expected_answer ?? '';
+          names[candidate.id] = candidate.name;
         }
         this.editedAnswers.set(answers);
+        this.editedNames.set(names);
         this.selected.set({});
         this.loading.set(false);
       },
@@ -81,11 +85,23 @@ export class RevisarComponent {
     this.editedAnswers.set({ ...this.editedAnswers(), [candidateId]: value });
   }
 
+  /** Change `ejercicios-con-nombre`: mismo patron que `answerFor`/
+   * `setAnswer`, para el nombre editable de cada candidato. */
+  nameFor(candidateId: string): string {
+    return this.editedNames()[candidateId] ?? '';
+  }
+
+  setName(candidateId: string, value: string): void {
+    this.editedNames.set({ ...this.editedNames(), [candidateId]: value });
+  }
+
   /** Tarea 6.2: guarda solo los candidatos marcados (con su respuesta
-   * esperada editada si cambio -- se omite el campo si no cambio, para
-   * conservar la original, design.md decision 4), y despues cierra la
-   * revision; funciona igual con 0 candidatos marcados (requisito
-   * "Cerrar la revision con candidatos sin guardar"). */
+   * esperada y/o su nombre editados si cambiaron -- se omite cada campo
+   * si no cambio, para conservar el original, design.md decision 4;
+   * extendido al nombre por el change `ejercicios-con-nombre`), y
+   * despues cierra la revision; funciona igual con 0 candidatos
+   * marcados (requisito "Cerrar la revision con candidatos sin
+   * guardar"). */
   guardar(): void {
     if (this.saving()) {
       return;
@@ -97,9 +113,13 @@ export class RevisarComponent {
     this.error.set(null);
 
     const saveRequests = marked.map((candidate) => {
-      const edited = this.answerFor(candidate.id);
-      const original = candidate.expected_answer ?? '';
-      return this.api.save(candidate.id, edited !== original ? edited : undefined);
+      const editedAnswer = this.answerFor(candidate.id);
+      const originalAnswer = candidate.expected_answer ?? '';
+      const editedName = this.nameFor(candidate.id);
+      return this.api.save(candidate.id, {
+        expected_answer: editedAnswer !== originalAnswer ? editedAnswer : undefined,
+        name: editedName !== candidate.name ? editedName : undefined,
+      });
     });
 
     (saveRequests.length > 0 ? forkJoin(saveRequests) : of([]))

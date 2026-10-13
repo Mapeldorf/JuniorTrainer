@@ -49,6 +49,11 @@ class ExerciseCodeBlock(BaseModel):
 class ExerciseCandidate(BaseModel):
     id: str
     type: ExerciseType
+    # Etiqueta corta (hasta 8 palabras), distinta del enunciado, pensada
+    # como identificador visual en listados y selectores (change
+    # `ejercicios-con-nombre`); el enunciado sigue siendo el texto que
+    # resuelve el alumno.
+    name: str
     statement: str
     code: list[ExerciseCodeBlock] = Field(default_factory=list)
     expected_answer: str | None = None

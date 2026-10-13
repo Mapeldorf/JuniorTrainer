@@ -11,8 +11,8 @@ const READY_DETAIL: GenerationDetail = {
   status: 'ready',
   error_message: null,
   candidates: [
-    { id: 'c1', type: 'knowledge', statement: 'Pregunta 1', code: [], expected_answer: 'respuesta 1' },
-    { id: 'c2', type: 'knowledge', statement: 'Pregunta 2', code: [], expected_answer: 'respuesta 2' },
+    { id: 'c1', type: 'knowledge', name: 'Nombre 1', statement: 'Pregunta 1', code: [], expected_answer: 'respuesta 1' },
+    { id: 'c2', type: 'knowledge', name: 'Nombre 2', statement: 'Pregunta 2', code: [], expected_answer: 'respuesta 2' },
   ],
 };
 
@@ -107,21 +107,34 @@ describe('RevisarComponent', () => {
     component.guardar();
 
     expect(save).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledWith('c1', 'respuesta 1 editada');
+    expect(save).toHaveBeenCalledWith('c1', { expected_answer: 'respuesta 1 editada', name: undefined });
     expect(close).toHaveBeenCalledWith('g1');
   });
 
-  it('guardar() omite expected_answer si no cambio respecto a la original', () => {
+  it('guardar() omite expected_answer y name si no cambiaron respecto a los originales', () => {
     const save = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save });
     const component = fixture.componentInstance;
 
     component.toggleSelected('c1');
-    // no se llama a setAnswer: se guarda tal cual vino
+    // no se llama a setAnswer ni a setName: se guarda tal cual vino
 
     component.guardar();
 
-    expect(save).toHaveBeenCalledWith('c1', undefined);
+    expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: undefined });
+  });
+
+  it('guardar() guarda el nombre editado si cambio', () => {
+    const save = vi.fn().mockReturnValue(of({}));
+    const fixture = createComponent({ getDetail: () => READY_DETAIL, save });
+    const component = fixture.componentInstance;
+
+    component.toggleSelected('c1');
+    component.setName('c1', 'Nombre 1 editado');
+
+    component.guardar();
+
+    expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: 'Nombre 1 editado' });
   });
 
   it('si close() falla, muestra un error y no navega', () => {

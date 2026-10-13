@@ -111,11 +111,13 @@ class AssignBlockResponse(BaseModel):
 class ExerciseProgress(BaseModel):
     exercise_id: str
     position: int
-    # Tipo y enunciado del ejercicio, leidos siempre desde la copia
-    # inmutable de esta asignacion (`assignment_exercise`/`exercise`), no
-    # desde la composicion actual del bloque (tarea 3.1, design.md -
-    # decision D5): un bloque puede haberse editado entre dos asignaciones
-    # distintas antes de que existiera ninguna respuesta.
+    # Nombre, tipo y enunciado del ejercicio, leidos siempre desde la
+    # copia inmutable de esta asignacion (`assignment_exercise`/
+    # `exercise`), no desde la composicion actual del bloque (tarea 3.1,
+    # design.md - decision D5): un bloque puede haberse editado entre dos
+    # asignaciones distintas antes de que existiera ninguna respuesta.
+    # `name` se anade en el change `ejercicios-con-nombre`.
+    name: str
     type: ExerciseType
     statement: str
     answered: bool

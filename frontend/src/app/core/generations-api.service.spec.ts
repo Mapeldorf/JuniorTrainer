@@ -139,6 +139,7 @@ describe('GenerationsApiService', () => {
     const expected: SavedExercise = {
       id: 'e1',
       type: 'knowledge',
+      name: 'nombre',
       statement: 'enunciado',
       code: [],
       expected_answer: 'original',
@@ -155,17 +156,18 @@ describe('GenerationsApiService', () => {
     expect(result).toEqual(expected);
   });
 
-  it('save(exerciseId, respuesta) llama a POST /exercises/{id}/save con expected_answer', () => {
+  it('save(exerciseId, { expected_answer }) llama a POST /exercises/{id}/save con expected_answer', () => {
     const expected: SavedExercise = {
       id: 'e1',
       type: 'knowledge',
+      name: 'nombre',
       statement: 'enunciado',
       code: [],
       expected_answer: 'editada',
     };
 
     let result: SavedExercise | undefined;
-    service.save('e1', 'editada').subscribe((r) => (result = r));
+    service.save('e1', { expected_answer: 'editada' }).subscribe((r) => (result = r));
 
     const req = httpTesting.expectOne(`${environment.apiUrl}/exercises/e1/save`);
     expect(req.request.method).toBe('POST');
@@ -175,10 +177,32 @@ describe('GenerationsApiService', () => {
     expect(result).toEqual(expected);
   });
 
+  it('save(exerciseId, { name }) llama a POST /exercises/{id}/save con name', () => {
+    const expected: SavedExercise = {
+      id: 'e1',
+      type: 'knowledge',
+      name: 'nombre editado',
+      statement: 'enunciado',
+      code: [],
+      expected_answer: 'original',
+    };
+
+    let result: SavedExercise | undefined;
+    service.save('e1', { name: 'nombre editado' }).subscribe((r) => (result = r));
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/exercises/e1/save`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ name: 'nombre editado' });
+    req.flush(expected);
+
+    expect(result).toEqual(expected);
+  });
+
   it('delete(exerciseId) llama a PATCH /exercises/{id} con deleted: true', () => {
     const expected: SavedExercise = {
       id: 'e1',
       type: 'knowledge',
+      name: 'nombre',
       statement: 'enunciado',
       code: [],
       expected_answer: null,

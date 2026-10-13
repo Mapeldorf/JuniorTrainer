@@ -11,6 +11,7 @@ import { BloqueEditarComponent } from './bloque-editar';
 const CATALOG_ITEM: SavedExerciseListItem = {
   id: 'e1',
   type: 'knowledge',
+  name: 'Rebase en Git',
   statement: 'Explica que hace git rebase',
   code: [],
   expected_answer: 'respuesta',
@@ -29,7 +30,7 @@ const BLOCK_DETAIL: BlockDetail = {
   exercises: [
     {
       position: 1,
-      exercise: { id: 'e1', type: 'knowledge', statement: 'Explica que hace git rebase', code: [], expected_answer: 'respuesta' },
+      exercise: { id: 'e1', type: 'knowledge', name: 'Rebase en Git', statement: 'Explica que hace git rebase', code: [], expected_answer: 'respuesta' },
       exercise_deleted: false,
     },
   ],
@@ -103,7 +104,7 @@ describe('BloqueEditarComponent', () => {
         ...BLOCK_DETAIL.exercises,
         {
           position: 2,
-          exercise: { id: 'e2', type: 'debug', statement: 'Ejercicio eliminado', code: [], expected_answer: null },
+          exercise: { id: 'e2', type: 'debug', name: 'Ejercicio eliminado', statement: 'Ejercicio eliminado', code: [], expected_answer: null },
           exercise_deleted: true,
         },
       ],
