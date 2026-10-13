@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.body_size_limit import BodySizeLimitMiddleware
 from app.config import get_settings
 from app.rate_limit import limiter
 from app.routers import assignments, blocks, exercises, generations, health, users
@@ -11,6 +12,12 @@ from app.routers import assignments, blocks, exercises, generations, health, use
 settings = get_settings()
 
 app = FastAPI(title="JuniorTrainer API")
+
+# Limite de tamaño de body (propuesta limite-tamano-body): se añade antes
+# que el resto de middlewares para cortar lo antes posible en la cadena
+# ASGI, sin que CORS ni el rate limiting lleguen siquiera a procesar una
+# peticion con un body demasiado grande.
+app.add_middleware(BodySizeLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
