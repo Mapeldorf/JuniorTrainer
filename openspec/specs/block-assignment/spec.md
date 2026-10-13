@@ -26,11 +26,11 @@ El sistema SHALL permitir a un tech lead asignar un bloque, activo y no eliminad
 - **THEN** las copias de ejercicios ya asignadas a los alumnos no cambian
 
 ### Requirement: Consultar el progreso de un bloque asignado
-El sistema SHALL permitir a un tech lead consultar, para cada alumno asignado a un bloque, su identificador y su nombre, y para cada ejercicio de su copia su tipo y enunciado, si tiene o no una respuesta registrada, y si la tiene, el texto de la respuesta, el verdict y la justificacion de su evaluacion.
+El sistema SHALL permitir a un tech lead consultar, para cada alumno asignado a un bloque, su identificador y su nombre, y para cada ejercicio de su copia su nombre, su tipo y su enunciado, si tiene o no una respuesta registrada, y si la tiene, el texto de la respuesta, el verdict y la justificacion de su evaluacion.
 
 #### Scenario: Ver el progreso de un bloque con varios alumnos
 - **WHEN** un tech lead consulta el progreso de un bloque con varios alumnos asignados
-- **THEN** devuelve, por alumno, su nombre, y para cada ejercicio de su copia su tipo, su enunciado, y si tiene o no respuesta
+- **THEN** devuelve, por alumno, su nombre, y para cada ejercicio de su copia su nombre, su tipo, su enunciado, y si tiene o no respuesta
 
 #### Scenario: Progreso de un alumno sin respuestas todavia
 - **WHEN** un alumno asignado todavia no ha respondido a ningun ejercicio de su copia
@@ -41,11 +41,11 @@ El sistema SHALL permitir a un tech lead consultar, para cada alumno asignado a 
 - **THEN** su progreso muestra, para esos ejercicios, el texto de la respuesta, el verdict y la justificacion obtenidos en su evaluacion
 
 ### Requirement: Consultar las asignaciones de un alumno a traves de sus bloques
-El sistema SHALL permitir a un tech lead consultar, para un alumno dado, todas sus asignaciones; cada una SHALL incluir el nombre del bloque del que proviene y, para cada ejercicio de su copia, su tipo y enunciado, si tiene o no una respuesta registrada, y si la tiene, el texto de la respuesta, el verdict y la justificacion de su evaluacion; y SHALL rechazar la consulta si la hace un alumno.
+El sistema SHALL permitir a un tech lead consultar, para un alumno dado, todas sus asignaciones; cada una SHALL incluir el nombre del bloque del que proviene y, para cada ejercicio de su copia, su nombre, su tipo y su enunciado, si tiene o no una respuesta registrada, y si la tiene, el texto de la respuesta, el verdict y la justificacion de su evaluacion; y SHALL rechazar la consulta si la hace un alumno.
 
 #### Scenario: Ver las asignaciones de un alumno con varios bloques
 - **WHEN** un tech lead consulta las asignaciones de un alumno que tiene varios bloques asignados
-- **THEN** devuelve una entrada por asignacion, cada una con el nombre de su bloque y, para cada ejercicio de su copia, su tipo, su enunciado, y si tiene o no respuesta
+- **THEN** devuelve una entrada por asignacion, cada una con el nombre de su bloque y, para cada ejercicio de su copia, su nombre, su tipo, su enunciado, y si tiene o no respuesta
 
 #### Scenario: Un alumno sin asignaciones todavia
 - **WHEN** un tech lead consulta las asignaciones de un alumno que no tiene ningun bloque asignado
