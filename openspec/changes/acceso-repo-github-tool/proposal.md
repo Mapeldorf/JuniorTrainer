@@ -27,7 +27,7 @@ Riesgos aceptados explícitamente por el propietario del proyecto, sin mitigaci�
 - `github-repo-access`: cómo el sistema localiza, autentica y lee el contenido de un repositorio de GitHub (público o corporativo privado) para alimentar la generación de ejercicios, sin descargarlo ni almacenarlo: forma de la referencia de entrada, autenticación de la aplicación, fijación de commit, límites de lectura, protección frente a SSRF, y registro de auditoría de cada acceso.
 
 ### Modified Capabilities
-Ninguna. El comportamiento observable de `agent-memory` ("no relee el mismo repositorio para las mismas tecnologías") no cambia; solo cambia, como detalle de implementación, cómo se calcula la identidad del repositorio (ver `design.md`).
+- `exercise-generation`: se añade la validación "sin repositorio solo se puede pedir el tipo `knowledge`" (ya prevista en el documento de especificación original, pero nunca formalizada como requisito ni implementada) — necesaria ahora que el formulario de generación expone el selector de tipo (ver "Alcance ampliado" en `design.md`). El comportamiento observable de `agent-memory` ("no relee el mismo repositorio para las mismas tecnologías") no cambia; solo cambia, como detalle de implementación, cómo se calcula la identidad del repositorio.
 
 ## Impact
 
@@ -40,3 +40,6 @@ Ninguna. El comportamiento observable de `agent-memory` ("no relee el mismo repo
 - **Infraestructura de secretos**: nueva credencial a gestionar (clave privada de la GitHub App).
 - **Base de datos**: nueva tabla `repo_access_log` (migración nueva).
 - **`docker-compose.yml`**: no se añade ningún volumen compartido de repos (el `Non-Goal` de preparación local del change `generacion-ejercicios-agentes` queda definitivamente descartado en lugar de pendiente).
+- **Frontend (`frontend/src/app/core/generations-api.model.ts`, `tech-lead/generar/`, `tech-lead/ejercicios/`, `tech-lead/bloque-editar/`, y sus `*.spec.ts`)**: los DTOs y vistas que usan `repo_path` pasan a `owner`/`repo` (entrada) y `repo` (lectura). El formulario de generación (`tech-lead/generar/`) pasa a exponer los campos `owner`/`repo` y el selector de tipo (conocimiento/debug/ambos) — ampliación de alcance decidida con el usuario, ver `design.md`.
+- **Backend (`backend/app/schemas/generation.py`)**: nueva validación "sin repositorio solo se puede pedir el tipo `knowledge`" (422), requisito formalizado en `specs/exercise-generation/spec.md`.
+- **`backend/app/schemas/exercise.py`, `backend/app/routers/exercises.py`**: el listado de ejercicios guardados expone `repo_path` de la generación de origen; pasa a `repo`.

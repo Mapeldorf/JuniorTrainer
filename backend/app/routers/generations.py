@@ -23,7 +23,7 @@ def _to_generation_summary(row: dict) -> GenerationSummary:
         id=row["id"],
         status=row["status"],
         technologies=[t.strip() for t in row["technologies"].split(",") if t.strip()],
-        repo_path=row["repo_name"] or None,
+        repo=row["repo_name"] or None,
         kind=row["kind"],
         error_message=row.get("error_message"),
         created_at=row["created_at"],
@@ -42,15 +42,16 @@ async def start_generation(
     (requisito "Generacion no se ejecuta en la peticion HTTP"); `BackgroundTasks`
     basta aqui porque no hace falta cancelar la tarea desde fuera ni que
     sobreviva a que el proceso se reinicie (ver design.md)."""
+    # generation.repo_name es texto libre de display; guarda la referencia
+    # "owner/repo" tal cual (change acceso-repo-github-tool), igual que
+    # antes guardaba repo_path -- sigue sin anadirse una columna nueva.
+    repo_name = f"{body.owner}/{body.repo}" if body.owner and body.repo else ""
     result = (
         get_admin_client()
         .table("generation")
         .insert(
             {
-                # generation.repo_name es texto libre de display; se reutiliza
-                # tal cual para guardar repo_path (decision tomada con el
-                # usuario antes de implementar: no se anade una columna nueva).
-                "repo_name": body.repo_path or "",
+                "repo_name": repo_name,
                 "technologies": ", ".join(body.technologies),
                 "kind": body.kind,
                 "status": "generating",
@@ -62,7 +63,14 @@ async def start_generation(
     generation_id = result.data[0]["id"]
 
     background_tasks.add_task(
-        run_generation, generation_id, body.technologies, body.repo_path, body.kind, body.count
+        run_generation,
+        generation_id,
+        body.technologies,
+        body.owner,
+        body.repo,
+        body.kind,
+        body.count,
+        profile.id,
     )
 
     return StartGenerationResponse(id=generation_id)

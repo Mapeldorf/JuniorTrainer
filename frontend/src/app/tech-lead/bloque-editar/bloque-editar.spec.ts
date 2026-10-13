@@ -16,7 +16,7 @@ const CATALOG_ITEM: SavedExerciseListItem = {
   code: [],
   expected_answer: 'respuesta',
   technologies: ['Git'],
-  repo_path: null,
+  repo: null,
   block_usage_count: 0,
 };
 

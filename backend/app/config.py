@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     langfuse_secret_key: str
     langfuse_base_url: str = "https://cloud.langfuse.com"
 
+    # GitHub App (change acceso-repo-github-tool): el backend la usa para
+    # resolver el commit_sha de HEAD al iniciar una generacion con
+    # repositorio (ver app/github_app.py). El agente de codigo tiene su
+    # propia copia de estas mismas credenciales (agents/code/app/config.py).
+    github_app_id: str
+    github_app_private_key: str
+
 
 @lru_cache
 def get_settings() -> Settings:

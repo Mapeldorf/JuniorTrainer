@@ -10,7 +10,7 @@ const GENERATING: GenerationSummary = {
   id: 'g1',
   status: 'generating',
   technologies: ['Git'],
-  repo_path: null,
+  repo: null,
   kind: 'knowledge',
   error_message: null,
   created_at: '2026-01-01',
@@ -26,7 +26,7 @@ const SAVED_ITEM: SavedExerciseListItem = {
   code: [],
   expected_answer: 'respuesta esperada',
   technologies: ['Git'],
-  repo_path: null,
+  repo: null,
   block_usage_count: 0,
 };
 

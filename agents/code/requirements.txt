@@ -8,3 +8,9 @@ langgraph>=0.6,<2
 langgraph-checkpoint-postgres>=2.0,<4
 psycopg[binary]>=3.2,<4
 langfuse>=3.0,<5
+
+# GitHub App (change acceso-repo-github-tool): JWT firmado (RS256) para
+# intercambiar por un token de instalacion, y cliente HTTP propio contra
+# api.github.com para leer el arbol/contenido del repositorio.
+PyJWT[crypto]>=2.9,<3
+httpx>=0.27,<1

@@ -22,6 +22,7 @@ import logging
 
 from app.a2a_client import A2ATaskError, send_a2a_task
 from app.config import get_settings
+from app.github_client import CommitResolutionError, resolve_head_commit
 from app.supabase_client import get_admin_client
 from app.tracing import new_trace_id, record_generation
 
@@ -77,12 +78,12 @@ async def _call_web(technologies: list[str], trace_id: str, *, required: bool) -
         return None
 
 
-async def _call_code(repo_path: str, technologies: list[str], trace_id: str) -> dict:
+async def _call_code(owner: str, repo: str, commit_sha: str, technologies: list[str], trace_id: str) -> dict:
     settings = get_settings()
     try:
         return await send_a2a_task(
             settings.agent_code_url,
-            {"repo_path": repo_path, "technologies": technologies},
+            {"owner": owner, "repo": repo, "commit_sha": commit_sha, "technologies": technologies},
             trace_id=trace_id,
         )
     except A2ATaskError as exc:
@@ -90,9 +91,9 @@ async def _call_code(repo_path: str, technologies: list[str], trace_id: str) -> 
 
 
 async def _gather_inputs(
-    technologies: list[str], repo_path: str | None, trace_id: str
+    technologies: list[str], owner: str | None, repo: str | None, commit_sha: str | None, trace_id: str
 ) -> tuple[dict | None, dict | None]:
-    if not repo_path:
+    if not owner or not repo:
         web_result = await _call_web(technologies, trace_id, required=True)
         return web_result, None
 
@@ -101,7 +102,7 @@ async def _gather_inputs(
         send_a2a_task(settings.agent_web_url, {"technologies": technologies}, trace_id=trace_id),
         send_a2a_task(
             settings.agent_code_url,
-            {"repo_path": repo_path, "technologies": technologies},
+            {"owner": owner, "repo": repo, "commit_sha": commit_sha, "technologies": technologies},
             trace_id=trace_id,
         ),
         return_exceptions=True,
@@ -182,27 +183,77 @@ def _mark_status(generation_id: str, status: str, error_message: str | None = No
     ).eq("id", generation_id).execute()
 
 
-async def _orchestrate(
-    generation_id: str, technologies: list[str], repo_path: str | None, kind: str, count: int, trace_id: str
+def _write_repo_access_log(
+    generation_id: str, tech_lead_id: str, owner: str, repo: str, commit_sha: str | None, result: str
 ) -> None:
-    web_result, code_result = await _gather_inputs(technologies, repo_path, trace_id)
+    """Requisito "Registro de auditoria de cada acceso" de
+    `specs/github-repo-access/spec.md`: una fila por cada intento de
+    acceso a un repositorio, exito o fallo, escrita antes de pasar nada al
+    agente de codigo."""
+    get_admin_client().table("repo_access_log").insert(
+        {
+            "generation_id": generation_id,
+            "tech_lead_id": tech_lead_id,
+            "owner": owner,
+            "repo": repo,
+            "commit_sha": commit_sha,
+            "result": result,
+        }
+    ).execute()
+
+
+async def _resolve_commit(generation_id: str, tech_lead_id: str, owner: str, repo: str) -> str:
+    """Resuelve y fija el commit HEAD de `owner/repo` (requisito "Commit
+    fijado por generacion"), antes de llamar a ningun agente. Un fallo
+    aqui (repo inexistente, App no instalada) es fatal para la generacion
+    (tarea 3.4), pero igualmente queda registrado en la auditoria."""
+    try:
+        commit_sha = await resolve_head_commit(owner, repo)
+    except CommitResolutionError as exc:
+        _write_repo_access_log(generation_id, tech_lead_id, owner, repo, None, "error")
+        raise _GenerationFailed(f"no se pudo acceder al repositorio {owner}/{repo}: {exc}") from exc
+    _write_repo_access_log(generation_id, tech_lead_id, owner, repo, commit_sha, "ok")
+    return commit_sha
+
+
+async def _orchestrate(
+    generation_id: str,
+    technologies: list[str],
+    owner: str | None,
+    repo: str | None,
+    tech_lead_id: str,
+    kind: str,
+    count: int,
+    trace_id: str,
+) -> None:
+    commit_sha: str | None = None
+    if owner and repo:
+        commit_sha = await _resolve_commit(generation_id, tech_lead_id, owner, repo)
+
+    web_result, code_result = await _gather_inputs(technologies, owner, repo, commit_sha, trace_id)
     candidates = await _generate_candidates(kind, count, web_result, code_result, trace_id)
     _insert_candidates(generation_id, candidates)
     _mark_status(generation_id, "ready")
 
 
 async def run_generation(
-    generation_id: str, technologies: list[str], repo_path: str | None, kind: str, count: int
+    generation_id: str,
+    technologies: list[str],
+    owner: str | None,
+    repo: str | None,
+    kind: str,
+    count: int,
+    tech_lead_id: str,
 ) -> None:
     """Punto de entrada que lanza `BackgroundTasks` (tarea 6.2): corre
     despues de que la respuesta HTTP de `POST /generations` ya se ha
     enviado (requisito "Generacion no se ejecuta en la peticion HTTP")."""
     trace_id = new_trace_id()
-    has_repo = bool(repo_path)
+    has_repo = bool(owner and repo)
 
     try:
         await asyncio.wait_for(
-            _orchestrate(generation_id, technologies, repo_path, kind, count, trace_id),
+            _orchestrate(generation_id, technologies, owner, repo, tech_lead_id, kind, count, trace_id),
             timeout=GENERATION_TIMEOUT_SECONDS,
         )
     except TimeoutError:

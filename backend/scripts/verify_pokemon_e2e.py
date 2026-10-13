@@ -1,13 +1,15 @@
-"""Prueba de aceptacion de extremo a extremo (grupo 8, tareas 8.1-8.3): una
-generacion real con un repositorio real, contra toda la infraestructura
-real (LiteLLM/OpenRouter, Tavily, Postgres de memoria, Langfuse) orquestada
-por el `docker-compose.yml` del grupo 7 -- los tres agentes aqui son
-servicios A2A reales en contenedores separados, no servidores sueltos como
-en `verify_generation_e2e.py` (tarea 6.7).
+"""Prueba de aceptacion de extremo a extremo (grupo 8, tareas 8.1-8.3 del
+change `generacion-ejercicios-agentes`; adaptada por el change
+`acceso-repo-github-tool`, grupo 5, para leer el repositorio via GitHub en
+vez de un `repo_path` local): una generacion real con un repositorio real
+de GitHub, contra toda la infraestructura real (LiteLLM/OpenRouter,
+Tavily, Postgres de memoria, Langfuse, API de GitHub) orquestada por el
+`docker-compose.yml` -- los tres agentes aqui son servicios A2A reales en
+contenedores separados, no servidores sueltos como en `verify_generation_e2e.py`.
 
-Se llama a `run_generation()` directamente (como en 6.7), no a traves de
-`POST /generations`: la tarea 8.1 pide lanzar y verificar la generacion en
-si, no la capa HTTP/autenticacion (ya cubierta en 6.2/6.3). Se ejecuta DOS
+Se llama a `run_generation()` directamente, no a traves de `POST
+/generations`: la tarea 8.1 pide lanzar y verificar la generacion en si,
+no la capa HTTP/autenticacion (ya cubierta en 6.2/6.3). Se ejecuta DOS
 veces con el mismo repo y las mismas tecnologias (8.1 la primera vez, 8.3
 la repeticion), capturando sin tocar `orchestrator.py`:
   - el `trace_id` de cada generacion (igual que 6.7), para comprobar en
@@ -21,13 +23,16 @@ imprime los enunciados de las dos tandas uno al lado del otro para
 revisarlo a ojo (y queda tambien visible en Langfuse, en el input del
 agente de ejercicios, que lista los enunciados previos que no debia repetir).
 
+Tarea 5.3 (`acceso-repo-github-tool`): tambien comprueba que
+`repo_access_log` tiene una fila con `result='ok'` y un `commit_sha` no
+vacio para cada una de las dos generaciones.
+
 Preparacion:
-  1. Clona o copia el repo real de Pokemon dentro de la carpeta configurada
-     en REPOS_DIR (ver .env.example; por defecto ./data/repos en la raiz
-     del repo), p. ej.:
-         git clone <url-del-repo-pokemon> ./data/repos/pokemon
+  1. Crea una GitHub App de solo lectura (`contents: read`) e instalala en
+     el repositorio de prueba (ver README.md, seccion "GitHub App").
   2. .env real en la raiz del repo (Supabase, LiteLLM/OpenRouter, Tavily,
-     Postgres de memoria, Langfuse) -- el mismo que usa `docker-compose.yml`.
+     Postgres de memoria, Langfuse, GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY)
+     -- el mismo que usa `docker-compose.yml`.
   3. Levanta toda la pila:
          docker compose up -d --build
   4. Ya debe existir un profile con role='tech_lead' (si no,
@@ -35,12 +40,11 @@ Preparacion:
 
 Uso (desde la raiz del repo, con todo levantado):
     docker compose exec backend python -m scripts.verify_pokemon_e2e \
-        --repo-path /data/repos/pokemon --technologies "Python,Flask" \
+        --owner <owner> --repo <repo> --technologies "Python,Flask" \
         [--kind both] [--count 3]
 
-`--repo-path` es la ruta DENTRO del contenedor de agent-code (siempre bajo
-/data/repos/..., ver docker-compose.yml), no la ruta del host. `--technologies`
-son las tecnologias reales que usa ese repo, separadas por comas.
+`--technologies` son las tecnologias reales que usa ese repo, separadas
+por comas.
 """
 
 import argparse
@@ -85,8 +89,19 @@ def _memory_hit_for(url: str) -> bool | None:
     return None
 
 
+def _repo_access_log_row(admin, generation_id: str) -> dict | None:
+    rows = (
+        admin.table("repo_access_log")
+        .select("owner, repo, commit_sha, result")
+        .eq("generation_id", generation_id)
+        .execute()
+        .data
+    )
+    return rows[0] if rows else None
+
+
 async def _run_one_generation(
-    admin, tech_lead_id: str, repo_path: str, technologies: list[str], kind: str, count: int
+    admin, tech_lead_id: str, owner: str, repo: str, technologies: list[str], kind: str, count: int
 ) -> dict:
     _captured_calls.clear()
     _captured_trace_id.clear()
@@ -95,7 +110,7 @@ async def _run_one_generation(
         admin.table("generation")
         .insert(
             {
-                "repo_name": repo_path,
+                "repo_name": f"{owner}/{repo}",
                 "technologies": ", ".join(technologies),
                 "kind": kind,
                 "status": "generating",
@@ -106,7 +121,7 @@ async def _run_one_generation(
     )
     generation_id = result.data[0]["id"]
 
-    await orchestrator.run_generation(generation_id, technologies, repo_path, kind, count)
+    await orchestrator.run_generation(generation_id, technologies, owner, repo, kind, count, tech_lead_id)
 
     row = (
         admin.table("generation")
@@ -129,6 +144,12 @@ async def _run_one_generation(
     if not (1 <= len(candidates) <= 5):
         raise SystemExit(f"se esperaban entre 1 y 5 candidatos, llegaron {len(candidates)}: {candidates}")
 
+    access_log_row = _repo_access_log_row(admin, generation_id)
+    if access_log_row is None:
+        raise SystemExit(f"no se encontro ninguna fila en repo_access_log para la generacion {generation_id}")
+    if access_log_row["result"] != "ok" or not access_log_row["commit_sha"]:
+        raise SystemExit(f"repo_access_log de {generation_id} no es el esperado: {access_log_row}")
+
     settings = get_settings()
     return {
         "generation_id": generation_id,
@@ -136,6 +157,7 @@ async def _run_one_generation(
         "candidates": candidates,
         "web_memory_hit": _memory_hit_for(settings.agent_web_url),
         "code_memory_hit": _memory_hit_for(settings.agent_code_url),
+        "repo_access_log": access_log_row,
     }
 
 
@@ -150,6 +172,7 @@ def _print_summary(label: str, summary: dict) -> None:
         print(f"Langfuse URL: {get_client().get_trace_url(trace_id=summary['trace_id'])}")
     print(f"web memory_hit: {summary['web_memory_hit']}")
     print(f"code memory_hit: {summary['code_memory_hit']}")
+    print(f"repo_access_log: {summary['repo_access_log']}")
     print(f"candidatos ({len(summary['candidates'])}):")
     for candidate in summary["candidates"]:
         print(f"  [{candidate['type']}] {candidate['statement'][:120]}")
@@ -157,7 +180,8 @@ def _print_summary(label: str, summary: dict) -> None:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo-path", required=True, help="Ruta DENTRO del contenedor de agent-code")
+    parser.add_argument("--owner", required=True, help="Propietario del repositorio de GitHub")
+    parser.add_argument("--repo", required=True, help="Nombre del repositorio de GitHub")
     parser.add_argument("--technologies", required=True, help="Lista separada por comas")
     parser.add_argument("--kind", default="both", choices=["knowledge", "debug", "both"])
     parser.add_argument("--count", type=int, default=3)
@@ -178,17 +202,17 @@ async def main() -> None:
         )
     tech_lead_id = tech_lead[0]["id"]
     print(f"usando tech_lead: {tech_lead[0]['email']} ({tech_lead_id})")
-    print(f"repo_path: {args.repo_path}")
+    print(f"owner/repo: {args.owner}/{args.repo}")
     print(f"technologies: {technologies}")
     print(f"kind={args.kind} count={args.count}")
 
-    first = await _run_one_generation(admin, tech_lead_id, args.repo_path, technologies, args.kind, args.count)
+    first = await _run_one_generation(admin, tech_lead_id, args.owner, args.repo, technologies, args.kind, args.count)
     _print_summary("1a generacion (8.1)", first)
 
-    second = await _run_one_generation(admin, tech_lead_id, args.repo_path, technologies, args.kind, args.count)
+    second = await _run_one_generation(admin, tech_lead_id, args.owner, args.repo, technologies, args.kind, args.count)
     _print_summary("2a generacion, mismo repo y tecnologias (8.3)", second)
 
-    print("\n--- comprobaciones automaticas (8.3) ---")
+    print("\n--- comprobaciones automaticas (8.3 + 5.3 de acceso-repo-github-tool) ---")
     ok = True
     if second["web_memory_hit"] is not True:
         print(f"FALLO: se esperaba web_memory_hit=True en la 2a generacion, fue {second['web_memory_hit']}")
@@ -200,6 +224,14 @@ async def main() -> None:
         ok = False
     else:
         print("OK: agente de codigo no ha reledo el repo (memory_hit=True)")
+    if first["repo_access_log"]["commit_sha"] != second["repo_access_log"]["commit_sha"]:
+        print(
+            "FALLO: el commit_sha de repo_access_log deberia ser el mismo en ambas "
+            f"generaciones (mismo repo): {first['repo_access_log']} vs {second['repo_access_log']}"
+        )
+        ok = False
+    else:
+        print(f"OK: repo_access_log registrado con result='ok' y commit_sha={first['repo_access_log']['commit_sha']!r} en ambas generaciones")
 
     print(
         "\nRevision manual pendiente (8.3, requisito semantico -- compara los enunciados de arriba): "

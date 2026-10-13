@@ -28,8 +28,8 @@
             <li class="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4">
               <div class="flex flex-col gap-1">
                 <span class="font-medium">{{ generation.technologies.join(', ') }}</span>
-                @if (generation.repo_path) {
-                  <span class="text-sm text-zinc-500">{{ generation.repo_path }}</span>
+                @if (generation.repo) {
+                  <span class="text-sm text-zinc-500">{{ generation.repo }}</span>
                 }
               </div>
               <div class="flex items-center gap-3">
@@ -100,7 +100,7 @@
                 <td class="py-3 pr-4">{{ exercise.name }}</td>
                 <td class="py-3 pr-4">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
                 <td class="py-3 pr-4">{{ exercise.technologies.join(', ') }}</td>
-                <td class="py-3 pr-4">{{ exercise.repo_path ?? '—' }}</td>
+                <td class="py-3 pr-4">{{ exercise.repo ?? '—' }}</td>
                 <td class="py-3 pr-4 text-right">
                   <button
                     type="button"

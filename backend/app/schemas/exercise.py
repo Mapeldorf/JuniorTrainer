@@ -17,7 +17,7 @@ SavedExercise = ExerciseCandidate
 class SavedExerciseListItem(ExerciseCandidate):
     """Fila de `GET /exercises` (tarea 1.5 de frontend-tech-lead-ejercicios,
     capacidad exercise-catalog: "Listar y buscar ejercicios definitivos").
-    Solo para ese listado -- anade `technologies` y `repo_path`, propios de
+    Solo para ese listado -- anade `technologies` y `repo`, propios de
     la generacion de la que proviene el ejercicio, sin filtrar por el
     estado de esa generacion (design.md decision 9), porque la pantalla de
     guardados necesita mostrarlos incluso cuando la generacion ya esta
@@ -25,7 +25,7 @@ class SavedExerciseListItem(ExerciseCandidate):
     de un bloque) se deja sin cambios."""
 
     technologies: list[str]
-    repo_path: str | None = None
+    repo: str | None = None
     # En cuantos bloques (activos o eliminados) esta este ejercicio
     # actualmente (tarea 2.1/2.2, capacidad exercise-catalog, design.md -
     # decision D4). No se anade a `SavedExercise`: lo usa solo el selector

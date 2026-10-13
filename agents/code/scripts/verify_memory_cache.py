@@ -4,12 +4,8 @@ repo y las mismas tecnologias; la segunda debe venir de memoria
 primera).
 
 Uso (desde agents/code/, con las mismas variables que
-scripts/verify_code_analysis.py MAS AGENTS_PG_*, AGENTS_MEMORY_PASSWORD y
-SUPABASE_PROJECT_REF en el .env de la raiz del repo, LiteLLM corriendo):
-    python -m scripts.verify_memory_cache <repo_path> <tecnologia> [<tecnologia> ...]
-
-Por ejemplo, con el propio repo de agents/web (igual que verify_code_analysis.py):
-    python -m scripts.verify_memory_cache ../web FastAPI LangChain
+scripts/verify_code_analysis.py, LiteLLM corriendo):
+    python -m scripts.verify_memory_cache <owner> <repo> <commit_sha> <tecnologia> [<tecnologia> ...]
 """
 
 import asyncio
@@ -23,23 +19,24 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def main() -> None:
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 5:
         print(
-            "Uso: python -m scripts.verify_memory_cache <repo_path> <tecnologia> [<tecnologia> ...]",
+            "Uso: python -m scripts.verify_memory_cache <owner> <repo> <commit_sha> "
+            "<tecnologia> [<tecnologia> ...]",
             file=sys.stderr,
         )
         raise SystemExit(1)
 
-    repo_path = sys.argv[1]
-    technologies = sys.argv[2:]
+    owner, repo, commit_sha = sys.argv[1], sys.argv[2], sys.argv[3]
+    technologies = sys.argv[4:]
 
     start = time.monotonic()
-    first = await analyze_repo(repo_path, technologies)
+    first = await analyze_repo(owner, repo, commit_sha, technologies)
     first_elapsed = time.monotonic() - start
     print(f"1a llamada: memory_hit={first.memory_hit}, {first_elapsed:.1f}s, {len(first.fragments)} fragmentos")
 
     start = time.monotonic()
-    second = await analyze_repo(repo_path, technologies)
+    second = await analyze_repo(owner, repo, commit_sha, technologies)
     second_elapsed = time.monotonic() - start
     print(f"2a llamada: memory_hit={second.memory_hit}, {second_elapsed:.1f}s, {len(second.fragments)} fragmentos")
 

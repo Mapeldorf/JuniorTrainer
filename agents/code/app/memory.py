@@ -7,21 +7,19 @@ Requisitos de `specs/agent-memory/spec.md`:
   - "La memoria no guarda datos de alumnos" (aqui no hay ninguno: solo
     resumenes y fragmentos de codigo del propio repositorio analizado)
 
-Clave (decision en design.md "Contrato de entrada del agente de codigo"):
-`sha256(repo_identity + "|" + tecnologias normalizadas)`, donde
-`repo_identity` es `git rev-parse HEAD` + `git remote get-url origin`
-cuando `repo_path` es un repo git (el caso real: la prueba de aceptacion
-del grupo 8 usa el repo real de Pokemon); si no es un repo git, cae a usar
-el propio `repo_path`. A diferencia del agente web (clave = solo
-tecnologias), aqui la identidad del repo importa tanto como las
-tecnologias: dos repos distintos con las mismas tecnologias NO deben
-compartir cache. TTL: 30 dias, con refresco en cada lectura (igual que el
-agente web).
+Clave: `sha256("{owner}/{repo}@{commit_sha}" + "|" + tecnologias
+normalizadas)`. El change `acceso-repo-github-tool` simplifica esto
+respecto a la version anterior: el commit ya llega resuelto por el
+orquestador (una sola vez por generacion, ver
+`backend/app/github_client.py`), asi que no hace falta inspeccionar
+ningun `.git` local por subprocess -- `owner`/`repo`/`commit_sha` YA SON
+la identidad del repositorio, sin fallback. Dos repos distintos con las
+mismas tecnologias siguen sin compartir cache. TTL: 30 dias, con refresco
+en cada lectura (igual que el agente web).
 """
 
 import hashlib
 import logging
-import subprocess
 from dataclasses import asdict
 
 from langgraph.store.base import TTLConfig
@@ -34,45 +32,14 @@ logger = logging.getLogger(__name__)
 
 _NAMESPACE = ("code_analysis",)
 _TTL_MINUTES = 30 * 24 * 60  # 30 dias
-_GIT_TIMEOUT_SECONDS = 5
 
 
 def normalize_technologies(technologies: list[str]) -> str:
     return "|".join(sorted({t.strip().lower() for t in technologies if t.strip()}))
 
 
-def _repo_identity(repo_path: str) -> str:
-    """`git remote + commit` cuando `repo_path` es un repo git; si no (o si
-    git no esta disponible, o no hay remoto `origin`), cae a usar el propio
-    `repo_path` -- degradacion aceptable documentada en design.md, no es el
-    camino principal de la spec."""
-    try:
-        commit = subprocess.run(
-            ["git", "-C", repo_path, "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=_GIT_TIMEOUT_SECONDS,
-            check=True,
-        ).stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        return repo_path
-
-    try:
-        remote = subprocess.run(
-            ["git", "-C", repo_path, "remote", "get-url", "origin"],
-            capture_output=True,
-            text=True,
-            timeout=_GIT_TIMEOUT_SECONDS,
-            check=True,
-        ).stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        remote = ""  # repo git sin remoto origin: el commit solo ya es identidad util
-
-    return f"{remote}@{commit}"
-
-
-def cache_key(repo_path: str, technologies: list[str]) -> str:
-    raw = f"{_repo_identity(repo_path)}|{normalize_technologies(technologies)}"
+def cache_key(owner: str, repo: str, commit_sha: str, technologies: list[str]) -> str:
+    raw = f"{owner}/{repo}@{commit_sha}|{normalize_technologies(technologies)}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -83,14 +50,16 @@ def _store_cm():
     )
 
 
-async def get_cached_analysis(repo_path: str, technologies: list[str]) -> dict | None:
+async def get_cached_analysis(
+    owner: str, repo: str, commit_sha: str, technologies: list[str]
+) -> dict | None:
     """Devuelve el analisis guardado (como dict) o None.
 
     Cualquier fallo (red, auth, lo que sea) se trata como "no habia nada
     guardado": nunca propaga la excepcion, para que una memoria caida no
     bloquee la generacion.
     """
-    key = cache_key(repo_path, technologies)
+    key = cache_key(owner, repo, commit_sha, technologies)
     try:
         async with _store_cm() as store:
             await store.setup()
@@ -106,14 +75,16 @@ async def get_cached_analysis(repo_path: str, technologies: list[str]) -> dict |
 
 
 async def save_analysis(
-    repo_path: str,
+    owner: str,
+    repo: str,
+    commit_sha: str,
     technologies: list[str],
     summary: str,
     detected_technologies: list[str],
     fragments: list[CodeFragment],
 ) -> None:
     """Guarda el resultado. Un fallo aqui se ignora sin interrumpir la tarea."""
-    key = cache_key(repo_path, technologies)
+    key = cache_key(owner, repo, commit_sha, technologies)
     value = {
         "summary": summary,
         "technologies": detected_technologies,

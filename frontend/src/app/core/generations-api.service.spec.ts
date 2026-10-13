@@ -33,7 +33,7 @@ describe('GenerationsApiService', () => {
         id: 'g1',
         status: 'ready',
         technologies: ['Git'],
-        repo_path: null,
+        repo: null,
         kind: 'knowledge',
         error_message: null,
         created_at: '2026-01-01',
@@ -55,14 +55,15 @@ describe('GenerationsApiService', () => {
 
     let result: StartGenerationResponse | undefined;
     service
-      .start({ technologies: ['Git'], repo_path: null, kind: 'knowledge', count: 3 })
+      .start({ technologies: ['Git'], owner: null, repo: null, kind: 'knowledge', count: 3 })
       .subscribe((r) => (result = r));
 
     const req = httpTesting.expectOne(`${environment.apiUrl}/generations`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
       technologies: ['Git'],
-      repo_path: null,
+      owner: null,
+      repo: null,
       kind: 'knowledge',
       count: 3,
     });
@@ -94,7 +95,7 @@ describe('GenerationsApiService', () => {
       id: 'g1',
       status: 'done',
       technologies: ['Git'],
-      repo_path: null,
+      repo: null,
       kind: 'knowledge',
       error_message: null,
       created_at: '2026-01-01',

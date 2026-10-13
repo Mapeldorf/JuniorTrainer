@@ -138,7 +138,7 @@ export class BloqueEditarComponent {
       name: item.name,
       statement: item.statement,
       technologies: item.technologies,
-      repoPath: item.repo_path,
+      repoPath: item.repo,
       blockUsageCount: item.block_usage_count,
       exerciseDeleted: false,
     };

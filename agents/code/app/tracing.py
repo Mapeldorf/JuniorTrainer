@@ -3,7 +3,7 @@
 Identico en estructura a `agents/web/app/tracing.py` (ver ese fichero para
 la explicacion completa del contrato trace_id/existing_trace_id/span) --
 solo cambia el nombre del agente y que `record_task()` recibe tambien
-`repo_path` para dejarlo en el span.
+`repo_identity` para dejarlo en el span.
 """
 
 import logging
@@ -68,7 +68,7 @@ def litellm_trace_metadata(trace_id: str | None) -> dict:
 
 
 def record_task(
-    trace_id: str, repo_path: str, technologies: list[str], *, memory_hit: bool, fragments: int
+    trace_id: str, repo_identity: str, technologies: list[str], *, memory_hit: bool, fragments: int
 ) -> None:
     """Marca en Langfuse que esta tarea (`trace_id`) paso por el agente de
     codigo. Igual que en el agente web, hace falta incluso en un acierto
@@ -83,7 +83,7 @@ def record_task(
             name=f"agente-{_AGENT_NAME}",
             as_type="span",
             trace_context={"trace_id": trace_id},
-            input={"repo_path": repo_path, "technologies": technologies},
+            input={"repo": repo_identity, "technologies": technologies},
             output={"memory_hit": memory_hit, "fragments": fragments},
             metadata={"memory_hit": memory_hit},
         ):
