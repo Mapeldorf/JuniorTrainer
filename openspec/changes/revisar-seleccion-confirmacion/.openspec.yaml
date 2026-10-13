@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-10-13
+# Cambio puramente de interaccion en el frontend (pantalla "Revisar
+# generacion"): preseleccion por defecto, un control de seleccionar/
+# deseleccionar todos, y una confirmacion antes de guardar. No anade ni
+# modifica ningun comportamiento observable a nivel de API/backend -- el
+# contrato ya especificado en exercise-generation ("Cierre de la
+# revision de una generacion": los candidatos no marcados se descartan)
+# no cambia; solo cambia como el frontend guia al tech lead hacia esa
+# decision. Ver proposal.md.
+skip_specs: true
