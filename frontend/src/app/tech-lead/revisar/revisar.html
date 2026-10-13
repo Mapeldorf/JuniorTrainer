@@ -20,6 +20,16 @@
       } @else if (d.candidates.length === 0) {
         <p class="text-sm text-zinc-500">Esta generación no tiene ningún candidato.</p>
       } @else {
+        <label class="flex w-fit items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            [checked]="allSelected()"
+            (change)="toggleAll()"
+            class="h-4 w-4"
+          />
+          Seleccionar todos
+        </label>
+
         <div class="flex max-w-[720px] flex-col gap-4">
           @for (candidate of d.candidates; track candidate.id) {
             <div class="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-5">

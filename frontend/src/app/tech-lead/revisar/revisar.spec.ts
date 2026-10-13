@@ -72,37 +72,143 @@ describe('RevisarComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Pregunta 1');
     expect(text).toContain('Pregunta 2');
-    expect(fixture.nativeElement.querySelectorAll('input[type="checkbox"]').length).toBe(2);
+    // 1 checkbox "Seleccionar todos" + 1 por candidato.
+    expect(fixture.nativeElement.querySelectorAll('input[type="checkbox"]').length).toBe(3);
 
     const component = fixture.componentInstance;
     expect(component.answerFor('c1')).toBe('respuesta 1');
     expect(component.answerFor('c2')).toBe('respuesta 2');
   });
 
-  it('guardar() con 0 candidatos marcados: no llama a save(), pero si a close(), y navega', () => {
+  // Tarea 1.1: preseleccion por defecto.
+  it('al cargar, todos los candidatos salen premarcados sin haber hecho ningun click', () => {
+    const fixture = createComponent({ getDetail: () => READY_DETAIL });
+    const component = fixture.componentInstance;
+    expect(component.isSelected('c1')).toBe(true);
+    expect(component.isSelected('c2')).toBe(true);
+  });
+
+  // Tarea 2.1: allSelected() y toggleAll().
+  it('allSelected() es true con todos marcados y false en cuanto se desmarca uno', () => {
+    const fixture = createComponent({ getDetail: () => READY_DETAIL });
+    const component = fixture.componentInstance;
+    expect(component.allSelected()).toBe(true);
+
+    component.toggleSelected('c1');
+    expect(component.allSelected()).toBe(false);
+  });
+
+  it('toggleAll() marca todos si habia una seleccion parcial', () => {
+    const fixture = createComponent({ getDetail: () => READY_DETAIL });
+    const component = fixture.componentInstance;
+    component.toggleSelected('c1'); // c1 queda desmarcado, c2 sigue marcado
+
+    component.toggleAll();
+
+    expect(component.isSelected('c1')).toBe(true);
+    expect(component.isSelected('c2')).toBe(true);
+    expect(component.allSelected()).toBe(true);
+  });
+
+  it('toggleAll() desmarca todos si ya estaba todo marcado', () => {
+    const fixture = createComponent({ getDetail: () => READY_DETAIL });
+    const component = fixture.componentInstance;
+
+    component.toggleAll();
+
+    expect(component.isSelected('c1')).toBe(false);
+    expect(component.isSelected('c2')).toBe(false);
+    expect(component.allSelected()).toBe(false);
+  });
+
+  // Tarea 2.2: checkbox "Seleccionar todos" en la plantilla.
+  it('el checkbox "Seleccionar todos" existe y refleja allSelected()', () => {
+    const fixture = createComponent({ getDetail: () => READY_DETAIL });
+    const checkboxes = fixture.nativeElement.querySelectorAll('input[type="checkbox"]');
+    const selectAllCheckbox = checkboxes[0] as HTMLInputElement;
+
+    // Premarcado por defecto (tarea 1.1): el checkbox de "todos" arranca marcado.
+    expect(selectAllCheckbox.checked).toBe(true);
+
+    fixture.componentInstance.toggleSelected('c1');
+    fixture.detectChanges();
+    expect(selectAllCheckbox.checked).toBe(false);
+  });
+
+  // Tarea 3.1: confirmarPerdida().
+  it('confirmarPerdida() envuelve confirm() y el mensaje nombra cuantos candidatos se pierden', () => {
+    const fixture = createComponent({ getDetail: () => READY_DETAIL });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const result = fixture.componentInstance.confirmarPerdida(2);
+
+    expect(result).toBe(true);
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy.mock.calls[0][0]).toContain('2');
+  });
+
+  // Tarea 3.2: guardar() con seleccion parcial, cancelando la confirmacion.
+  it('guardar() con candidatos sin marcar: si se cancela la confirmacion, no guarda ni cierra', () => {
     const save = vi.fn().mockReturnValue(of({}));
     const close = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
-    const router = TestBed.inject(Router);
-    const navigateSpy = vi.spyOn(router, 'navigate');
+    const component = fixture.componentInstance;
+    const confirmSpy = vi.spyOn(component, 'confirmarPerdida').mockReturnValue(false);
 
-    fixture.componentInstance.guardar();
+    component.toggleSelected('c2'); // c2 queda sin marcar, c1 sigue marcado
+    component.guardar();
 
+    expect(confirmSpy).toHaveBeenCalledWith(1);
     expect(save).not.toHaveBeenCalled();
-    expect(close).toHaveBeenCalledWith('g1');
-    expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios']);
+    expect(close).not.toHaveBeenCalled();
+    expect(component.saving()).toBe(false);
+    // La seleccion no cambia: sigue pudiendo seguir editando (requisito del change).
+    expect(component.isSelected('c1')).toBe(true);
+    expect(component.isSelected('c2')).toBe(false);
   });
 
-  it('guardar() guarda solo los candidatos marcados, con su respuesta editada si cambio', () => {
+  // Tarea 3.2: guardar() con seleccion parcial, confirmando la perdida.
+  it('guardar() con candidatos sin marcar: si se confirma, guarda los marcados y cierra', () => {
+    const save = vi.fn().mockReturnValue(of({}));
+    const close = vi.fn().mockReturnValue(of({}));
+    const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarPerdida').mockReturnValue(true);
+
+    component.toggleSelected('c2'); // c2 queda sin marcar, c1 sigue marcado
+    component.guardar();
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: undefined });
+    expect(close).toHaveBeenCalledWith('g1');
+  });
+
+  // Tarea 3.2: con todo marcado (el default) no se pide confirmacion.
+  it('guardar() con todos los candidatos marcados: no pide confirmacion', () => {
+    const save = vi.fn().mockReturnValue(of({}));
+    const close = vi.fn().mockReturnValue(of({}));
+    const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
+    const component = fixture.componentInstance;
+    const confirmSpy = vi.spyOn(component, 'confirmarPerdida');
+
+    component.guardar(); // nada desmarcado: queda tal cual la preseleccion
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(close).toHaveBeenCalledWith('g1');
+  });
+
+  it('guardar() con la respuesta editada de un candidato marcado', () => {
     const save = vi.fn().mockReturnValue(of({}));
     const close = vi.fn().mockReturnValue(of({}));
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save, close });
     const component = fixture.componentInstance;
 
-    component.toggleSelected('c1');
+    component.toggleSelected('c2'); // deja solo c1 marcado (premarcado por defecto)
     component.setAnswer('c1', 'respuesta 1 editada');
-    // c2 no se marca: no deberia guardarse aunque se edite su respuesta
+    // c2 no esta marcado: no deberia guardarse aunque se edite su respuesta
     component.setAnswer('c2', 'respuesta 2 editada, pero no marcada');
+    vi.spyOn(component, 'confirmarPerdida').mockReturnValue(true);
 
     component.guardar();
 
@@ -116,12 +222,11 @@ describe('RevisarComponent', () => {
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save });
     const component = fixture.componentInstance;
 
-    component.toggleSelected('c1');
-    // no se llama a setAnswer ni a setName: se guarda tal cual vino
-
+    // Todo sigue marcado por defecto (tarea 1.1); no se edita nada.
     component.guardar();
 
     expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: undefined });
+    expect(save).toHaveBeenCalledWith('c2', { expected_answer: undefined, name: undefined });
   });
 
   it('guardar() guarda el nombre editado si cambio', () => {
@@ -129,9 +234,7 @@ describe('RevisarComponent', () => {
     const fixture = createComponent({ getDetail: () => READY_DETAIL, save });
     const component = fixture.componentInstance;
 
-    component.toggleSelected('c1');
     component.setName('c1', 'Nombre 1 editado');
-
     component.guardar();
 
     expect(save).toHaveBeenCalledWith('c1', { expected_answer: undefined, name: 'Nombre 1 editado' });
