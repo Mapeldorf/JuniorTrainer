@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import get_settings
@@ -6,6 +8,8 @@ from app.rate_limit import INVITE_STUDENT_LIMIT, limiter
 from app.schemas.block import ExerciseProgress, StudentBlockAssignment
 from app.schemas.profile import InviteStudentRequest, Profile, StudentSummary
 from app.supabase_client import get_admin_client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["users"])
 
@@ -52,9 +56,12 @@ async def invite_student(
     except Exception as exc:
         # La Admin API tambien falla asi para otros errores de validacion;
         # 409 es la lectura mas probable (email ya existente) que pide la spec.
+        # El detail no incluye el texto de la excepcion (propuesta
+        # api-error-handling): se registra aqui para no perder la causa.
+        logger.exception("Fallo al invitar al alumno %s", email)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"No se ha podido invitar a {email}: {exc}",
+            detail="No se ha podido invitar al alumno",
         ) from exc
 
     return {"email": email, "status": "invited"}

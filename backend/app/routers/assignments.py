@@ -1,3 +1,5 @@
+import logging
+
 from postgrest.exceptions import APIError
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,6 +16,8 @@ from app.schemas.assignment import (
 from app.schemas.profile import Profile
 from app.supabase_client import get_admin_client
 from app.tracing import new_trace_id, record_answer_evaluation
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["assignments"])
 
@@ -275,12 +279,16 @@ async def answer_exercise(
             trace_id,
         )
     except AnswerEvaluationFailed as exc:
+        # answer_evaluation.error_message guarda el detalle completo (tabla
+        # interna, no expuesta por API); el detail de la respuesta HTTP no lo
+        # incluye (propuesta api-error-handling), se registra aqui ademas.
+        logger.exception("Fallo al evaluar la respuesta %s/%s", assignment_id, exercise_id)
         record_answer_evaluation(
             trace_id, assignment_id, exercise_id, status="error", error_message=str(exc)
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"No se ha podido evaluar la respuesta: {exc}",
+            detail="No se ha podido evaluar la respuesta",
         ) from exc
 
     try:
