@@ -21,6 +21,7 @@ const READY: GenerationSummary = { ...GENERATING, status: 'ready', technologies:
 const SAVED_ITEM: SavedExerciseListItem = {
   id: 'e1',
   type: 'knowledge',
+  name: 'Rebase en Git',
   statement: 'Explica que hace git rebase',
   code: [],
   expected_answer: 'respuesta esperada',
@@ -67,7 +68,7 @@ describe('EjerciciosComponent', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Git, Python');
     expect(text).toContain('Por revisar');
-    expect(text).toContain(SAVED_ITEM.statement);
+    expect(text).toContain(SAVED_ITEM.name);
   });
 
   it('sin generaciones pendientes ni guardados, muestra los mensajes vacios', () => {

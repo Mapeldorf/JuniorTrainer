@@ -13,6 +13,7 @@ function ejercicio(overrides: Partial<ExerciseProgress>): ExerciseProgress {
   return {
     exercise_id: 'e1',
     position: 1,
+    name: 'nombre del ejercicio',
     type: 'knowledge',
     statement: 'enunciado',
     answered: false,
@@ -38,6 +39,7 @@ const EN_CURSO: StudentBlockAssignment = {
     ejercicio({
       exercise_id: 'e1',
       position: 1,
+      name: 'Señales computadas',
       type: 'knowledge',
       statement: '¿Qué hace computed()?',
       answered: true,
@@ -48,6 +50,7 @@ const EN_CURSO: StudentBlockAssignment = {
     ejercicio({
       exercise_id: 'e2',
       position: 2,
+      name: 'Pokémon inexistente devuelve 500',
       type: 'debug',
       statement: 'Un pokémon que no existe devuelve 500.',
       answered: true,
@@ -131,11 +134,11 @@ describe('AlumnoDetalleComponent', () => {
     fixture.detectChanges();
 
     const text = el.textContent ?? '';
-    expect(text).toContain('¿Qué hace computed()?');
+    expect(text).toContain('Señales computadas');
     expect(text).toContain('computed crea una señal derivada.');
     expect(text).toContain('Correcta');
     expect(text).toContain('Explica bien que es derivada.');
-    expect(text).toContain('Un pokémon que no existe devuelve 500.');
+    expect(text).toContain('Pokémon inexistente devuelve 500');
     expect(text).toContain('Incorrecta');
     expect(text).toContain('Sin responder');
     expect(text).toContain('Ver detalle del bloque');

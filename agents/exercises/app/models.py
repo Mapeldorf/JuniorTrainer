@@ -4,9 +4,13 @@ import circular, mismo motivo que `app/models.py` del agente de codigo.
 
 Ver design.md "Contrato de entrada/salida del agente de ejercicios":
 `CandidateExercise` mapea 1:1 a las columnas de `public.exercise`
-(type/statement/code/expected_answer) que el orquestador movera a esa
-tabla cuando el tech lead guarde un candidato (fuera de alcance de este
-change).
+(name/type/statement/code/expected_answer) que el orquestador movera a
+esa tabla cuando el tech lead guarde un candidato (fuera de alcance de
+ese change).
+
+Change `ejercicios-con-nombre` (ver design.md, decision 1): `name` es un
+campo corto y distinto de `statement`, pensado como identificador visual
+(listados, selectores), no como el enunciado que resuelve el alumno.
 """
 
 from dataclasses import dataclass, field
@@ -21,6 +25,7 @@ class ExerciseCodeBlock:
 @dataclass
 class CandidateExercise:
     type: str
+    name: str
     statement: str
     code: list[ExerciseCodeBlock] = field(default_factory=list)
     expected_answer: str = ""

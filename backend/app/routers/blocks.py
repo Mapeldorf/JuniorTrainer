@@ -97,7 +97,7 @@ def _get_block_detail(block: dict) -> BlockDetail:
         .table("block_exercise")
         .select(
             "position, "
-            "exercise:exercise_id(id, type, statement, code, expected_answer, deleted_at)"
+            "exercise:exercise_id(id, type, name, statement, code, expected_answer, deleted_at)"
         )
         .eq("block_id", block["id"])
         .order("position")
@@ -455,7 +455,7 @@ async def get_block_progress(
     exercise_rows = (
         get_admin_client()
         .table("assignment_exercise")
-        .select("assignment_id, exercise_id, position, exercise:exercise_id(type, statement)")
+        .select("assignment_id, exercise_id, position, exercise:exercise_id(type, name, statement)")
         .in_("assignment_id", assignment_ids)
         .order("position")
         .execute()
@@ -492,6 +492,7 @@ async def get_block_progress(
                 ExerciseProgress(
                     exercise_id=row["exercise_id"],
                     position=row["position"],
+                    name=row["exercise"]["name"],
                     type=row["exercise"]["type"],
                     statement=row["exercise"]["statement"],
                     answered=answer is not None,

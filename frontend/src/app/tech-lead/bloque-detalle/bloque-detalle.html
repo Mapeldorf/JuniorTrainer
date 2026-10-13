@@ -94,7 +94,7 @@
                   <ul class="flex flex-col gap-2 border-t border-zinc-100 px-4 py-3">
                     @for (e of p.exercises; track e.exercise_id) {
                       <li class="flex flex-col gap-1 rounded-lg bg-zinc-50 px-3 py-2 text-sm">
-                        <span class="font-medium">{{ e.statement }}</span>
+                        <span class="font-medium">{{ e.name }}</span>
                         @if (e.answered) {
                           <span class="text-zinc-700">{{ e.answer_text }}</span>
                           <span
@@ -157,7 +157,7 @@
           @for (item of block()!.exercises; track item.exercise.id) {
             <li class="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm">
               <span class="text-zinc-500">{{ item.exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }} ·</span>
-              {{ item.exercise.statement }}
+              {{ item.exercise.name }}
             </li>
           }
         </ol>

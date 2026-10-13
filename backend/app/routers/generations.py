@@ -154,7 +154,7 @@ async def get_generation(
         ex_result = (
             get_admin_client()
             .table("exercise")
-            .select("id, type, statement, code, expected_answer")
+            .select("id, type, name, statement, code, expected_answer")
             .eq("generation_id", generation_id)
             .eq("saved", False)
             .is_("deleted_at", "null")

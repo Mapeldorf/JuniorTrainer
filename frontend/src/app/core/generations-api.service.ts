@@ -53,8 +53,22 @@ export class GenerationsApiService {
     return this.http.get<SavedExerciseListItem[]>(`${environment.apiUrl}/exercises`, { params });
   }
 
-  save(exerciseId: string, expectedAnswer?: string | null): Observable<SavedExercise> {
-    const body = expectedAnswer != null ? { expected_answer: expectedAnswer } : {};
+  /** `overrides.name`/`overrides.expected_answer` (change
+   * `ejercicios-con-nombre`): si vienen informados, sustituyen al nombre
+   * y/o a la respuesta esperada generados; se omiten del body si no se
+   * indican, para conservar los originales (design.md decision 4 de
+   * `generacion-ejercicios-agentes`, extendida al nombre). */
+  save(
+    exerciseId: string,
+    overrides: { name?: string | null; expected_answer?: string | null } = {},
+  ): Observable<SavedExercise> {
+    const body: { name?: string; expected_answer?: string } = {};
+    if (overrides.name != null) {
+      body.name = overrides.name;
+    }
+    if (overrides.expected_answer != null) {
+      body.expected_answer = overrides.expected_answer;
+    }
     return this.http.post<SavedExercise>(`${environment.apiUrl}/exercises/${exerciseId}/save`, body);
   }
 

@@ -18,6 +18,13 @@ prompt pide nivel junior recien incorporado, un unico concepto por
 candidato y codigo de apoyo acotado; el enunciado se limita a
 `_MAX_STATEMENT_WORDS` palabras, garantizado en codigo (no solo en el
 prompt) con un unico reintento correctivo antes de fallar la tarea.
+
+Change `ejercicios-con-nombre` (ver design.md, decisiones 1-2): cada
+candidato trae ademas `name`, un identificador corto (hasta
+`_MAX_NAME_WORDS` palabras) distinto del enunciado, con la misma
+garantia de limite en codigo y el mismo patron de reintento unico --
+generalizado en `_words_over_limit`, compartido entre enunciado y
+nombre.
 """
 
 import json
@@ -54,7 +61,12 @@ _SYSTEM_PROMPT = (
     "UN SOLO aspecto concreto y preguntalo directamente, sin comparar "
     "dos elementos ni pedir varias explicaciones a la vez.\n\n"
     "Responde EXCLUSIVAMENTE con un array JSON de EXACTAMENTE el numero "
-    "de candidatos pedido. Cada candidato es un objeto con tres campos:\n"
+    "de candidatos pedido. Cada candidato es un objeto con cuatro campos:\n"
+    '- "name": el nombre del ejercicio, en español, de COMO MAXIMO 8 '
+    "PALABRAS. Es una ETIQUETA corta para identificarlo en un listado "
+    "(p. ej. \"Validacion de un modelo Pydantic\"), DISTINTA del "
+    "enunciado: nunca repitas el enunciado completo ni lo formules como "
+    "pregunta.\n"
     '- "statement": el enunciado, en español, de COMO MAXIMO 50 '
     "PALABRAS (el codigo de apoyo y la respuesta esperada no cuentan "
     "para ese limite). Claro, autocontenido, sobre el unico concepto "
@@ -71,11 +83,13 @@ _SYSTEM_PROMPT = (
     "proporcionados."
 )
 
-# Garantia en codigo del limite de palabras del enunciado (design.md
-# decision 1-2): el prompt ya lo pide, pero esta constante es lo que
-# realmente lo hace cumplir -- ver `_statements_over_limit` y el
+# Garantia en codigo del limite de palabras del enunciado y del nombre
+# (design.md decision 1-2 de `ejercicios-nivel-junior` y decision 2 de
+# `ejercicios-con-nombre`): el prompt ya los pide, pero estas constantes
+# son lo que realmente los hace cumplir -- ver `_words_over_limit` y el
 # reintento en `_draft_candidates`.
 _MAX_STATEMENT_WORDS = 50
+_MAX_NAME_WORDS = 8
 
 
 class ExerciseGenerationError(RuntimeError):
@@ -130,34 +144,49 @@ async def generate_exercises(
     )
 
 
-def _statements_over_limit(statements: list[str]) -> list[tuple[str, int]]:
-    """Enunciados que superan `_MAX_STATEMENT_WORDS`, con su recuento.
+def _words_over_limit(texts: list[str], max_words: int) -> list[tuple[str, int]]:
+    """Textos que superan `max_words`, con su recuento.
 
     Cuenta como palabra cada secuencia de caracteres separada por
     espacios en blanco (`str.split()` sin argumentos ya colapsa saltos
-    de linea y espacios dobles/multiples), igual que especifica el
-    requisito "Longitud maxima del enunciado".
+    de linea y espacios dobles/multiples). Compartida entre el chequeo
+    del enunciado (`_MAX_STATEMENT_WORDS`) y el del nombre
+    (`_MAX_NAME_WORDS`) -- mismo criterio, limite distinto.
     """
     over = []
-    for statement in statements:
-        word_count = len(statement.split())
-        if word_count > _MAX_STATEMENT_WORDS:
-            over.append((statement, word_count))
+    for text in texts:
+        word_count = len(text.split())
+        if word_count > max_words:
+            over.append((text, word_count))
     return over
 
 
-def _overlong_retry_notice(overlong: list[tuple[str, int]]) -> str:
-    lines = "\n".join(
-        f'- "{statement}" -- {word_count} palabras ({word_count - _MAX_STATEMENT_WORDS} de mas)'
-        for statement, word_count in overlong
-    )
+def _overlong_retry_notice(
+    overlong_statements: list[tuple[str, int]], overlong_names: list[tuple[str, int]]
+) -> str:
+    parts = []
+    if overlong_statements:
+        lines = "\n".join(
+            f'- "{statement}" -- {word_count} palabras ({word_count - _MAX_STATEMENT_WORDS} de mas)'
+            for statement, word_count in overlong_statements
+        )
+        parts.append(
+            f"Estos ENUNCIADOS superan el limite de {_MAX_STATEMENT_WORDS} palabras:\n{lines}"
+        )
+    if overlong_names:
+        lines = "\n".join(
+            f'- "{name}" -- {word_count} palabras ({word_count - _MAX_NAME_WORDS} de mas)'
+            for name, word_count in overlong_names
+        )
+        parts.append(f"Estos NOMBRES superan el limite de {_MAX_NAME_WORDS} palabras:\n{lines}")
+
     return (
-        f"De los candidatos que acabas de devolver, estos enunciados superan "
-        f"el limite de {_MAX_STATEMENT_WORDS} palabras:\n{lines}\n\n"
-        "Vuelve a responder con el array JSON completo (los mismos candidatos, "
-        f"el mismo numero), acortando esos enunciados a {_MAX_STATEMENT_WORDS} "
-        "palabras o menos sin perder el sentido. No cambies los candidatos que "
-        "ya cumplian el limite."
+        "De los candidatos que acabas de devolver:\n\n"
+        + "\n\n".join(parts)
+        + "\n\nVuelve a responder con el array JSON completo (los mismos candidatos, "
+        "el mismo numero), acortando solo los enunciados y/o nombres senalados arriba "
+        "a su limite correspondiente, sin perder el sentido. No cambies los candidatos "
+        "que ya cumplian ambos limites."
     )
 
 
@@ -200,29 +229,33 @@ async def _draft_candidates(
 
     candidates, raw_content = await _invoke_and_parse(model, messages, exercise_type, count, trace_id)
 
-    # Garantia en codigo del limite de palabras (design.md decision 2):
-    # un unico reintento correctivo sobre la peticion COMPLETA (no solo
-    # el candidato que se pasaba), para no mezclar candidatos de dos
+    # Garantia en codigo del limite de palabras (enunciado y nombre): un
+    # unico reintento correctivo sobre la peticion COMPLETA (no solo el
+    # candidato que se pasaba), para no mezclar candidatos de dos
     # respuestas distintas y reabrir la posibilidad de temas repetidos.
-    overlong = _statements_over_limit([c.statement for c in candidates])
-    if overlong:
+    overlong_statements = _words_over_limit([c.statement for c in candidates], _MAX_STATEMENT_WORDS)
+    overlong_names = _words_over_limit([c.name for c in candidates], _MAX_NAME_WORDS)
+    if overlong_statements or overlong_names:
         logger.warning(
-            "enunciados por encima del limite de %d palabras, reintentando una vez: %r",
-            _MAX_STATEMENT_WORDS,
-            overlong,
+            "enunciados y/o nombres por encima del limite de palabras, reintentando una vez: "
+            "enunciados=%r nombres=%r",
+            overlong_statements,
+            overlong_names,
         )
         messages = [
             *messages,
             {"role": "assistant", "content": raw_content},
-            {"role": "user", "content": _overlong_retry_notice(overlong)},
+            {"role": "user", "content": _overlong_retry_notice(overlong_statements, overlong_names)},
         ]
         candidates, raw_content = await _invoke_and_parse(model, messages, exercise_type, count, trace_id)
 
-        overlong = _statements_over_limit([c.statement for c in candidates])
-        if overlong:
+        overlong_statements = _words_over_limit([c.statement for c in candidates], _MAX_STATEMENT_WORDS)
+        overlong_names = _words_over_limit([c.name for c in candidates], _MAX_NAME_WORDS)
+        if overlong_statements or overlong_names:
             raise ExerciseGenerationError(
-                f"tras el reintento, siguen pasandose del limite de {_MAX_STATEMENT_WORDS} "
-                f"palabras: {overlong!r}"
+                "tras el reintento, siguen pasandose del limite de palabras -- "
+                f"enunciados ({_MAX_STATEMENT_WORDS} max): {overlong_statements!r}; "
+                f"nombres ({_MAX_NAME_WORDS} max): {overlong_names!r}"
             )
 
     return candidates
@@ -238,8 +271,8 @@ async def _invoke_and_parse(
     """Una llamada al modelo + parseo de su respuesta en `count` candidatos.
 
     Factorizado para poder llamarse dos veces (intento inicial y, si
-    algun enunciado se pasa del limite, el reintento correctivo de
-    `_draft_candidates`). Devuelve tambien el contenido crudo de la
+    algun enunciado o nombre se pasa del limite, el reintento correctivo
+    de `_draft_candidates`). Devuelve tambien el contenido crudo de la
     respuesta, para poder anadirlo como turno `assistant` en el
     reintento.
     """
@@ -252,7 +285,9 @@ async def _invoke_and_parse(
 
     candidates = []
     for item in items:
-        if not isinstance(item, dict) or not all(k in item for k in ("statement", "code", "expected_answer")):
+        if not isinstance(item, dict) or not all(
+            k in item for k in ("name", "statement", "code", "expected_answer")
+        ):
             raise ExerciseGenerationError(f"candidato con forma invalida: {item!r}")
         code_blocks = [
             ExerciseCodeBlock(file=c.get("file"), code=c.get("code", ""))
@@ -262,6 +297,7 @@ async def _invoke_and_parse(
         candidates.append(
             CandidateExercise(
                 type=exercise_type,
+                name=str(item["name"]),
                 statement=str(item["statement"]),
                 code=code_blocks,
                 expected_answer=str(item["expected_answer"]),

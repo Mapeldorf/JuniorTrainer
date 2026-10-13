@@ -95,12 +95,15 @@ export interface AssignBlockResponse {
 /** Un ejercicio de la copia de una asignacion, con su progreso, tal como
  * lo devuelve `GET /blocks/{id}/assignments` para el tech lead (distinto
  * de `AssignmentExerciseItem` en assignments-api.model.ts, que es la
- * vista del propio alumno). Tipo y enunciado se leen siempre desde la
- * copia de esta asignacion, nunca desde la composicion actual del bloque
- * (tarea 3.2 de backend, design.md - decision D5). */
+ * vista del propio alumno). Nombre, tipo y enunciado se leen siempre
+ * desde la copia de esta asignacion, nunca desde la composicion actual
+ * del bloque (tarea 3.2 de backend, design.md - decision D5). `name`
+ * (change `ejercicios-con-nombre`) reusa este mismo tipo tambien en
+ * `StudentBlockAssignment` (users-api.model.ts). */
 export interface ExerciseProgress {
   exercise_id: string;
   position: number;
+  name: string;
   type: ExerciseType;
   statement: string;
   answered: boolean;

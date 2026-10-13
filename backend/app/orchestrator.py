@@ -166,6 +166,7 @@ def _insert_candidates(generation_id: str, candidates: list[dict]) -> None:
         {
             "generation_id": generation_id,
             "type": candidate["type"],
+            "name": candidate["name"],
             "statement": candidate["statement"],
             "code": candidate.get("code", []),
             "expected_answer": candidate.get("expected_answer"),
