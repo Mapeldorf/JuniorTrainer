@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import get_settings
 from app.deps import require_tech_lead
+from app.rate_limit import INVITE_STUDENT_LIMIT, limiter
 from app.schemas.block import ExerciseProgress, StudentBlockAssignment
 from app.schemas.profile import InviteStudentRequest, Profile, StudentSummary
 from app.supabase_client import get_admin_client
@@ -25,7 +26,9 @@ def _get_student_or_404(student_id: str) -> dict:
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)
+@limiter.limit(INVITE_STUDENT_LIMIT)
 async def invite_student(
+    request: Request,
     body: InviteStudentRequest,
     _tech_lead: Profile = Depends(require_tech_lead),
 ) -> dict[str, str]:
