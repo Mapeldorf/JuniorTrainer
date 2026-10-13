@@ -178,3 +178,18 @@ El sistema SHALL producir, para cada ejercicio candidato, un nombre corto (disti
 #### Scenario: El nombre sigue pasandose tras el segundo intento
 - **WHEN** tras ese segundo intento algun nombre sigue teniendo mas de 8 palabras
 - **THEN** la tarea del agente de ejercicios se da por fallida y la generacion queda en estado de error, sin devolver candidatos que incumplan el limite
+
+### Requirement: Tipo de ejercicio exige repositorio salvo conocimiento
+El sistema SHALL rechazar una generación de tipo `debug` o `both` que no incluya repositorio, aceptando sin repositorio únicamente el tipo `knowledge`.
+
+#### Scenario: Debug sin repositorio
+- **WHEN** se intenta iniciar una generación de tipo `debug` sin repositorio
+- **THEN** la petición se rechaza y no se crea ninguna generación
+
+#### Scenario: Both sin repositorio
+- **WHEN** se intenta iniciar una generación de tipo `both` sin repositorio
+- **THEN** la petición se rechaza y no se crea ninguna generación
+
+#### Scenario: Knowledge sin repositorio
+- **WHEN** se inicia una generación de tipo `knowledge` sin repositorio
+- **THEN** la petición se acepta y la generación arranca con normalidad
