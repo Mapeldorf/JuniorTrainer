@@ -18,8 +18,10 @@ def build_agent_card() -> AgentCard:
         description=(
             "Dados el resultado del agente web y/o del agente de codigo, "
             "un tipo de ejercicio y un numero pedido, redacta entre 1 y 5 "
-            "ejercicios candidatos sin repetir el tema de uno ya propuesto "
-            "o ya guardado para ese tipo."
+            "ejercicios candidatos de nivel junior recien incorporado "
+            "(un unico concepto, enunciado de maximo 50 palabras) sin "
+            "repetir el tema de uno ya propuesto o ya guardado para ese "
+            "tipo."
         ),
         version="0.1.0",
         supported_interfaces=[
@@ -41,9 +43,10 @@ def build_agent_card() -> AgentCard:
                     "resultado del agente web y/o del agente de codigo, "
                     "consulta hasta 10 ejercicios ya guardados de ese tipo y "
                     "los ultimos 20 enunciados ya propuestos, y devuelve "
-                    "exactamente count candidatos (enunciado, codigo de "
-                    "apoyo, respuesta esperada) que no repiten ninguno de "
-                    "esos temas."
+                    "exactamente count candidatos (enunciado de nivel "
+                    "junior de maximo 50 palabras, codigo de apoyo acotado, "
+                    "respuesta esperada) que no repiten ninguno de esos "
+                    "temas."
                 ),
                 tags=["ejercicios", "generacion"],
                 examples=["exercise_type=debug, count=3"],

@@ -38,7 +38,7 @@ def build_agent_card() -> AgentCard:
                     "Dado el enunciado, el codigo de apoyo, la respuesta "
                     "esperada (si existe) y la respuesta del alumno, "
                     "devuelve un verdict (correct/incomplete/incorrect) "
-                    "y una justificacion."
+                    "y una justificacion de maximo 50 palabras."
                 ),
                 tags=["evaluacion", "respuestas"],
                 examples=["statement=..., student_answer=..."],
