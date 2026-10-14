@@ -17,6 +17,8 @@ from a2a.helpers.proto_helpers import get_data_parts, new_data_message
 from a2a.types import Role
 from a2a.types.a2a_pb2 import SendMessageRequest, StreamResponse
 
+from app.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 # Limite por tarea A2A individual (tarea 6.6, "Limites de tiempo de la
@@ -87,7 +89,14 @@ async def send_a2a_task(
             # debajo, con un generico "Client Request timed out" en vez del
             # mensaje de `A2ATaskTimeout`. Encontrado por el usuario
             # verificando 6.7 en vivo contra el agente web real.
-            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as httpx_client:
+            # Credencial de servicio (change autenticacion-backend-agentes,
+            # specs/agent-auth/spec.md): sin esta cabecera, el middleware de
+            # cada agente (app/service_auth.py en cada uno) rechaza la
+            # peticion con 401 antes de ejecutar ninguna logica de negocio.
+            headers = {"X-Agent-Service-Token": get_settings().agent_service_token}
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout), headers=headers
+            ) as httpx_client:
                 client = await create_client(
                     url, client_config=ClientConfig(streaming=False, httpx_client=httpx_client)
                 )

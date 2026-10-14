@@ -62,6 +62,21 @@ No hace falta fijar un ID de instalación: se resuelve en cada llamada a
 partir de `owner`/`repo` (`GET /repos/{owner}/{repo}/installation`), así
 que la misma App vale para cualquier repositorio en el que esté instalada.
 
+### Credencial de servicio backend → agentes
+
+El backend y los 5 agentes LLM (`agents/code`, `agents/evaluator`,
+`agents/exercises`, `agents/reviewer`, `agents/web`) comparten una
+credencial de servicio (change `autenticacion-backend-agentes`): el
+backend la envía en la cabecera `X-Agent-Service-Token` en toda llamada
+A2A, y cada agente la verifica antes de ejecutar cualquier lógica de
+negocio, rechazando con `401` cualquier petición sin esa cabecera o con un
+valor que no coincida.
+
+En `.env`, rellena `AGENT_SERVICE_TOKEN` con un valor generado con
+`openssl rand -hex 32`. El mismo valor debe llegar a los 6 servicios (ya
+ocurre automáticamente: todos usan el mismo `.env` vía `env_file` en
+`docker-compose.yml`).
+
 ## Arrancar en local
 
 ### Con Docker Compose (frontend + backend + litellm)

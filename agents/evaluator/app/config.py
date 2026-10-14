@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     agent_evaluator_port: int = 8013
     agent_evaluator_url: str = "http://agent-evaluator:8013/"
 
+    # Credencial de servicio backend -> agentes (change
+    # autenticacion-backend-agentes): el backend la envia en la cabecera
+    # X-Agent-Service-Token en toda llamada A2A; este agente la verifica
+    # antes de ejecutar cualquier logica de negocio (ver app/service_auth.py).
+    agent_service_token: str
+
     # Proxy de LiteLLM (seccion 11 de la especificacion): modelo logico
     # "evaluator", ya predefinido en infra/litellm/config.yaml, resuelto
     # por LiteLLM via EVALUATOR_MODEL/EVALUATOR_API_KEY.

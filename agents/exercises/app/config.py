@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     agent_exercises_port: int = 8012
     agent_exercises_url: str = "http://agent-exercises:8012/"
 
+    # Credencial de servicio backend -> agentes (change
+    # autenticacion-backend-agentes): el backend la envia en la cabecera
+    # X-Agent-Service-Token en toda llamada A2A; este agente la verifica
+    # antes de ejecutar cualquier logica de negocio (ver app/service_auth.py).
+    agent_service_token: str
+
     # Proxy de LiteLLM (seccion 11 de la especificacion): modelo logico
     # "generator", resuelto por LiteLLM via GENERATOR_MODEL/GENERATOR_API_KEY.
     litellm_base_url: str = "http://litellm:4000/v1"

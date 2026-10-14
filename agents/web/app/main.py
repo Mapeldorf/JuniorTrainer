@@ -7,6 +7,7 @@ from a2a.server.tasks import InMemoryTaskStore
 
 from app.agent_card import build_agent_card
 from app.executor import WebAgentExecutor
+from app.service_auth import ServiceAuthMiddleware
 
 
 def build_app() -> FastAPI:
@@ -17,6 +18,7 @@ def build_app() -> FastAPI:
         agent_card=card,
     )
     app = FastAPI(title="JuniorTrainer - Agente Web")
+    app.add_middleware(ServiceAuthMiddleware)
     add_a2a_routes_to_fastapi(
         app,
         agent_card_routes=create_agent_card_routes(card),

@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     # Origen del frontend, para CORS y para el redirect_to de las invitaciones.
     frontend_url: str = "http://localhost:4200"
 
+    # Credencial de servicio backend -> agentes (change
+    # autenticacion-backend-agentes): se envia en la cabecera
+    # X-Agent-Service-Token en toda llamada A2A (ver app/a2a_client.py). Cada
+    # uno de los 5 agentes tiene su propia copia de este mismo valor
+    # (agents/*/app/config.py) para verificarla.
+    agent_service_token: str
+
     # URLs internas de los agentes, red interna de docker-compose -- mismos
     # valores por defecto que cada agente anuncia en su propia Agent Card
     # (ver agents/*/app/config.py). Los tres primeros son los agentes de
