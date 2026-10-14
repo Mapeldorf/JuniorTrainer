@@ -1,7 +1,7 @@
 """Verificacion manual de la tarea 4.3 (actualizada por `acceso-repo-github-tool`):
 analisis real de un repositorio de GitHub con el modelo, leido via API.
 
-Uso (desde agents/code/, con LITELLM_MASTER_KEY y GITHUB_APP_* en el .env
+Uso (desde agents/code/, con AGENT_CODE_LITELLM_KEY y GITHUB_APP_* en el .env
 de la raiz del repo, LiteLLM corriendo y accesible, y la GitHub App
 instalada en el repo de prueba):
     python -m scripts.verify_code_analysis <owner> <repo> <commit_sha> <tecnologia> [<tecnologia> ...]

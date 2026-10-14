@@ -11,7 +11,7 @@ def build_reviewer_model() -> ChatOpenAI:
     return ChatOpenAI(
         model=settings.reviewer_model,
         base_url=settings.litellm_base_url,
-        api_key=settings.litellm_master_key,
+        api_key=settings.agent_reviewer_litellm_key,
         # Sin esto, una llamada colgada al proxy LiteLLM no falla por si
         # sola, y la tarea queda bloqueada hasta que el backend la corte
         # desde fuera a los 120s (change resiliencia-agentes).

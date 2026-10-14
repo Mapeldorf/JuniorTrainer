@@ -6,7 +6,7 @@ la tarea al terminar, tanto si la tarea acaba bien (Ready) como si falla
 `memory.checkpoint_blobs`/`memory.checkpoint_writes` de Postgres.
 
 Uso (desde agents/web/, con las mismas variables de entorno que
-verify_memory_cache.py: TAVILY_API_KEY, LITELLM_MASTER_KEY, AGENTS_PG_*,
+verify_memory_cache.py: TAVILY_API_KEY, AGENT_WEB_LITELLM_KEY, AGENTS_PG_*,
 AGENTS_MEMORY_PASSWORD, SUPABASE_PROJECT_REF, LiteLLM corriendo):
     python -m scripts.verify_short_term_memory
 """

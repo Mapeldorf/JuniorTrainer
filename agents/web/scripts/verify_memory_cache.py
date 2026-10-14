@@ -2,7 +2,7 @@
 tecnologias; la segunda debe venir de memoria (memory_hit=True) y no tocar
 tavily_search ni el modelo (mucho mas rapida que la primera).
 
-Uso (desde agents/web/, con TAVILY_API_KEY, LITELLM_MASTER_KEY, AGENTS_PG_*,
+Uso (desde agents/web/, con TAVILY_API_KEY, AGENT_WEB_LITELLM_KEY, AGENTS_PG_*,
 AGENTS_MEMORY_PASSWORD y SUPABASE_PROJECT_REF en el .env de la raiz del
 repo, LiteLLM corriendo y accesible):
     python -m scripts.verify_memory_cache React

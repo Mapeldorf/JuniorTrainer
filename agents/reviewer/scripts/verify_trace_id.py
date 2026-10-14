@@ -3,7 +3,7 @@
 Analogo a `agents/evaluator/scripts/verify_trace_id.py` -- ver ese
 fichero para la explicacion completa.
 
-Uso (desde agents/reviewer/, con LITELLM_MASTER_KEY/REVIEWER_MODEL/
+Uso (desde agents/reviewer/, con AGENT_REVIEWER_LITELLM_KEY/REVIEWER_MODEL/
 REVIEWER_API_KEY/LANGFUSE_* en el .env de la raiz del repo, LiteLLM
 corriendo):
     python -m scripts.verify_trace_id

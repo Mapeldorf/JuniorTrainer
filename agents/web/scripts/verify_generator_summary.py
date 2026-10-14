@@ -1,7 +1,7 @@
 """Verificacion manual de la tarea 3.3: llama a research() de verdad
 (tavily_search + modelo `generator` via LiteLLM) e imprime el resumen.
 
-Uso (desde agents/web/, con TAVILY_API_KEY y LITELLM_MASTER_KEY en el .env
+Uso (desde agents/web/, con TAVILY_API_KEY y AGENT_WEB_LITELLM_KEY en el .env
 de la raiz del repo, y el contenedor de LiteLLM corriendo):
     python -m scripts.verify_generator_summary React FastAPI
 """

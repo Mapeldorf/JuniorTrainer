@@ -8,7 +8,7 @@ distinto de cero si alguna version final lo supera); que siga siendo
 coherente con el veredicto no es verificable en codigo, asi que este
 script imprime cada una para juzgarla por lectura.
 
-Uso (desde agents/reviewer/, con LITELLM_MASTER_KEY/REVIEWER_MODEL en
+Uso (desde agents/reviewer/, con AGENT_REVIEWER_LITELLM_KEY/REVIEWER_MODEL en
 el .env de la raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_justification_limit
 """

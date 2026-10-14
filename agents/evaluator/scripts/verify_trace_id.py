@@ -6,7 +6,7 @@ simula su papel: genera un `trace_id` el mismo y llama directamente a la
 logica de negocio (sin pasar por el transporte A2A) exactamente como lo
 haria `EvaluatorAgentExecutor.execute()` -- ver app/executor.py.
 
-Uso (desde agents/evaluator/, con LITELLM_MASTER_KEY/EVALUATOR_MODEL/
+Uso (desde agents/evaluator/, con AGENT_EVALUATOR_LITELLM_KEY/EVALUATOR_MODEL/
 EVALUATOR_API_KEY/LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY/LANGFUSE_BASE_URL
 en el .env de la raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_trace_id
