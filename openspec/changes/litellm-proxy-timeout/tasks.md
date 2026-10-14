@@ -1,0 +1,13 @@
+# Tasks
+
+## 1. Configuracion del timeout
+
+- [x] 1.1 En `infra/litellm/config.yaml`, añadir `litellm_settings.request_timeout: 40`. Verificar que el YAML sigue siendo valido (`python -c "import yaml; yaml.safe_load(open('infra/litellm/config.yaml'))"`). Verificado.
+- [x] 1.2 Reiniciar el servicio `litellm` (`docker compose up -d litellm`) y confirmar en los logs que arranca sin error con el nuevo ajuste. Nota: `docker compose up -d` no reinicia un contenedor ya corriendo solo porque cambio un fichero montado por volumen (config.yaml no forma parte del hash de config del servicio); hizo falta `docker compose restart litellm` para que recogiera el cambio. Verificado: arranca sin error ("Uvicorn running on http://0.0.0.0:4000").
+
+## 2. Verificacion con un servidor de prueba deliberadamente lento
+
+- [x] 2.1 Escribir un script minimo de un solo archivo (p. ej. `infra/litellm/_verify_timeout_server.py`, temporal, no se commitea) que levante un servidor HTTP que responda a cualquier peticion (incluido `POST /chat/completions`) durmiendo 55 segundos antes de devolver una respuesta (aunque sea invalida -- no hace falta que sea una respuesta OpenAI valida, el timeout debe cortar antes de que importe el contenido).
+- [x] 2.2 Levantar ese servidor en un contenedor o proceso accesible desde `litellm` por su nombre de red/IP, y añadir temporalmente una cuarta entrada a `model_list` en `infra/litellm/config.yaml` (p. ej. `model_name: test-timeout`) con `litellm_params.api_base` apuntando a ese servidor. Reiniciar `litellm`.
+- [x] 2.3 Con `curl` autenticado con `LITELLM_MASTER_KEY`, llamar a `/chat/completions` con `model: "test-timeout"` y medir el tiempo de respuesta: verificar que LiteLLM corta la llamada en ~40s (no en ~55s) con un error de timeout, no con la respuesta tardia del servidor de prueba. Verificado: `408 litellm.Timeout`, `time taken=40.12 seconds`. Hallazgo durante la verificacion: con `request_timeout` solo, el default de reintentos de LiteLLM hacia que el error final tardara 125s (varios intentos de 40s cada uno), superando por mucho los 45s del cliente -- se añadio `litellm_settings.num_retries: 0` (no estaba en el design original) para que sea un unico intento y el objetivo de la propuesta se cumpla de verdad.
+- [x] 2.4 Revertir la entrada temporal de `model_list` y apagar el servidor de prueba; confirmar con `docker compose up -d litellm` que el proxy vuelve a su configuracion normal (solo los 3 modelos logicos) y que una llamada real a uno de ellos sigue funcionando con normalidad. Verificado: `test-timeout` retirado de `model_list`, `slow-test-server` eliminado, `_verify_timeout_server.py` borrado; `litellm` reinicia limpio y una llamada real al modelo `generator` responde `200`.
