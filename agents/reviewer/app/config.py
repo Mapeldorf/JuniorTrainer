@@ -23,8 +23,11 @@ class Settings(BaseSettings):
 
     # Modelo logico "reviewer", ya predefinido en infra/litellm/config.yaml,
     # resuelto por LiteLLM via REVIEWER_MODEL/REVIEWER_API_KEY.
+    # Virtual key propia de este agente (propuesta litellm-virtual-keys),
+    # restringida en LiteLLM al modelo "reviewer": ya no se usa la
+    # LITELLM_MASTER_KEY compartida para llamadas de negocio.
     litellm_base_url: str = "http://litellm:4000/v1"
-    litellm_master_key: str
+    agent_reviewer_litellm_key: str
     reviewer_model: str = "reviewer"
 
     langfuse_public_key: str

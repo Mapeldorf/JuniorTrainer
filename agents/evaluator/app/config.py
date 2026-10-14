@@ -28,8 +28,11 @@ class Settings(BaseSettings):
     # Proxy de LiteLLM (seccion 11 de la especificacion): modelo logico
     # "evaluator", ya predefinido en infra/litellm/config.yaml, resuelto
     # por LiteLLM via EVALUATOR_MODEL/EVALUATOR_API_KEY.
+    # Virtual key propia de este agente (propuesta litellm-virtual-keys),
+    # restringida en LiteLLM al modelo "evaluator": ya no se usa la
+    # LITELLM_MASTER_KEY compartida para llamadas de negocio.
     litellm_base_url: str = "http://litellm:4000/v1"
-    litellm_master_key: str
+    agent_evaluator_litellm_key: str
     evaluator_model: str = "evaluator"
 
     # Langfuse Cloud: igual que el resto de agentes (ver app/tracing.py).

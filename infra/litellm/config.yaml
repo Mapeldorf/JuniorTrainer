@@ -27,3 +27,11 @@ model_list:
 litellm_settings:
   success_callback: ["langfuse"]
   failure_callback: ["langfuse"]
+
+# Virtual keys por agente (propuesta litellm-virtual-keys): master_key ya
+# solo es para administracion (provision_keys.py y gestion manual), no la usa
+# ningun agente para llamadas de negocio. database_url habilita el resto de
+# tablas (keys, budgets, uso) que LiteLLM gestiona via Prisma en litellm-db.
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL

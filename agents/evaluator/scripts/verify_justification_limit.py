@@ -10,7 +10,7 @@ codigo, asi que este script imprime cada una para juzgarla por lectura.
 Usa unos pocos ejemplos fijos (respuesta correcta, incompleta e
 incorrecta) para no depender de ningun ejercicio real.
 
-Uso (desde agents/evaluator/, con LITELLM_MASTER_KEY/EVALUATOR_MODEL en
+Uso (desde agents/evaluator/, con AGENT_EVALUATOR_LITELLM_KEY/EVALUATOR_MODEL en
 el .env de la raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_justification_limit
 """

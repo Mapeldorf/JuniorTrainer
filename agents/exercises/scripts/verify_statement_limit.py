@@ -16,7 +16,7 @@ Usa un `web_result`/`code_result` de prueba fijos, igual que
 `verify_exercise_generation.py`, para aislar la llamada real al modelo
 `generator` via LiteLLM.
 
-Uso (desde agents/exercises/, con LITELLM_MASTER_KEY/AGENTS_PG_*/
+Uso (desde agents/exercises/, con AGENT_EXERCISES_LITELLM_KEY/AGENTS_PG_*/
 AGENTS_EXERCISE_READER_PASSWORD/SUPABASE_PROJECT_REF en el .env de la
 raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_statement_limit

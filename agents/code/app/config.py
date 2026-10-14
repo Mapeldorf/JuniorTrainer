@@ -27,8 +27,11 @@ class Settings(BaseSettings):
 
     # Proxy de LiteLLM (seccion 11 de la especificacion): modelo logico
     # "generator", resuelto por LiteLLM via GENERATOR_MODEL/GENERATOR_API_KEY.
+    # Virtual key propia de este agente (propuesta litellm-virtual-keys),
+    # restringida en LiteLLM al modelo "generator": ya no se usa la
+    # LITELLM_MASTER_KEY compartida para llamadas de negocio.
     litellm_base_url: str = "http://litellm:4000/v1"
-    litellm_master_key: str
+    agent_code_litellm_key: str
     generator_model: str = "generator"
 
     # Conexion directa a Postgres (esquema `memory`, rol agents_memory; ver

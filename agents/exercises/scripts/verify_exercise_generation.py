@@ -9,7 +9,7 @@ tambien se llama de verdad (rol agents_exercise_reader) -- si todavia no
 hay ningun ejercicio guardado en Supabase, simplemente no encuentra nada
 y sigue igual (no es un fallo).
 
-Uso (desde agents/exercises/, con LITELLM_MASTER_KEY/AGENTS_PG_*/
+Uso (desde agents/exercises/, con AGENT_EXERCISES_LITELLM_KEY/AGENTS_PG_*/
 AGENTS_EXERCISE_READER_PASSWORD/SUPABASE_PROJECT_REF en el .env de la
 raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_exercise_generation <knowledge|debug> <count>

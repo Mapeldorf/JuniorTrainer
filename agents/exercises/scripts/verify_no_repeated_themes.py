@@ -11,7 +11,7 @@ mismo tipo (un tipo nuevo, unico por ejecucion, para no arrastrar
 historial de ejecuciones anteriores) y imprime los enunciados de ambas
 para que los compares a ojo.
 
-Uso (desde agents/exercises/, con LITELLM_MASTER_KEY/AGENTS_PG_*/
+Uso (desde agents/exercises/, con AGENT_EXERCISES_LITELLM_KEY/AGENTS_PG_*/
 AGENTS_EXERCISE_READER_PASSWORD/SUPABASE_PROJECT_REF en el .env de la
 raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_no_repeated_themes

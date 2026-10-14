@@ -26,9 +26,28 @@ services:
     ports:
       - "4000:4000"
     env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${LITELLM_DB_USER}:${LITELLM_DB_PASSWORD}@litellm-db:5432/${LITELLM_DB_NAME}
     volumes:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
+    depends_on:
+      - litellm-db
+
+  # Postgres propio del control-plane de LiteLLM (gestion de virtual keys y
+  # budgets, propuesta litellm-virtual-keys): deliberadamente NO el Postgres
+  # de Supabase que ya reutilizan los agentes para memoria (AGENTS_PG_*).
+  # LiteLLM aplica sus propias migraciones Prisma contra esta instancia al
+  # arrancar; aislarla evita que una herramienta externa toque la base de
+  # datos de la aplicacion.
+  litellm-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${LITELLM_DB_USER}
+      POSTGRES_PASSWORD: ${LITELLM_DB_PASSWORD}
+      POSTGRES_DB: ${LITELLM_DB_NAME}
+    volumes:
+      - litellm-db-data:/var/lib/postgresql/data
 
   # Los agentes A2A internos (generacion, grupos 3-5; valoracion de
   # respuestas -- evaluador/revisor, grupos 3-4 de valoracion-respuestas):
@@ -78,5 +97,11 @@ services:
     depends_on:
       - litellm
 
-# La base de datos y la autenticacion viven en Supabase (seccion 11 de la
-# especificacion), no en este docker-compose.
+# La base de datos y la autenticacion de la aplicacion viven en Supabase
+# (seccion 11 de la especificacion), no en este docker-compose. La unica
+# excepcion es litellm-db: no es un dato de la aplicacion, es el
+# control-plane de una herramienta externa (LiteLLM) con su propio ciclo de
+# vida (ver propuesta litellm-virtual-keys).
+
+volumes:
+  litellm-db-data:
