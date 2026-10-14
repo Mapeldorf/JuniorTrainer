@@ -26,9 +26,15 @@ class Settings(BaseSettings):
     # Virtual key propia de este agente (propuesta litellm-virtual-keys),
     # restringida en LiteLLM al modelo "reviewer": ya no se usa la
     # LITELLM_MASTER_KEY compartida para llamadas de negocio.
+    # Sin campo para el nombre del modelo logico (propuesta
+    # fix-agent-model-env-collision): es una constante en app/llm.py, no
+    # Settings -- REVIEWER_MODEL es una variable que SOLO debe leer
+    # infra/litellm/config.yaml; como env_file: .env tambien se la pasa a
+    # este contenedor, un campo Settings con ese mismo nombre de variable
+    # (por convencion de pydantic-settings) acababa leyendo por error el
+    # nombre de proveedor real en vez del alias logico fijo.
     litellm_base_url: str = "http://litellm:4000/v1"
     agent_reviewer_litellm_key: str
-    reviewer_model: str = "reviewer"
 
     langfuse_public_key: str
     langfuse_secret_key: str

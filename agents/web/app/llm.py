@@ -12,11 +12,15 @@ from langchain_openai import ChatOpenAI
 
 from app.config import get_settings
 
+# Alias logico fijo (ver infra/litellm/config.yaml model_list), no Settings:
+# ver nota en app/config.py (propuesta fix-agent-model-env-collision).
+_MODEL_NAME = "generator"
+
 
 def build_generator_model() -> ChatOpenAI:
     settings = get_settings()
     return ChatOpenAI(
-        model=settings.generator_model,
+        model=_MODEL_NAME,
         base_url=settings.litellm_base_url,
         api_key=settings.agent_web_litellm_key,
         # Sin esto, una llamada colgada al proxy LiteLLM no falla por si
