@@ -276,7 +276,13 @@ async def _invoke_and_parse(
     respuesta, para poder anadirlo como turno `assistant` en el
     reintento.
     """
-    response = await model.ainvoke(messages, extra_body=litellm_trace_metadata(trace_id))
+    # mask_input/mask_output (change redaccion-trazas-langfuse): el
+    # prompt puede llevar fragmentos de codigo de repositorio recibidos
+    # de agents/code (code_result['fragments']); el candidato generado
+    # puede adaptar/citar ese mismo codigo en su "code" de apoyo.
+    response = await model.ainvoke(
+        messages, extra_body=litellm_trace_metadata(trace_id, mask_input=True, mask_output=True)
+    )
     items = _parse_json(response.content, expect=list)
     if len(items) != count:
         raise ExerciseGenerationError(

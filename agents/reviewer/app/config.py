@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     agent_reviewer_port: int = 8014
     agent_reviewer_url: str = "http://agent-reviewer:8014/"
 
+    # Credencial de servicio backend -> agentes (change
+    # autenticacion-backend-agentes): el backend la envia en la cabecera
+    # X-Agent-Service-Token en toda llamada A2A; este agente la verifica
+    # antes de ejecutar cualquier logica de negocio (ver app/service_auth.py).
+    agent_service_token: str
+
     # Modelo logico "reviewer", ya predefinido en infra/litellm/config.yaml,
     # resuelto por LiteLLM via REVIEWER_MODEL/REVIEWER_API_KEY.
     litellm_base_url: str = "http://litellm:4000/v1"

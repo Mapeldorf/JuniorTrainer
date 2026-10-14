@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     agent_web_port: int = 8010
     agent_web_url: str = "http://agent-web:8010/"
 
+    # Credencial de servicio backend -> agentes (change
+    # autenticacion-backend-agentes): el backend la envia en la cabecera
+    # X-Agent-Service-Token en toda llamada A2A; este agente la verifica
+    # antes de ejecutar cualquier logica de negocio (ver app/service_auth.py).
+    agent_service_token: str
+
     tavily_api_key: str
 
     # Proxy de LiteLLM (seccion 11 de la especificacion): modelo logico

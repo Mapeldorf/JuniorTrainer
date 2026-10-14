@@ -48,7 +48,10 @@ async def tavily_search(
     falle despues.
     """
     budget.consume()
-    response = await client.search(query, max_results=max_results)
+    # timeout explicito (change resiliencia-agentes): el default de
+    # `AsyncTavilyClient.search` es 60s, demasiado cercano al limite de
+    # 120s de toda la tarea A2A si se encadenan varias busquedas.
+    response = await client.search(query, max_results=max_results, timeout=15.0)
     return [
         Source(
             title=item.get("title", ""),

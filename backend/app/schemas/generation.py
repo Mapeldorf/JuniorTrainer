@@ -8,6 +8,14 @@ GenerationKind = Literal["knowledge", "debug", "both"]
 GenerationStatus = Literal["generating", "ready", "done", "error"]
 ExerciseType = Literal["knowledge", "debug"]
 
+# Limite de tecnologias por generacion (change `validacion-entrada-agentes`):
+# margen amplio sobre el uso real observado (stacks de un puñado de
+# tecnologias), sin dejar la lista sin tope -- evita coste sin limite en
+# Tavily/LLM. `agents/web/app/input.py` tiene su propia copia de estos
+# mismos valores (revalidacion independiente, mismo patron que `count`).
+_MAX_TECHNOLOGIES = 15
+_MAX_TECHNOLOGY_LENGTH = 60
+
 
 class StartGenerationRequest(BaseModel):
     """Body de `POST /generations` (tarea 6.2, actualizada por el change
@@ -34,6 +42,13 @@ class StartGenerationRequest(BaseModel):
         normalized = [item.strip() for item in value if item.strip()]
         if not normalized:
             raise ValueError("se necesita al menos una tecnologia")
+        if len(normalized) > _MAX_TECHNOLOGIES:
+            raise ValueError(f"no se permiten mas de {_MAX_TECHNOLOGIES} tecnologias por generacion")
+        too_long = [t for t in normalized if len(t) > _MAX_TECHNOLOGY_LENGTH]
+        if too_long:
+            raise ValueError(
+                f"cada tecnologia debe tener como maximo {_MAX_TECHNOLOGY_LENGTH} caracteres: {too_long!r}"
+            )
         return normalized
 
     @field_validator("owner")
