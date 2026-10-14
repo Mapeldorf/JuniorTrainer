@@ -98,13 +98,16 @@ async def _summarize(
 
     human_prompt = "Tecnologias y fragmentos encontrados:\n\n" + "\n\n".join(blocks)
 
-    # extra_body={} (sin trace_id) no cambia el comportamiento: LiteLLM crea
-    # su propia traza suelta, como hacia antes de la tarea 3.6.
+    # Sin trace_id, LiteLLM crea su propia traza suelta (como hacia antes
+    # de la tarea 3.6) -- mask_input (change redaccion-trazas-langfuse)
+    # se sigue aplicando igual: el prompt lleva fragmentos de busqueda de
+    # terceros; el output (el resumen generado) no es sensible, se deja
+    # en claro.
     response = await model.ainvoke(
         [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": human_prompt},
         ],
-        extra_body=litellm_trace_metadata(trace_id),
+        extra_body=litellm_trace_metadata(trace_id, mask_input=True),
     )
     return response.content

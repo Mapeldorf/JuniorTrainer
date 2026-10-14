@@ -58,13 +58,32 @@ def resolve_trace_id(message_metadata) -> str:
     return trace_id if trace_id else new_trace_id()
 
 
-def litellm_trace_metadata(trace_id: str | None) -> dict:
-    """`extra_body` para pasarle a `model.ainvoke(...)` (ver app/service.py)
-    de forma que LiteLLM agrupe esta generacion bajo `trace_id` en vez de
-    crear una traza nueva. Vacio si no hay `trace_id`."""
-    if not trace_id:
-        return {}
-    return {"metadata": {"existing_trace_id": trace_id}}
+def litellm_trace_metadata(
+    trace_id: str | None, *, mask_input: bool = False, mask_output: bool = False
+) -> dict:
+    """`extra_body` para pasarle a `model.ainvoke(...)` (ver app/service.py).
+
+    `trace_id`, si se indica, agrupa esta llamada bajo esa traza en vez de
+    que LiteLLM cree una suelta. `mask_input`/`mask_output` (change
+    redaccion-trazas-langfuse): LiteLLM sustituye el prompt/la respuesta
+    por "redacted-by-litellm" en Langfuse para esta llamada, sin afectar
+    la llamada real al LLM ni el resto de metadata de la traza (coste,
+    latencia, tokens, modelo, exito/fallo) -- para las llamadas que
+    interpolan contenido de un repositorio, que puede ser de terceros o
+    privado (ver app/service.py, requisito de specs/agent-trace-privacy).
+
+    El `metadata` se construye siempre a partir de estos argumentos, NUNCA
+    solo a partir de `trace_id`: una llamada sin `trace_id` (agente en
+    solitario, sin orquestador) debe quedar igual de protegida si pide
+    `mask_input`/`mask_output`."""
+    metadata: dict = {}
+    if trace_id:
+        metadata["existing_trace_id"] = trace_id
+    if mask_input:
+        metadata["mask_input"] = True
+    if mask_output:
+        metadata["mask_output"] = True
+    return {"metadata": metadata} if metadata else {}
 
 
 def record_task(

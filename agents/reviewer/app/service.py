@@ -128,7 +128,10 @@ async def _invoke_and_parse(model, messages: list[dict], trace_id: str | None) -
     (intento inicial y, si se pasa del limite, el reintento correctivo
     de `review_justification`). Devuelve tambien el contenido crudo de
     la respuesta, para anadirlo como turno `assistant` en el reintento."""
-    response = await model.ainvoke(messages, extra_body=litellm_trace_metadata(trace_id))
+    # mask_input (change redaccion-trazas-langfuse): el prompt lleva la
+    # respuesta literal del alumno y la justificacion del evaluador; el
+    # output (justification revisada) es juicio derivado, se deja en claro.
+    response = await model.ainvoke(messages, extra_body=litellm_trace_metadata(trace_id, mask_input=True))
     item = _parse_json(response.content, expect=dict)
 
     reviewed = item.get("justification")

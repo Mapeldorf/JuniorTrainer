@@ -140,7 +140,10 @@ async def _invoke_and_parse(model, messages: list[dict], trace_id: str | None) -
     correctivo de `evaluate_answer`). Devuelve tambien el contenido
     crudo de la respuesta, para anadirlo como turno `assistant` en el
     reintento."""
-    response = await model.ainvoke(messages, extra_body=litellm_trace_metadata(trace_id))
+    # mask_input (change redaccion-trazas-langfuse): el prompt lleva la
+    # respuesta literal del alumno y el codigo de apoyo; el output
+    # (verdict/justification) es juicio derivado, se deja en claro.
+    response = await model.ainvoke(messages, extra_body=litellm_trace_metadata(trace_id, mask_input=True))
     item = _parse_json(response.content, expect=dict)
 
     verdict = item.get("verdict")

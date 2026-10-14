@@ -198,7 +198,11 @@ async def _analyze(
             {"role": "system", "content": _ANALYZE_SYSTEM_PROMPT},
             {"role": "user", "content": human_prompt},
         ],
-        extra_body=litellm_trace_metadata(trace_id),
+        # mask_input/mask_output (change redaccion-trazas-langfuse): el
+        # prompt lleva el contenido completo de los ficheros elegidos, y
+        # la respuesta copia codigo literal en `fragments` -- a diferencia
+        # de `_pick_files`, que solo interpola nombres/tamanos.
+        extra_body=litellm_trace_metadata(trace_id, mask_input=True, mask_output=True),
     )
     data = _parse_json(response.content, expect=dict)
     for key in ("summary", "technologies", "fragments"):
