@@ -33,6 +33,11 @@ services:
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     depends_on:
       - litellm-db
+    # Verificado (propuesta litellm-lakera-guardrail): un fallo de red al
+    # llamar al guardrail (host inalcanzable, no solo rechazo de conexion)
+    # puede tumbar el proceso entero (SIGSEGV), no solo bloquear la llamada.
+    # Reinicio automatico como red de seguridad ante ese caso.
+    restart: unless-stopped
 
   # Postgres propio del control-plane de LiteLLM (gestion de virtual keys y
   # budgets, propuesta litellm-virtual-keys): deliberadamente NO el Postgres
