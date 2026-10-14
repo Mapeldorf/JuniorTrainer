@@ -46,3 +46,16 @@ litellm_settings:
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   database_url: os.environ/DATABASE_URL
+
+# Deteccion automatizada de prompt injection (propuesta
+# litellm-lakera-guardrail), complementa la mitigacion por instruccion que
+# ya tienen los agentes (delimitadores + frase defensiva en el prompt).
+# default_on: corre en toda llamada de los 5 agentes sin que ninguno tenga
+# que pedirlo explicitamente -- sin cambios en agents/*/app/llm.py.
+guardrails:
+  - guardrail_name: "lakera-guard"
+    litellm_params:
+      guardrail: lakera_v2
+      mode: "pre_call"
+      default_on: true
+      api_key: os.environ/LAKERA_API_KEY
