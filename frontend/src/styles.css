@@ -1,5 +1,78 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Geist', system-ui, sans-serif;
+  /* Tipografia del sistema (SF Pro en Apple, alternativas nativas en el resto) */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Superficies del tema oscuro */
+  --color-surface: #09090b;
+  --color-surface-raised: #18181b;
+  --color-surface-overlay: #27272a;
+
+  /* Bordes */
+  --color-border: #27272a;
+  --color-border-strong: #3f3f46;
+
+  /* Texto */
+  --color-content: #fafafa;
+  --color-muted: #a1a1aa;
+
+  /* Acento y estados */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+
+  /* Ancho maximo del contenedor de la aplicacion */
+  --app-max-width: 64rem;
+}
+
+@layer components {
+  .app-container {
+    @apply mx-auto w-full max-w-[var(--app-max-width)] px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-xl border border-border bg-surface-raised;
+  }
+
+  .btn {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-hover;
+  }
+
+  .btn-secondary {
+    @apply border border-border-strong text-content hover:bg-surface-overlay;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-500;
+  }
+
+  .input {
+    @apply h-10 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-content outline-none placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/30;
+  }
+
+  .label {
+    @apply text-sm font-medium text-content;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .alert-error {
+    @apply rounded-lg border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger;
+  }
+
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+  }
 }

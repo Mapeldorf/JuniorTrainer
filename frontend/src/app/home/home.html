@@ -1,20 +1,22 @@
-<div class="flex min-h-screen flex-col gap-8 bg-zinc-50 px-8 py-12">
-  <app-brand-mark />
+<div class="min-h-screen bg-surface py-12">
+  <div class="app-container flex flex-col gap-8">
+    <app-brand-mark />
 
-  <div class="flex max-w-[420px] flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-8">
-    <h1 class="text-2xl font-semibold tracking-tight">Sesión iniciada</h1>
-    @if (session(); as s) {
-      <p class="text-zinc-600">{{ s.user.email }} · rol: {{ role() ?? '—' }}</p>
-    }
-    <p class="text-sm text-zinc-500">
-      Las pantallas de generación, bloques y asignaciones llegan en los próximos pasos del plan de trabajo.
-    </p>
-    <button
-      type="button"
-      (click)="signOut()"
-      class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 font-medium hover:bg-zinc-50"
-    >
-      Cerrar sesión
-    </button>
+    <div class="card flex max-w-[420px] flex-col gap-4 p-8">
+      <h1 class="text-2xl font-semibold tracking-tight text-content">Sesión iniciada</h1>
+      @if (session(); as s) {
+        <p class="text-muted">{{ s.user.email }} · rol: {{ role() ?? '—' }}</p>
+      }
+      <p class="text-sm text-muted">
+        Las pantallas de generación, bloques y asignaciones llegan en los próximos pasos del plan de trabajo.
+      </p>
+      <button
+        type="button"
+        (click)="signOut()"
+        class="btn btn-secondary w-full"
+      >
+        Cerrar sesión
+      </button>
+    </div>
   </div>
 </div>

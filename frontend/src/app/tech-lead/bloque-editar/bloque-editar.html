@@ -1,28 +1,28 @@
-<div class="flex min-h-screen flex-col bg-zinc-50">
+<div class="min-h-screen bg-surface">
   <app-tech-lead-nav />
 
-  <div class="flex flex-col gap-6 px-8 py-10">
-    <h1 class="text-2xl font-semibold tracking-tight">
+  <div class="app-container flex flex-col gap-6 py-10">
+    <h1 class="text-2xl font-semibold tracking-tight text-content">
       {{ isEditing ? 'Editar bloque de ejercicios' : 'Nuevo bloque de ejercicios' }}
     </h1>
 
     @if (error()) {
-      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+      <p role="alert" class="alert-error">{{ error() }}</p>
     }
 
     @if (loading()) {
-      <p class="text-sm text-zinc-500">Cargando…</p>
+      <p class="text-sm text-muted">Cargando…</p>
     } @else {
       <div class="flex gap-8">
         <div class="flex flex-1 flex-col gap-6">
           <div class="flex flex-col gap-2">
-            <label for="nombre" class="text-sm font-medium">Nombre del bloque</label>
+            <label for="nombre" class="label">Nombre del bloque</label>
             <input
               id="nombre"
               type="text"
               [ngModel]="name()"
               (ngModelChange)="name.set($event)"
-              class="h-10 w-full max-w-[480px] rounded-lg border border-zinc-300 px-3 text-sm"
+              class="input max-w-[480px]"
             />
           </div>
 
@@ -31,7 +31,7 @@
               <select
                 [ngModel]="filterType()"
                 (ngModelChange)="onFilterTypeChange($event)"
-                class="h-10 rounded-lg border border-zinc-300 px-3 text-sm"
+                class="input w-auto"
               >
                 <option value="">Todos los tipos</option>
                 <option value="knowledge">Conocimiento</option>
@@ -42,44 +42,44 @@
                 placeholder="Buscar por nombre, enunciado, tecnología o repositorio…"
                 [ngModel]="searchText()"
                 (ngModelChange)="onSearchTextChange($event)"
-                class="h-10 w-full max-w-[360px] rounded-lg border border-zinc-300 px-3 text-sm"
+                class="input max-w-[360px]"
               />
             </div>
 
             @if (hasDeletedSelected) {
-              <p role="alert" class="rounded-lg bg-amber-100 px-3.5 py-2.5 text-sm text-amber-900">
+              <p role="alert" class="rounded-lg border border-warning/30 bg-warning/10 px-3.5 py-2.5 text-sm text-warning">
                 Este bloque contiene un ejercicio eliminado de la app. Desmárcalo para poder guardar.
               </p>
             }
 
             <ul class="flex flex-col gap-2">
               @for (row of deletedRows(); track row.id) {
-                <li class="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+                <li class="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
                   <input
                     type="checkbox"
                     [checked]="isChecked(row.id)"
                     (change)="toggle(row.id)"
-                    class="mt-1"
+                    class="mt-1 h-4 w-4 accent-primary"
                   />
                   <div class="flex flex-col gap-1">
-                    <span class="font-medium">{{ row.name }}</span>
-                    <span class="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900 w-fit">
+                    <span class="font-medium text-content">{{ row.name }}</span>
+                    <span class="badge w-fit bg-warning/20 text-warning">
                       Eliminado
                     </span>
                   </div>
                 </li>
               }
               @for (row of catalogRows(); track row.id) {
-                <li class="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
+                <li class="card flex items-start gap-3 px-4 py-3">
                   <input
                     type="checkbox"
                     [checked]="isChecked(row.id)"
                     (change)="toggle(row.id)"
-                    class="mt-1"
+                    class="mt-1 h-4 w-4 accent-primary"
                   />
                   <div class="flex flex-col gap-1">
-                    <span class="font-medium">{{ row.name }}</span>
-                    <span class="text-sm text-zinc-500">
+                    <span class="font-medium text-content">{{ row.name }}</span>
+                    <span class="text-sm text-muted">
                       {{ row.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}
                       @if (row.technologies?.length) {
                         · {{ row.technologies!.join(', ') }}
@@ -88,7 +88,7 @@
                         · {{ row.repoPath }}
                       }
                     </span>
-                    <span class="text-xs text-zinc-400">{{ usageLabel(row) }}</span>
+                    <span class="text-xs text-muted">{{ usageLabel(row) }}</span>
                   </div>
                 </li>
               }
@@ -96,27 +96,27 @@
           </div>
         </div>
 
-        <aside class="flex w-64 flex-shrink-0 flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5">
+        <aside class="card flex w-64 flex-shrink-0 flex-col gap-4 p-5">
           <div class="flex flex-col gap-1 text-sm">
-            <div class="flex justify-between"><span>Conocimiento</span><span>{{ counts.knowledge }}</span></div>
-            <div class="flex justify-between"><span>Depuración</span><span>{{ counts.debug }}</span></div>
-            <div class="flex justify-between border-t border-zinc-200 pt-1 font-medium">
+            <div class="flex justify-between text-muted"><span>Conocimiento</span><span>{{ counts.knowledge }}</span></div>
+            <div class="flex justify-between text-muted"><span>Depuración</span><span>{{ counts.debug }}</span></div>
+            <div class="flex justify-between border-t border-border pt-1 font-medium text-content">
               <span>Total</span><span>{{ counts.total }}</span>
             </div>
           </div>
-          <p class="text-xs text-zinc-500">Un bloque admite entre 1 y 100 ejercicios.</p>
+          <p class="text-xs text-muted">Un bloque admite entre 1 y 100 ejercicios.</p>
           <button
             type="button"
             [disabled]="!canSave || saving()"
             (click)="guardar()"
-            class="flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            class="btn btn-primary w-full"
           >
             {{ isEditing ? 'Guardar cambios' : 'Crear bloque' }}
           </button>
           <button
             type="button"
             (click)="cancelar()"
-            class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100"
+            class="btn btn-secondary w-full"
           >
             Cancelar
           </button>

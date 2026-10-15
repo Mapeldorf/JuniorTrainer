@@ -1,10 +1,10 @@
-<div class="flex min-h-screen flex-col bg-zinc-50">
+<div class="min-h-screen bg-surface">
   <app-tech-lead-nav />
 
-  <div class="flex flex-col gap-7 px-8 py-10">
+  <div class="app-container flex flex-col gap-7 py-10">
     <div class="flex flex-col gap-1">
-      <h1 class="text-2xl font-semibold tracking-tight">Alumnos</h1>
-      <p class="text-sm text-zinc-500">
+      <h1 class="text-2xl font-semibold tracking-tight text-content">Alumnos</h1>
+      <p class="text-sm text-muted">
         Invita a tus alumnos. Cada uno recibe por correo un enlace para elegir su contraseña.
       </p>
     </div>
@@ -12,11 +12,13 @@
     @if (banner()) {
       <p
         role="alert"
-        [class.bg-emerald-100]="banner()!.kind === 'success'"
-        [class.text-emerald-900]="banner()!.kind === 'success'"
-        [class.bg-red-100]="banner()!.kind !== 'success'"
-        [class.text-red-900]="banner()!.kind !== 'success'"
-        class="rounded-lg px-3.5 py-2.5 text-sm"
+        [class.bg-emerald-950]="banner()!.kind === 'success'"
+        [class.border-emerald-800]="banner()!.kind === 'success'"
+        [class.text-emerald-300]="banner()!.kind === 'success'"
+        [class.bg-red-950]="banner()!.kind !== 'success'"
+        [class.border-red-800]="banner()!.kind !== 'success'"
+        [class.text-red-300]="banner()!.kind !== 'success'"
+        class="rounded-lg border px-3.5 py-2.5 text-sm"
       >
         {{ banner()!.message }}
       </p>
@@ -24,21 +26,21 @@
 
     <form
       (submit)="$event.preventDefault(); invitar()"
-      class="flex flex-wrap items-end gap-4 rounded-xl border border-zinc-200 bg-white p-5"
+      class="card flex flex-wrap items-end gap-4 p-5"
     >
       <label class="flex min-w-[240px] flex-1 flex-col gap-1.5 text-sm">
-        <span class="font-medium">Nombre</span>
+        <span class="label">Nombre</span>
         <input
           type="text"
           placeholder="Nombre y apellidos"
           [ngModel]="name()"
           (ngModelChange)="name.set($event)"
           name="name"
-          class="h-10 w-full rounded-lg border border-zinc-300 px-3 text-sm"
+          class="input"
         />
       </label>
       <label class="flex min-w-[280px] flex-1 flex-col gap-1.5 text-sm">
-        <span class="font-medium">Email</span>
+        <span class="label">Email</span>
         <input
           type="email"
           placeholder="alumno@empresa.com"
@@ -46,29 +48,29 @@
           (ngModelChange)="email.set($event)"
           name="email"
           [attr.aria-invalid]="banner()?.kind === 'duplicate' ? true : null"
-          [class.border-red-600]="banner()?.kind === 'duplicate'"
-          class="h-10 w-full rounded-lg border border-zinc-300 px-3 text-sm"
+          [class.border-danger]="banner()?.kind === 'duplicate'"
+          class="input"
         />
       </label>
       <button
         type="submit"
         [disabled]="submitting()"
-        class="flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+        class="btn btn-primary"
       >
         Invitar alumno
       </button>
     </form>
 
     <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold">Alumnos ({{ students().length }})</h2>
+      <h2 class="text-lg font-semibold text-content">Alumnos ({{ students().length }})</h2>
       @if (loading()) {
-        <p class="text-sm text-zinc-500">Cargando…</p>
+        <p class="text-sm text-muted">Cargando…</p>
       } @else if (students().length === 0) {
-        <p class="text-sm text-zinc-500">Todavía no hay ningún alumno. Invita al primero.</p>
+        <p class="text-sm text-muted">Todavía no hay ningún alumno. Invita al primero.</p>
       } @else {
         <table class="w-full table-auto border-collapse text-left text-sm">
           <thead>
-            <tr class="border-b border-zinc-200 text-zinc-500">
+            <tr class="border-b border-border text-muted">
               <th class="py-2 pr-4 font-medium">Nombre</th>
               <th class="py-2 pr-4 font-medium">Email</th>
               <th class="py-2 pr-4 font-medium"></th>
@@ -76,14 +78,14 @@
           </thead>
           <tbody>
             @for (s of students(); track s.id) {
-              <tr class="border-b border-zinc-100">
-                <td class="py-3 pr-4 font-medium">{{ s.name }}</td>
-                <td class="py-3 pr-4 text-zinc-600">{{ s.email }}</td>
+              <tr class="border-b border-border">
+                <td class="py-3 pr-4 font-medium text-content">{{ s.name }}</td>
+                <td class="py-3 pr-4 text-muted">{{ s.email }}</td>
                 <td class="py-3 pr-4 text-right">
                   <button
                     type="button"
                     (click)="verDetalle(s)"
-                    class="text-sm font-medium text-blue-700 hover:underline"
+                    class="focus-ring rounded-sm text-sm font-medium text-primary hover:underline"
                   >
                     Ver detalle
                   </button>

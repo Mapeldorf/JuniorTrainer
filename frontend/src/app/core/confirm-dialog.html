@@ -1,31 +1,29 @@
 @if (service.request(); as req) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
     role="alertdialog"
     aria-modal="true"
     [attr.aria-label]="req.title"
     (keydown.escape)="cancel()"
   >
-    <div class="flex w-full max-w-[420px] flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-6">
-      <h2 class="text-lg font-semibold tracking-tight">{{ req.title }}</h2>
-      <p class="whitespace-pre-wrap text-sm text-zinc-700">{{ req.message }}</p>
+    <div class="card flex w-full max-w-[420px] flex-col gap-4 p-6">
+      <h2 class="text-lg font-semibold tracking-tight text-content">{{ req.title }}</h2>
+      <p class="whitespace-pre-wrap text-sm text-muted">{{ req.message }}</p>
       <div class="flex items-center justify-end gap-3">
         <button
           #cancelButton
           type="button"
           (click)="cancel()"
-          class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100"
+          class="btn btn-secondary"
         >
           {{ req.cancelLabel }}
         </button>
         <button
           type="button"
           (click)="confirm()"
-          [class.bg-red-700]="req.destructive"
-          [class.hover:bg-red-800]="req.destructive"
-          [class.bg-blue-700]="!req.destructive"
-          [class.hover:bg-blue-800]="!req.destructive"
-          class="flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-white"
+          [class.btn-danger]="req.destructive"
+          [class.btn-primary]="!req.destructive"
+          class="btn"
         >
           {{ req.confirmLabel }}
         </button>
