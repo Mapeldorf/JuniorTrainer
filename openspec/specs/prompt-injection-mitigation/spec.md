@@ -26,3 +26,14 @@ El agente web SHALL insertar el `title` y el `snippet` de cada resultado de busq
 #### Scenario: Un resultado de busqueda contiene texto dirigido al modelo
 - **WHEN** el `title` o el `snippet` de un resultado de Tavily contienen una frase que parece una instruccion dirigida al modelo
 - **THEN** el modelo no cambia su comportamiento de resumen por ese texto, y el resultado no refleja haber seguido esa instruccion
+
+### Requirement: Deteccion automatizada de prompt injection en el proxy
+El sistema SHALL ejecutar una comprobacion automatizada de prompt injection (Lakera Guard) sobre el input de toda llamada de los 5 agentes al proxy LiteLLM, antes de invocar al proveedor subyacente, independientemente de si el agente la solicita explicitamente.
+
+#### Scenario: Input sin intento de prompt injection
+- **WHEN** cualquiera de los 5 agentes envia una llamada cuyo input no contiene ningun intento de prompt injection
+- **THEN** la comprobacion lo deja pasar y la llamada al proveedor subyacente se realiza con normalidad
+
+#### Scenario: Input con un intento de prompt injection detectable
+- **WHEN** el input de una llamada contiene un intento de prompt injection que el detector reconoce
+- **THEN** el sistema SHALL rechazar la llamada antes de invocar al proveedor subyacente, sin gastar presupuesto de la virtual key del agente en esa llamada
