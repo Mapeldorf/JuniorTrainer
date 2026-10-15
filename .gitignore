@@ -33,3 +33,6 @@ agents/**/*.egg-info/
 
 # Logs
 *.log
+
+# opencode (config local con token de Supabase)
+opencode.json
