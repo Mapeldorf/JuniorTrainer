@@ -30,13 +30,16 @@ import sys
 import httpx
 
 # alias -> modelos logicos permitidos (ver infra/litellm/config.yaml
-# model_list y design.md de litellm-virtual-keys).
+# model_list y design.md de litellm-virtual-keys). Incluye el modelo de
+# fallback de Hugging Face de cada agente (propuesta
+# litellm-huggingface-fallback): sin el en `models`, no hay garantia de que
+# LiteLLM deje usar la key en la llamada de fallback.
 _AGENT_MODELS: dict[str, list[str]] = {
-    "agent-web": ["generator"],
-    "agent-code": ["generator"],
-    "agent-exercises": ["generator"],
-    "agent-evaluator": ["evaluator"],
-    "agent-reviewer": ["reviewer"],
+    "agent-web": ["generator", "generator-fallback-hf"],
+    "agent-code": ["generator", "generator-fallback-hf"],
+    "agent-exercises": ["generator", "generator-fallback-hf"],
+    "agent-evaluator": ["evaluator", "evaluator-fallback-hf"],
+    "agent-reviewer": ["reviewer", "reviewer-fallback-hf"],
 }
 
 # Techo de gasto por key (propuesta litellm-key-budgets): mismo importe y
@@ -88,13 +91,18 @@ def _generate_key(client: httpx.Client, alias: str, models: list[str]) -> str:
     return response.json()["key"]
 
 
-def _missing_fields(existing: dict) -> dict:
+def _missing_fields(existing: dict, desired_models: list[str]) -> dict:
     missing: dict = {}
     if existing.get("max_budget") is None:
         missing["max_budget"] = _MAX_BUDGET_USD
         missing["budget_duration"] = _BUDGET_DURATION
     if existing.get("rpm_limit") is None:
         missing["rpm_limit"] = _RPM_LIMIT
+    # set() porque el orden de /key/list no tiene por que coincidir con el
+    # de _AGENT_MODELS; solo nos importa si falta algun modelo (p. ej. el
+    # fallback de litellm-huggingface-fallback en una key ya existente).
+    if set(existing.get("models") or []) != set(desired_models):
+        missing["models"] = desired_models
     return missing
 
 
@@ -123,7 +131,7 @@ def main() -> int:
                 key = _generate_key(client, alias, models)
                 print(f"{env_var}={key}")
                 continue
-            missing = _missing_fields(existing)
+            missing = _missing_fields(existing, models)
             if missing:
                 _apply_missing_fields(client, existing["token"], missing)
                 print(f"{env_var}: ya existia (alias {alias!r}), actualizada con {sorted(missing)}")
