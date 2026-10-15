@@ -1,27 +1,19 @@
-<div class="flex min-h-screen flex-wrap bg-white">
+<div class="flex min-h-screen flex-wrap bg-surface text-content">
   <!-- Panel izquierdo: solo en pantallas grandes, como en el diseno -->
-  <div class="hidden flex-1 basis-[520px] flex-col justify-between gap-12 bg-zinc-950 px-16 py-12 text-zinc-100 lg:flex">
-    <div class="flex items-center gap-3">
-      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-700">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M9 8l-4 4 4 4M15 8l4 4-4 4" />
-        </svg>
-      </div>
-      <span class="text-lg font-semibold">JuniorTrainer</span>
-    </div>
+  <div class="hidden flex-1 basis-[520px] flex-col justify-between gap-12 border-r border-border bg-surface-raised px-16 py-12 lg:flex">
+    <app-brand-mark />
 
     <div class="flex max-w-[560px] flex-col gap-8">
       <div class="flex flex-col gap-4">
-        <h1 class="text-4xl font-semibold tracking-tight">Aprende a revisar el código que escribe la IA.</h1>
-        <p class="text-base text-zinc-300">
+        <h1 class="text-4xl font-semibold tracking-tight text-content">Aprende a revisar el código que escribe la IA.</h1>
+        <p class="text-base text-muted">
           Resuelve ejercicios sobre el código de tu equipo, sin IA. Una IA valora tus respuestas
           y te explica en qué has acertado y en qué no.
         </p>
       </div>
     </div>
 
-    <p class="text-sm text-zinc-400">Ejercicios generados a partir del código real de tu equipo.</p>
+    <p class="text-sm text-muted">Ejercicios generados a partir del código real de tu equipo.</p>
   </div>
 
   <!-- Panel derecho: el formulario -->
@@ -32,50 +24,50 @@
       </div>
 
       <div class="flex flex-col gap-1">
-        <h2 class="text-2xl font-semibold tracking-tight">Inicia sesión</h2>
-        <p class="text-zinc-600">Accede con la cuenta que te ha dado tu empresa.</p>
+        <h2 class="text-2xl font-semibold tracking-tight text-content">Inicia sesión</h2>
+        <p class="text-muted">Accede con la cuenta que te ha dado tu empresa.</p>
       </div>
 
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1.5">
-          <label for="email" class="text-sm font-medium">Email</label>
+          <label for="email" class="label">Email</label>
           <input
             id="email"
             type="email"
             formControlName="email"
             autocomplete="email"
             placeholder="tu@empresa.com"
-            class="h-10 w-full rounded-lg border border-zinc-300 px-3 text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/30"
+            class="input"
           />
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <label for="password" class="text-sm font-medium">Contraseña</label>
+          <label for="password" class="label">Contraseña</label>
           <input
             id="password"
             type="password"
             formControlName="password"
             autocomplete="current-password"
             [attr.aria-invalid]="error() ? 'true' : null"
-            [class.border-red-600]="error()"
-            class="h-10 w-full rounded-lg border border-zinc-300 px-3 text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/30"
+            [class.border-danger]="error()"
+            class="input"
           />
         </div>
 
         @if (error()) {
-          <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">
+          <p role="alert" class="alert-error">
             {{ error() }}
           </p>
         }
 
-        <a routerLink="/forgot" class="self-start text-sm font-medium text-blue-700 hover:underline">
+        <a routerLink="/forgot" class="focus-ring self-start rounded-sm text-sm font-medium text-primary hover:underline">
           ¿Has olvidado tu contraseña?
         </a>
 
         <button
           type="submit"
           [disabled]="form.invalid || submitting()"
-          class="flex h-10 items-center justify-center rounded-lg bg-blue-700 font-medium text-white hover:bg-blue-800 disabled:opacity-50"
+          class="btn btn-primary w-full"
         >
           {{ submitting() ? 'Entrando…' : 'Entrar' }}
         </button>

@@ -1,42 +1,42 @@
-<div class="flex min-h-screen flex-col bg-zinc-50">
+<div class="min-h-screen bg-surface">
   <app-tech-lead-nav />
 
-  <div class="flex flex-col gap-10 px-8 py-10">
+  <div class="app-container flex flex-col gap-10 py-10">
     @if (error()) {
-      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+      <p role="alert" class="alert-error">{{ error() }}</p>
     }
 
     <section class="flex flex-col gap-3">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-semibold tracking-tight">Ejercicios</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-content">Ejercicios</h1>
         <button
           type="button"
           (click)="generar()"
-          class="flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800"
+          class="btn btn-primary"
         >
           Generar ejercicios
         </button>
       </div>
 
       @if (loadingPending()) {
-        <p class="text-sm text-zinc-500">Cargando…</p>
+        <p class="text-sm text-muted">Cargando…</p>
       } @else if (pending().length === 0) {
-        <p class="text-sm text-zinc-500">No hay ninguna generación pendiente de revisión.</p>
+        <p class="text-sm text-muted">No hay ninguna generación pendiente de revisión.</p>
       } @else {
         <ul class="flex flex-col gap-2">
           @for (generation of pending(); track generation.id) {
-            <li class="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4">
+            <li class="card flex items-center justify-between px-5 py-4">
               <div class="flex flex-col gap-1">
-                <span class="font-medium">{{ generation.technologies.join(', ') }}</span>
+                <span class="font-medium text-content">{{ generation.technologies.join(', ') }}</span>
                 @if (generation.repo) {
-                  <span class="text-sm text-zinc-500">{{ generation.repo }}</span>
+                  <span class="text-sm text-muted">{{ generation.repo }}</span>
                 }
               </div>
               <div class="flex items-center gap-3">
                 <span
-                  [class.text-amber-700]="generation.status === 'generating'"
-                  [class.text-blue-700]="generation.status === 'ready'"
-                  [class.text-red-700]="generation.status === 'error'"
+                  [class.text-warning]="generation.status === 'generating'"
+                  [class.text-primary]="generation.status === 'ready'"
+                  [class.text-danger]="generation.status === 'error'"
                   class="text-sm font-medium"
                 >
                   {{ statusLabel(generation.status) }}
@@ -45,7 +45,7 @@
                   <button
                     type="button"
                     (click)="revisar(generation)"
-                    class="flex h-9 items-center justify-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium hover:bg-zinc-100"
+                    class="btn btn-secondary h-9 px-3.5"
                   >
                     Revisar
                   </button>
@@ -58,13 +58,13 @@
     </section>
 
     <section class="flex flex-col gap-4">
-      <h2 class="text-lg font-semibold">Guardados</h2>
+      <h2 class="text-lg font-semibold text-content">Guardados</h2>
 
       <div class="flex flex-wrap items-center gap-3">
         <select
           [ngModel]="filterType()"
           (ngModelChange)="onFilterTypeChange($event)"
-          class="h-10 rounded-lg border border-zinc-300 px-3 text-sm"
+          class="input w-auto"
         >
           <option value="">Todos los tipos</option>
           <option value="knowledge">Conocimiento</option>
@@ -75,18 +75,18 @@
           placeholder="Buscar por nombre o enunciado…"
           [ngModel]="searchText()"
           (ngModelChange)="onSearchTextChange($event)"
-          class="h-10 w-full max-w-[320px] rounded-lg border border-zinc-300 px-3 text-sm"
+          class="input max-w-[320px]"
         />
       </div>
 
       @if (loadingSaved()) {
-        <p class="text-sm text-zinc-500">Cargando…</p>
+        <p class="text-sm text-muted">Cargando…</p>
       } @else if (saved().length === 0) {
-        <p class="text-sm text-zinc-500">No hay ningún ejercicio guardado todavía.</p>
+        <p class="text-sm text-muted">No hay ningún ejercicio guardado todavía.</p>
       } @else {
         <table class="w-full table-auto border-collapse text-left text-sm">
           <thead>
-            <tr class="border-b border-zinc-200 text-zinc-500">
+            <tr class="border-b border-border text-muted">
               <th class="py-2 pr-4 font-medium">Nombre</th>
               <th class="py-2 pr-4 font-medium">Tipo</th>
               <th class="py-2 pr-4 font-medium">Tecnologías</th>
@@ -96,16 +96,16 @@
           </thead>
           <tbody>
             @for (exercise of saved(); track exercise.id) {
-              <tr class="border-b border-zinc-100">
-                <td class="py-3 pr-4">{{ exercise.name }}</td>
-                <td class="py-3 pr-4">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
-                <td class="py-3 pr-4">{{ exercise.technologies.join(', ') }}</td>
-                <td class="py-3 pr-4">{{ exercise.repo ?? '—' }}</td>
+              <tr class="border-b border-border">
+                <td class="py-3 pr-4 text-content">{{ exercise.name }}</td>
+                <td class="py-3 pr-4 text-muted">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
+                <td class="py-3 pr-4 text-muted">{{ exercise.technologies.join(', ') }}</td>
+                <td class="py-3 pr-4 text-muted">{{ exercise.repo ?? '—' }}</td>
                 <td class="py-3 pr-4 text-right">
                   <button
                     type="button"
                     (click)="eliminar(exercise)"
-                    class="text-sm font-medium text-red-700 hover:underline"
+                    class="focus-ring rounded-sm text-sm font-medium text-danger hover:underline"
                   >
                     Eliminar
                   </button>

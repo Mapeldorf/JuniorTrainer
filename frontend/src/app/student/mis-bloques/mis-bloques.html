@@ -1,76 +1,78 @@
-<div class="flex min-h-screen flex-col gap-8 bg-zinc-50 px-8 py-12">
-  <div class="flex items-center justify-between">
-    <app-brand-mark />
-    <button
-      type="button"
-      (click)="signOut()"
-      class="flex h-9 items-center justify-center rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100"
-    >
-      Cerrar sesión
-    </button>
-  </div>
+<div class="min-h-screen bg-surface py-12">
+  <div class="app-container flex flex-col gap-8">
+    <div class="flex items-center justify-between">
+      <app-brand-mark />
+      <button
+        type="button"
+        (click)="signOut()"
+        class="btn btn-secondary h-9 px-3"
+      >
+        Cerrar sesión
+      </button>
+    </div>
 
-  <div class="flex max-w-[720px] flex-col gap-10">
-    <h1 class="text-2xl font-semibold tracking-tight">Mis bloques de ejercicios</h1>
+    <div class="flex max-w-[720px] flex-col gap-10">
+      <h1 class="text-2xl font-semibold tracking-tight text-content">Mis bloques de ejercicios</h1>
 
-    @if (loading()) {
-      <p class="text-sm text-zinc-500">Cargando…</p>
-    } @else if (error()) {
-      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">
-        {{ error() }}
-      </p>
-    } @else {
-      <section class="flex flex-col gap-3">
-        <h2 class="text-sm font-medium text-zinc-500">Pendientes</h2>
-        @if (pendientes().length === 0) {
-          <p class="text-sm text-zinc-500">No tienes ningún bloque pendiente.</p>
-        } @else {
-          <ul class="flex flex-col gap-2">
-            @for (assignment of pendientes(); track assignment.id) {
-              <li class="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4">
-                <div class="flex flex-col gap-1">
-                  <span class="font-medium">{{ assignment.block_name }}</span>
-                  <span class="text-sm text-zinc-500">
-                    {{ assignment.answered_count }} de {{ assignment.total_count }} ejercicios respondidos
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  (click)="abrir(assignment)"
-                  class="flex h-9 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800"
-                >
-                  {{ pendienteLabel(assignment) }}
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      </section>
+      @if (loading()) {
+        <p class="text-sm text-muted">Cargando…</p>
+      } @else if (error()) {
+        <p role="alert" class="alert-error">
+          {{ error() }}
+        </p>
+      } @else {
+        <section class="flex flex-col gap-3">
+          <h2 class="text-sm font-medium text-muted">Pendientes</h2>
+          @if (pendientes().length === 0) {
+            <p class="text-sm text-muted">No tienes ningún bloque pendiente.</p>
+          } @else {
+            <ul class="flex flex-col gap-2">
+              @for (assignment of pendientes(); track assignment.id) {
+                <li class="card flex items-center justify-between px-5 py-4">
+                  <div class="flex flex-col gap-1">
+                    <span class="font-medium text-content">{{ assignment.block_name }}</span>
+                    <span class="text-sm text-muted">
+                      {{ assignment.answered_count }} de {{ assignment.total_count }} ejercicios respondidos
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="abrir(assignment)"
+                    class="btn btn-primary h-9 px-4"
+                  >
+                    {{ pendienteLabel(assignment) }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
 
-      <section class="flex flex-col gap-3">
-        <h2 class="text-sm font-medium text-zinc-500">Hechos</h2>
-        @if (hechos().length === 0) {
-          <p class="text-sm text-zinc-500">Todavía no has terminado ningún bloque.</p>
-        } @else {
-          <ul class="flex flex-col gap-2">
-            @for (assignment of hechos(); track assignment.id) {
-              <li class="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4">
-                <div class="flex flex-col gap-1">
-                  <span class="font-medium">{{ assignment.block_name }}</span>
-                  <span class="text-sm text-zinc-500">{{ assignment.total_count }} ejercicios</span>
-                </div>
-                <button
-                  type="button"
-                  (click)="abrir(assignment)"
-                  class="flex h-9 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100"
-                >
-                  Consultar
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      </section>
-    }
+        <section class="flex flex-col gap-3">
+          <h2 class="text-sm font-medium text-muted">Hechos</h2>
+          @if (hechos().length === 0) {
+            <p class="text-sm text-muted">Todavía no has terminado ningún bloque.</p>
+          } @else {
+            <ul class="flex flex-col gap-2">
+              @for (assignment of hechos(); track assignment.id) {
+                <li class="card flex items-center justify-between px-5 py-4">
+                  <div class="flex flex-col gap-1">
+                    <span class="font-medium text-content">{{ assignment.block_name }}</span>
+                    <span class="text-sm text-muted">{{ assignment.total_count }} ejercicios</span>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="abrir(assignment)"
+                    class="btn btn-secondary h-9 px-4"
+                  >
+                    Consultar
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    </div>
   </div>
 </div>

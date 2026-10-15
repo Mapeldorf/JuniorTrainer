@@ -1,31 +1,31 @@
-<div class="flex min-h-screen flex-col bg-zinc-50">
+<div class="min-h-screen bg-surface">
   <app-tech-lead-nav />
 
-  <div class="flex flex-col gap-8 px-8 py-10">
+  <div class="app-container flex flex-col gap-8 py-10">
     @if (error()) {
-      <p role="alert" class="rounded-lg bg-red-100 px-3.5 py-2.5 text-sm text-red-900">{{ error() }}</p>
+      <p role="alert" class="alert-error">{{ error() }}</p>
     }
 
     @if (loading()) {
-      <p class="text-sm text-zinc-500">Cargando…</p>
+      <p class="text-sm text-muted">Cargando…</p>
     } @else if (block()) {
       <section class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <div class="flex flex-col gap-1">
             <div class="flex items-center gap-2">
-              <h1 class="text-2xl font-semibold tracking-tight">{{ block()!.name }}</h1>
+              <h1 class="text-2xl font-semibold tracking-tight text-content">{{ block()!.name }}</h1>
               @if (block()!.resolved) {
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                <span class="badge border border-warning/30 bg-warning/10 text-warning">
                   Resuelto · no editable
                 </span>
               }
               @if (isDeleted) {
-                <span class="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                <span class="badge bg-surface-overlay text-muted">
                   Eliminado
                 </span>
               }
             </div>
-            <span class="text-sm text-zinc-500">{{ block()!.exercises.length }} ejercicios</span>
+            <span class="text-sm text-muted">{{ block()!.exercises.length }} ejercicios</span>
           </div>
 
           @if (!isDeleted) {
@@ -34,14 +34,14 @@
                 type="button"
                 [disabled]="block()!.resolved"
                 (click)="editar()"
-                class="flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
+                class="btn btn-secondary"
               >
                 Editar bloque
               </button>
               <button
                 type="button"
                 (click)="eliminar()"
-                class="flex h-10 items-center justify-center rounded-lg border border-red-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50"
+                class="btn btn-danger"
               >
                 Eliminar bloque
               </button>
@@ -49,7 +49,7 @@
           }
         </div>
 
-        <p class="rounded-lg bg-blue-50 px-3.5 py-2.5 text-sm text-blue-900">
+        <p class="rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-sm text-primary">
           Editar o eliminar este bloque solo afecta a asignaciones futuras: los alumnos ya
           asignados siguen viendo su copia tal y como se les asignó. Un bloque se vuelve
           "resuelto" (ya no editable, pero sí eliminable) en cuanto algún alumno ha respondido
@@ -59,57 +59,57 @@
 
       <section class="flex flex-col gap-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold">Alumnos asignados ({{ progress().length }})</h2>
+          <h2 class="text-lg font-semibold text-content">Alumnos asignados ({{ progress().length }})</h2>
           <input
             type="search"
             placeholder="Buscar por nombre…"
             [ngModel]="studentSearch()"
             (ngModelChange)="studentSearch.set($event)"
-            class="h-10 w-full max-w-[280px] rounded-lg border border-zinc-300 px-3 text-sm"
+            class="input max-w-[280px]"
           />
         </div>
 
         @if (filteredProgress.length === 0) {
-          <p class="text-sm text-zinc-500">Todavía no hay ningún alumno asignado.</p>
+          <p class="text-sm text-muted">Todavía no hay ningún alumno asignado.</p>
         } @else {
           <ul class="flex flex-col gap-2">
             @for (p of filteredProgress; track p.assignment_id) {
-              <li class="rounded-xl border border-zinc-200 bg-white">
+              <li class="card">
                 <button
                   type="button"
                   (click)="toggleExpanded(p.assignment_id)"
-                  class="flex w-full items-center justify-between px-4 py-3 text-left"
+                  class="focus-ring flex w-full items-center justify-between rounded-xl px-4 py-3 text-left"
                 >
-                  <span class="font-medium">{{ p.student_name }}</span>
-                  <span class="flex items-center gap-3 text-sm text-zinc-500">
+                  <span class="font-medium text-content">{{ p.student_name }}</span>
+                  <span class="flex items-center gap-3 text-sm text-muted">
                     <span>{{ statusLabel(p) }}</span>
                     <span>{{ answeredCount(p) }} de {{ p.exercises.length }} respondidas</span>
-                    <span class="text-emerald-700">{{ verdictCounts(p).correct }} correctas</span>
-                    <span class="text-amber-700">{{ verdictCounts(p).incomplete }} incompletas</span>
-                    <span class="text-red-700">{{ verdictCounts(p).incorrect }} incorrectas</span>
+                    <span class="text-emerald-400">{{ verdictCounts(p).correct }} correctas</span>
+                    <span class="text-amber-400">{{ verdictCounts(p).incomplete }} incompletas</span>
+                    <span class="text-red-400">{{ verdictCounts(p).incorrect }} incorrectas</span>
                   </span>
                 </button>
 
                 @if (isExpanded(p.assignment_id)) {
-                  <ul class="flex flex-col gap-2 border-t border-zinc-100 px-4 py-3">
+                  <ul class="flex flex-col gap-2 border-t border-border px-4 py-3">
                     @for (e of p.exercises; track e.exercise_id) {
-                      <li class="flex flex-col gap-1 rounded-lg bg-zinc-50 px-3 py-2 text-sm">
-                        <span class="font-medium">{{ e.name }}</span>
+                      <li class="flex flex-col gap-1 rounded-lg bg-surface-overlay px-3 py-2 text-sm">
+                        <span class="font-medium text-content">{{ e.name }}</span>
                         @if (e.answered) {
-                          <span class="text-zinc-700">{{ e.answer_text }}</span>
+                          <span class="text-zinc-300">{{ e.answer_text }}</span>
                           <span
-                            [class.text-emerald-700]="e.verdict === 'correct'"
-                            [class.text-amber-700]="e.verdict === 'incomplete'"
-                            [class.text-red-700]="e.verdict === 'incorrect'"
+                            [class.text-emerald-400]="e.verdict === 'correct'"
+                            [class.text-amber-400]="e.verdict === 'incomplete'"
+                            [class.text-red-400]="e.verdict === 'incorrect'"
                             class="font-medium"
                           >
                             {{ e.verdict }}
                           </span>
                           @if (e.justification) {
-                            <span class="text-zinc-500">{{ e.justification }}</span>
+                            <span class="text-muted">{{ e.justification }}</span>
                           }
                         } @else {
-                          <span class="text-zinc-400">Sin responder</span>
+                          <span class="text-muted">Sin responder</span>
                         }
                       </li>
                     }
@@ -123,19 +123,20 @@
 
       @if (!isDeleted) {
         <section class="flex flex-col gap-3">
-          <h2 class="text-lg font-semibold">Asignar a más alumnos</h2>
+          <h2 class="text-lg font-semibold text-content">Asignar a más alumnos</h2>
           @if (unassignedStudents.length === 0) {
-            <p class="text-sm text-zinc-500">Todos los alumnos ya tienen este bloque asignado.</p>
+            <p class="text-sm text-muted">Todos los alumnos ya tienen este bloque asignado.</p>
           } @else {
             <ul class="flex flex-col gap-2">
               @for (s of unassignedStudents; track s.id) {
-                <li class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-2">
+                <li class="card flex items-center gap-3 px-4 py-2">
                   <input
                     type="checkbox"
                     [checked]="isSelectedToAssign(s.id)"
                     (change)="toggleToAssign(s.id)"
+                    class="h-4 w-4 accent-primary"
                   />
-                  <span>{{ s.name }}</span>
+                  <span class="text-content">{{ s.name }}</span>
                 </li>
               }
             </ul>
@@ -143,7 +144,7 @@
               type="button"
               [disabled]="selectedToAssign().length === 0"
               (click)="asignar()"
-              class="flex h-10 w-fit items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+              class="btn btn-primary w-fit"
             >
               Asignar
             </button>
@@ -152,12 +153,12 @@
       }
 
       <section class="flex flex-col gap-3">
-        <h2 class="text-lg font-semibold">Ejercicios del bloque</h2>
+        <h2 class="text-lg font-semibold text-content">Ejercicios del bloque</h2>
         <ol class="flex flex-col gap-2">
           @for (item of block()!.exercises; track item.exercise.id) {
-            <li class="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm">
-              <span class="text-zinc-500">{{ item.exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }} ·</span>
-              {{ item.exercise.name }}
+            <li class="card px-4 py-2 text-sm">
+              <span class="text-muted">{{ item.exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }} ·</span>
+              <span class="text-content">{{ item.exercise.name }}</span>
             </li>
           }
         </ol>

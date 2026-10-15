@@ -1,35 +1,37 @@
-<div class="flex items-center justify-between border-b border-zinc-200 bg-white px-8 py-4">
-  <div class="flex items-center gap-10">
-    <app-brand-mark />
-    <nav class="flex items-center gap-1" aria-label="Secciones del tech lead">
-      <a
-        routerLink="/ejercicios"
-        routerLinkActive="bg-blue-50 text-blue-700"
-        class="flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-      >
-        Ejercicios
-      </a>
-      <a
-        routerLink="/bloques"
-        routerLinkActive="bg-blue-50 text-blue-700"
-        class="flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-      >
-        Bloques de ejercicios
-      </a>
-      <a
-        routerLink="/alumnos"
-        routerLinkActive="bg-blue-50 text-blue-700"
-        class="flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-      >
-        Alumnos
-      </a>
-    </nav>
+<div class="border-b border-border bg-surface-raised">
+  <div class="app-container flex items-center justify-between py-4">
+    <div class="flex items-center gap-10">
+      <app-brand-mark />
+      <nav class="flex items-center gap-1" aria-label="Secciones del tech lead">
+        <a
+          routerLink="/ejercicios"
+          routerLinkActive="bg-primary/10 text-primary"
+          class="focus-ring flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-muted hover:bg-surface-overlay hover:text-content"
+        >
+          Ejercicios
+        </a>
+        <a
+          routerLink="/bloques"
+          routerLinkActive="bg-primary/10 text-primary"
+          class="focus-ring flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-muted hover:bg-surface-overlay hover:text-content"
+        >
+          Bloques de ejercicios
+        </a>
+        <a
+          routerLink="/alumnos"
+          routerLinkActive="bg-primary/10 text-primary"
+          class="focus-ring flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-muted hover:bg-surface-overlay hover:text-content"
+        >
+          Alumnos
+        </a>
+      </nav>
+    </div>
+    <button
+      type="button"
+      (click)="signOut()"
+      class="btn btn-secondary h-9 px-3"
+    >
+      Cerrar sesión
+    </button>
   </div>
-  <button
-    type="button"
-    (click)="signOut()"
-    class="flex h-9 items-center justify-center rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100"
-  >
-    Cerrar sesión
-  </button>
 </div>
