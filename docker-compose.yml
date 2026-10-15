@@ -32,6 +32,11 @@ services:
       # URLs internas fijas, no son secretos, no van en .env.
       PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
       PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
+      # Credenciales propias de /ui (propuesta litellm-admin-ui-credentials):
+      # en cuanto UI_PASSWORD esta puesta, el login deja de aceptar
+      # LITELLM_MASTER_KEY como contraseña de administrador.
+      UI_USERNAME: ${LITELLM_UI_USERNAME}
+      UI_PASSWORD: ${LITELLM_UI_PASSWORD}
     volumes:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
