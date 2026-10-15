@@ -18,13 +18,13 @@
 - [x] 3.1 Migrar `frontend/src/app/auth/login/login.html` al tema oscuro (panel izquierdo, formulario, inputs, botón, enlace de olvido y mensaje de error con las primitivas). Verificar con `ng test` sobre `login` que sus specs siguen en verde.
 - [x] 3.2 Migrar `frontend/src/app/auth/forgot/forgot.html` al tema. Verificar con `ng test` sobre `forgot` que sus specs siguen en verde.
 - [x] 3.3 Migrar `frontend/src/app/auth/set-password/set-password.html` al tema (incluido el aviso de enlace no válido y los errores). Verificar con `ng test` sobre `set-password` que sus specs siguen en verde.
-- [ ] 3.4 Migrar `frontend/src/app/home/home.html` al tema. Verificar con `ng test` que `home` sigue en verde y comprobar a ojo en `ng serve` que las cuatro pantallas de este grupo usan fondo oscuro, tipografía de sistema y ancho estrecho.
+- [x] 3.4 Migrar `frontend/src/app/home/home.html` al tema. Verificar con `ng test` que `home` sigue en verde y comprobar a ojo en `ng serve` que las cuatro pantallas de este grupo usan fondo oscuro, tipografía de sistema y ancho estrecho.
 
 ## 4. Pantallas de alumno
 
 - [x] 4.1 Migrar `frontend/src/app/student/mis-bloques/mis-bloques.html` al tema (tarjetas de bloque, secciones pendientes/hechos, botones). Verificar con `ng test` sobre `mis-bloques` que sus specs siguen en verde.
 - [x] 4.2 Migrar `frontend/src/app/student/ejercicio/ejercicio.html` al tema (selector de posiciones, tarjeta del ejercicio, bloque de código legible, textarea, y colores de veredicto correcto/incompleto/incorrecto sobre fondo oscuro). Verificar con `ng test` sobre `ejercicio` que sus specs siguen en verde.
-- [ ] 4.3 Comprobar a ojo en `ng serve` las dos pantallas de alumno: tema oscuro consistente, bloque de código legible, veredictos distinguibles y navegación con teclado con foco visible.
+- [x] 4.3 Comprobar a ojo en `ng serve` las dos pantallas de alumno: tema oscuro consistente, bloque de código legible, veredictos distinguibles y navegación con teclado con foco visible.
 
 ## 5. Pantallas de tech-lead
 
@@ -36,10 +36,10 @@
 - [x] 5.6 Migrar `frontend/src/app/tech-lead/bloque-editar/bloque-editar.html` al tema. Verificar con `ng test` sobre `bloque-editar` que sus specs siguen en verde.
 - [x] 5.7 Migrar `frontend/src/app/tech-lead/alumnos/alumnos.html` al tema. Verificar con `ng test` sobre `alumnos` que sus specs siguen en verde.
 - [x] 5.8 Migrar `frontend/src/app/tech-lead/alumno-detalle/alumno-detalle.html` al tema. Verificar con `ng test` sobre `alumno-detalle` que sus specs siguen en verde.
-- [ ] 5.9 Comprobar a ojo en `ng serve` las pantallas de tech-lead: nav y tablas consistentes con el tema, estados legibles y contenedor centrado y estrecho.
+- [x] 5.9 Comprobar a ojo en `ng serve` las pantallas de tech-lead: nav y tablas consistentes con el tema, estados legibles y contenedor centrado y estrecho.
 
 ## 6. Verificación final
 
 - [x] 6.1 Ejecutar la suite completa del frontend (`ng test --watch=false`) y confirmar que sigue en verde (el cambio es presentacional y no debe romper ningún test de comportamiento).
 - [x] 6.2 Ejecutar `ng build` en configuración de producción y confirmar que compila sin errores de presupuesto de estilos ni de plantillas.
-- [ ] 6.3 Recorrido visual completo por todas las pantallas en `ng serve` (auth, home, alumno, tech-lead y diálogo de confirmación): tema oscuro uniforme, tipografía de sistema, ancho estrecho, foco visible con teclado, y sin restos de clases del tema claro (`bg-white`, `bg-zinc-50`, `text-zinc-900`).
+- [x] 6.3 Recorrido visual completo por todas las pantallas en `ng serve` (auth, home, alumno, tech-lead y diálogo de confirmación): tema oscuro uniforme, tipografía de sistema, ancho estrecho, foco visible con teclado, y sin restos de clases del tema claro (`bg-white`, `bg-zinc-50`, `text-zinc-900`).
