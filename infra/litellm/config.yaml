@@ -85,12 +85,18 @@ general_settings:
 # ya tienen los agentes (delimitadores + frase defensiva en el prompt).
 # default_on: corre en toda llamada de los 5 agentes sin que ninguno tenga
 # que pedirlo explicitamente -- sin cambios en agents/*/app/llm.py.
+# on_flagged: monitor (change fix-falso-positivo-lakera): la deteccion se
+# registra pero NO bloquea la llamada. En uso real Lakera marco como
+# prompt_attack contenido benigno (p. ej. rutas de repositorio que contienen
+# la palabra "role") y el bloqueo rompia la generacion. Decision del usuario:
+# monitorizar, no bloquear.
 guardrails:
   - guardrail_name: "lakera-guard"
     litellm_params:
       guardrail: lakera_v2
       mode: "pre_call"
       default_on: true
+      on_flagged: "monitor"
       api_key: os.environ/LAKERA_API_KEY
 
   # Redaccion de PII real antes de llegar al proveedor (propuesta
