@@ -59,3 +59,26 @@ guardrails:
       mode: "pre_call"
       default_on: true
       api_key: os.environ/LAKERA_API_KEY
+
+  # Redaccion de PII real antes de llegar al proveedor (propuesta
+  # litellm-presidio-pii-masking), distinta del mask_input/mask_output de
+  # Langfuse (que solo oculta la traza, no el contenido real de la llamada).
+  # Autoalojado (presidio-analyzer/presidio-anonymizer en docker-compose.yml,
+  # PRESIDIO_ANALYZER_API_BASE/PRESIDIO_ANONYMIZER_API_BASE), sin API key.
+  # MASK, no BLOCK: el objetivo es redactar, no rechazar una respuesta
+  # legitima de un alumno. Modelo de idioma ingles (decision explicita, ver
+  # design.md): PERSON en español tendra peor recall que los patrones por
+  # regex (email, telefono, etc.), que no dependen del idioma.
+  - guardrail_name: "presidio-pii"
+    litellm_params:
+      guardrail: presidio
+      mode: "pre_call"
+      default_on: true
+      pii_entities_config:
+        EMAIL_ADDRESS: "MASK"
+        PHONE_NUMBER: "MASK"
+        CREDIT_CARD: "MASK"
+        IP_ADDRESS: "MASK"
+        IBAN_CODE: "MASK"
+        URL: "MASK"
+        PERSON: "MASK"

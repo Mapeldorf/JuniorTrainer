@@ -28,11 +28,17 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${LITELLM_DB_USER}:${LITELLM_DB_PASSWORD}@litellm-db:5432/${LITELLM_DB_NAME}
+      # Guardrail presidio-pii (propuesta litellm-presidio-pii-masking):
+      # URLs internas fijas, no son secretos, no van en .env.
+      PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
+      PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     volumes:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     depends_on:
       - litellm-db
+      - presidio-analyzer
+      - presidio-anonymizer
     # Verificado (propuesta litellm-lakera-guardrail): un fallo de red al
     # llamar al guardrail (host inalcanzable, no solo rechazo de conexion)
     # puede tumbar el proceso entero (SIGSEGV), no solo bloquear la llamada.
@@ -53,6 +59,21 @@ services:
       POSTGRES_DB: ${LITELLM_DB_NAME}
     volumes:
       - litellm-db-data:/var/lib/postgresql/data
+
+  # Redaccion de PII (propuesta litellm-presidio-pii-masking): dos servicios
+  # autoalojados, sin credenciales ni coste por llamada (a diferencia de
+  # Lakera). Solo litellm los llama, nunca el host ni otro agente -- expose,
+  # no ports, mismo patron que los agentes. Version fijada (no :latest): ver
+  # hallazgo del SIGSEGV de litellm:main-latest en litellm-lakera-guardrail.
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:2.2.362
+    expose:
+      - "3000"
+
+  presidio-anonymizer:
+    image: mcr.microsoft.com/presidio-anonymizer:2.2.362
+    expose:
+      - "3000"
 
   # Los agentes A2A internos (generacion, grupos 3-5; valoracion de
   # respuestas -- evaluador/revisor, grupos 3-4 de valoracion-respuestas):
