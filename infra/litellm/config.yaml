@@ -105,13 +105,31 @@ guardrails:
   # Autoalojado (presidio-analyzer/presidio-anonymizer en docker-compose.yml,
   # PRESIDIO_ANALYZER_API_BASE/PRESIDIO_ANONYMIZER_API_BASE), sin API key.
   # MASK, no BLOCK: el objetivo es redactar, no rechazar una respuesta
-  # legitima de un alumno. Modelo de idioma ingles (decision explicita, ver
-  # design.md): PERSON en español tendra peor recall que los patrones por
-  # regex (email, telefono, etc.), que no dependen del idioma.
+  # legitima de un alumno.
+  #
+  # Solo entidades por regex (change quitar-url-person-presidio): URL y PERSON
+  # se quitaron porque sobre contenido de repositorio disparan cientos de
+  # falsos positivos -- "X.service.ts" -> "<URL>rvice.ts", "component.ts" ->
+  # "<PERSON>ponent.ts" -- y el agente de codigo pide al modelo copiar las
+  # rutas del listado tal cual, asi que devolvia rutas enmascaradas que luego
+  # no existian en el repo y la generacion fallaba entera. Las entidades que
+  # quedan (email, telefono, tarjeta, IP, IBAN) son las de riesgo real y no
+  # dependen del idioma ni colisionan con rutas o identificadores de codigo.
+  #
+  # presidio_filter_scope: "input" (mismo change): sin esto, LiteLLM deja el
+  # filter_scope por defecto en "both", que ademas de redactar el input añade
+  # un callback de salida (apply_to_output=True) y enmascara tambien la
+  # RESPUESTA del modelo -- el texto generado de los ejercicios salia con
+  # "<PERSON>" etc. incrustado. El output masking no aporta proteccion real:
+  # el proveedor ya vio el input (redactado); solo corrompia el contenido que
+  # devolvemos a la app. Acotado a "input", la redaccion del dato del alumno
+  # antes de salir al proveedor se mantiene, y el fail-closed tambien
+  # (pii_entities_config sigue poblado, presidio.py:457).
   - guardrail_name: "presidio-pii"
     litellm_params:
       guardrail: presidio
       mode: "pre_call"
+      presidio_filter_scope: "input"
       default_on: true
       pii_entities_config:
         EMAIL_ADDRESS: "MASK"
@@ -119,5 +137,3 @@ guardrails:
         CREDIT_CARD: "MASK"
         IP_ADDRESS: "MASK"
         IBAN_CODE: "MASK"
-        URL: "MASK"
-        PERSON: "MASK"
