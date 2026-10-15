@@ -1,11 +1,13 @@
 """Aprovisiona las 5 virtual keys de LiteLLM, una por agente (propuesta
 litellm-virtual-keys), con un techo de gasto fijo (propuesta
-litellm-key-budgets). Idempotente por `key_alias`, con upsert de budget:
-    - alias no existe          -> crea la key con max_budget/budget_duration.
-    - alias existe sin budget  -> actualiza esa key con max_budget/budget_duration
-                                   (no la regenera: mismo valor de key).
-    - alias existe con budget  -> se deja intacta (no pisa un budget que se
-                                   haya ajustado a mano despues de crearla).
+litellm-key-budgets) y un limite de ritmo fijo (propuesta
+litellm-key-rate-limit). Idempotente por `key_alias`, con upsert por campo:
+    - alias no existe              -> crea la key con todos los campos.
+    - alias existe, falta algun campo (max_budget/rpm_limit) -> actualiza
+      solo los campos que faltan, en una unica llamada (no la regenera:
+      mismo valor de key).
+    - alias existe con todos los campos ya puestos -> se deja intacta (no
+      pisa un valor que se haya ajustado a mano despues de crearla).
 Para rotar una key a proposito, revocarla primero (/key/delete o la UI de
 LiteLLM) y volver a ejecutar este script.
 
@@ -42,6 +44,10 @@ _AGENT_MODELS: dict[str, list[str]] = {
 _MAX_BUDGET_USD = 5
 _BUDGET_DURATION = "30d"
 
+# Limite de ritmo por key (propuesta litellm-key-rate-limit): mismo numero
+# que ya usa slowapi en cada agente (agents/*/app/rate_limit.py).
+_RPM_LIMIT = 60
+
 # alias -> variable de entorno que el agente correspondiente lee
 # (agents/*/app/config.py).
 _AGENT_ENV_VAR: dict[str, str] = {
@@ -75,21 +81,25 @@ def _generate_key(client: httpx.Client, alias: str, models: list[str]) -> str:
             "models": models,
             "max_budget": _MAX_BUDGET_USD,
             "budget_duration": _BUDGET_DURATION,
+            "rpm_limit": _RPM_LIMIT,
         },
     )
     response.raise_for_status()
     return response.json()["key"]
 
 
-def _apply_budget(client: httpx.Client, token: str) -> None:
-    response = client.post(
-        "/key/update",
-        json={
-            "key": token,
-            "max_budget": _MAX_BUDGET_USD,
-            "budget_duration": _BUDGET_DURATION,
-        },
-    )
+def _missing_fields(existing: dict) -> dict:
+    missing: dict = {}
+    if existing.get("max_budget") is None:
+        missing["max_budget"] = _MAX_BUDGET_USD
+        missing["budget_duration"] = _BUDGET_DURATION
+    if existing.get("rpm_limit") is None:
+        missing["rpm_limit"] = _RPM_LIMIT
+    return missing
+
+
+def _apply_missing_fields(client: httpx.Client, token: str, fields: dict) -> None:
+    response = client.post("/key/update", json={"key": token, **fields})
     response.raise_for_status()
 
 
@@ -112,11 +122,13 @@ def main() -> int:
             if existing is None:
                 key = _generate_key(client, alias, models)
                 print(f"{env_var}={key}")
-            elif existing.get("max_budget") is None:
-                _apply_budget(client, existing["token"])
-                print(f"{env_var}: ya existia sin budget (alias {alias!r}), actualizada con budget")
+                continue
+            missing = _missing_fields(existing)
+            if missing:
+                _apply_missing_fields(client, existing["token"], missing)
+                print(f"{env_var}: ya existia (alias {alias!r}), actualizada con {sorted(missing)}")
             else:
-                print(f"{env_var}: ya existe con budget (alias {alias!r}), omitida")
+                print(f"{env_var}: ya existe completa (alias {alias!r}), omitida")
 
     return 0
 
