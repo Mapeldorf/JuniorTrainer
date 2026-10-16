@@ -20,6 +20,7 @@ services:
       - agent-exercises
       - agent-evaluator
       - agent-reviewer
+      - agent-validator
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -124,6 +125,17 @@ services:
     build: ./agents/reviewer
     expose:
       - "8014"
+    env_file: .env
+    depends_on:
+      - litellm
+
+  # Agente validador de tecnologias (change validacion-tecnologias-agente-juez):
+  # juez que decide si las tecnologias de una generacion son tecnologias de
+  # programacion, antes de lanzar el resto del flujo.
+  agent-validator:
+    build: ./agents/validator
+    expose:
+      - "8015"
     env_file: .env
     depends_on:
       - litellm

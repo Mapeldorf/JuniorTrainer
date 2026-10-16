@@ -33,6 +33,17 @@ model_list:
       api_key: os.environ/REVIEWER_API_KEY
       guardrails: ["presidio-pii"]
 
+  # Agente validador de tecnologias (change validacion-tecnologias-agente-juez):
+  # el juez que decide si las tecnologias de una generacion son tecnologias
+  # de programacion. Modelo general rapido. Se le vinculan guardarrailes en
+  # modo BLOQUEO (presidio-pii-block, lakera-guard-block, mas abajo): su
+  # input es texto introducido por el usuario y este es un gate restrictivo.
+  - model_name: validator
+    litellm_params:
+      model: os.environ/VALIDATOR_MODEL
+      api_key: os.environ/VALIDATOR_API_KEY
+      guardrails: ["presidio-pii-block", "lakera-guard-block"]
+
   # Fallback automatico a Hugging Face Inference Providers (propuesta
   # litellm-huggingface-fallback), si el modelo principal falla. Mismos
   # modelos que ya se usan en OpenRouter cuando existen en HF;
@@ -52,6 +63,16 @@ model_list:
     litellm_params:
       model: huggingface/zai-org/GLM-5.3-Flash
       api_key: os.environ/HF_TOKEN
+
+  # Fallback del validador: MISMO modelo open-weight que el primario, pero
+  # servido por otro proveedor (Hugging Face), para que el fallback siga
+  # siendo independiente de verdad. Lleva los mismos guardarrailes en modo
+  # bloqueo que el primario.
+  - model_name: validator-fallback-hf
+    litellm_params:
+      model: huggingface/zai-org/GLM-5.3-Flash
+      api_key: os.environ/HF_TOKEN
+      guardrails: ["presidio-pii-block", "lakera-guard-block"]
 
 litellm_settings:
   success_callback: ["langfuse"]
@@ -80,6 +101,7 @@ litellm_settings:
     - generator: [generator-fallback-hf]
     - evaluator: [evaluator-fallback-hf]
     - reviewer: [reviewer-fallback-hf]
+    - validator: [validator-fallback-hf]
 
 # Virtual keys por agente (propuesta litellm-virtual-keys): master_key ya
 # solo es para administracion (provision_keys.py y gestion manual), no la usa
@@ -154,3 +176,36 @@ guardrails:
         CREDIT_CARD: "MASK"
         IP_ADDRESS: "MASK"
         IBAN_CODE: "MASK"
+
+  # Redaccion de PII en modo BLOQUEO para el agente validador (change
+  # validacion-tecnologias-agente-juez): a diferencia de presidio-pii (MASK),
+  # si el input del validador contiene un dato personal, la llamada se
+  # rechaza (fail-closed) en vez de enmascararlo y continuar. Se define como
+  # guardrail aparte para no cambiar la accion de evaluator/reviewer. Se
+  # vincula solo a los deployments `validator`/`validator-fallback-hf`.
+  - guardrail_name: "presidio-pii-block"
+    litellm_params:
+      guardrail: presidio
+      mode: "pre_call"
+      presidio_filter_scope: "input"
+      default_on: false
+      pii_entities_config:
+        EMAIL_ADDRESS: "BLOCK"
+        PHONE_NUMBER: "BLOCK"
+        CREDIT_CARD: "BLOCK"
+        IP_ADDRESS: "BLOCK"
+        IBAN_CODE: "BLOCK"
+
+  # Deteccion de prompt injection en modo BLOQUEO para el agente validador
+  # (change validacion-tecnologias-agente-juez): el global `lakera-guard`
+  # sigue en `monitor` (no bloquea) para los demas agentes; aqui se anade una
+  # regla que SI bloquea cuando el detector marca el input del validador. Se
+  # acepta la doble llamada a Lakera (el global tambien corre) porque
+  # bloquear en este gate es requisito.
+  - guardrail_name: "lakera-guard-block"
+    litellm_params:
+      guardrail: lakera_v2
+      mode: "pre_call"
+      default_on: false
+      on_flagged: "block"
+      api_key: os.environ/LAKERA_API_KEY
