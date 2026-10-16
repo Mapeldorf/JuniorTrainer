@@ -21,4 +21,4 @@
 
 ## 4. Spec
 
-- [ ] 4.1 Confirmar que `openspec/specs/pii-redaction/spec.md` describe el alcance como evaluador/revisor (el delta se sincroniza al archivar el change).
+- [x] 4.1 Confirmar que `openspec/specs/pii-redaction/spec.md` describe el alcance como evaluador/revisor (el delta se sincroniza al archivar el change). Verificado: sincronizado al archivar (2 requisitos modificados, 1 renombrado).
