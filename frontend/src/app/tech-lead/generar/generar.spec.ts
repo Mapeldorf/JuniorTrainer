@@ -2,11 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { GenerationsApiService } from '../../core/generations-api.service';
+import { GenerationTrackerService } from '../../core/generation-tracker.service';
 import { SupabaseService } from '../../core/supabase.service';
 import { GenerarComponent } from './generar';
 
 describe('GenerarComponent', () => {
-  function createComponent(opts: { start?: ReturnType<typeof vi.fn> } = {}) {
+  function createComponent(opts: { start?: ReturnType<typeof vi.fn>; tracker?: object } = {}) {
     TestBed.configureTestingModule({
       imports: [GenerarComponent],
       providers: [
@@ -15,6 +16,14 @@ describe('GenerarComponent', () => {
         {
           provide: GenerationsApiService,
           useValue: { start: opts.start ?? vi.fn().mockReturnValue(of({ id: 'g1' })) },
+        },
+        {
+          provide: GenerationTrackerService,
+          useValue: opts.tracker ?? {
+            add: vi.fn(),
+            list: vi.fn().mockReturnValue([]),
+            remove: vi.fn(),
+          },
         },
       ],
     });
@@ -179,6 +188,30 @@ describe('GenerarComponent', () => {
 
     expect(component.error()).not.toBeNull();
     expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('generar() con exito registra el id devuelto en el tracker', () => {
+    const start = vi.fn().mockReturnValue(of({ id: 'g42' }));
+    const add = vi.fn();
+    const fixture = createComponent({ start, tracker: { add, list: vi.fn().mockReturnValue([]), remove: vi.fn() } });
+    const component = fixture.componentInstance;
+
+    component.technologies.set(['Git']);
+    component.generar();
+
+    expect(add).toHaveBeenCalledWith('g42');
+  });
+
+  it('si start() falla, no registra ninguna generacion en el tracker', () => {
+    const start = vi.fn().mockReturnValue(throwError(() => new Error('fallo')));
+    const add = vi.fn();
+    const fixture = createComponent({ start, tracker: { add, list: vi.fn().mockReturnValue([]), remove: vi.fn() } });
+    const component = fixture.componentInstance;
+
+    component.technologies.set(['Git']);
+    component.generar();
+
+    expect(add).not.toHaveBeenCalled();
   });
 
   it('cancelar() navega a /ejercicios', () => {

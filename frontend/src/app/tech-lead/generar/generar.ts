@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { GenerationKind } from '../../core/generations-api.model';
 import { GenerationsApiService } from '../../core/generations-api.service';
+import { GenerationTrackerService } from '../../core/generation-tracker.service';
 import { TechLeadNavComponent } from '../tech-lead-nav/tech-lead-nav';
 
 const MIN_COUNT = 1;
@@ -28,6 +29,7 @@ const MAX_COUNT = 5;
 export class GenerarComponent {
   private readonly api = inject(GenerationsApiService);
   private readonly router = inject(Router);
+  private readonly tracker = inject(GenerationTrackerService);
 
   readonly technologies = signal<string[]>([]);
   readonly newTechnology = signal('');
@@ -83,7 +85,11 @@ export class GenerarComponent {
 
   /** Tarea 8.1 (acceso-repo-github-tool): solo envia si `isValid()` --
    * tecnologias no vacias, numero de candidatos entre 1 y 5, owner/repo
-   * juntos o ninguno, y tipo compatible con si hay repositorio. */
+   * juntos o ninguno, y tipo compatible con si hay repositorio. Registra
+   * el id devuelto en `GenerationTrackerService` (tarea 3.1,
+   * `ocultar-generaciones-error`) para que `/ejercicios` pueda avisar si
+   * esa generacion termina en error, ya que el listado de pendientes ya no
+   * incluye las fallidas. */
   generar(): void {
     if (!this.isValid() || this.submitting()) {
       return;
@@ -99,7 +105,8 @@ export class GenerarComponent {
         count: this.count(),
       })
       .subscribe({
-        next: () => {
+        next: (response) => {
+          this.tracker.add(response.id);
           void this.router.navigate(['/ejercicios']);
         },
         error: () => {

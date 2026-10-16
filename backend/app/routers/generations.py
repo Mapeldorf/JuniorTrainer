@@ -85,15 +85,19 @@ async def list_pending_generations(
 ) -> list[GenerationSummary]:
     """Lista las generaciones pendientes de revision (tarea 1.2 de
     frontend-tech-lead-ejercicios, capacidad exercise-generation: "Listar
-    las generaciones pendientes"): todas las que no estan `done`, mas
-    recientes primero -- no hace falta parametro de filtro porque no hay
-    ningun caso de uso que necesite ver las ya cerradas (design.md
+    las generaciones pendientes"): solo las que estan en curso
+    (`generating`) o listas para revisar (`ready`), mas recientes primero.
+    Las ya cerradas (`done`) y las fallidas (`error`) quedan fuera (change
+    `ocultar-generaciones-error`): las `error` no son accionables desde
+    este listado, siguen almacenadas y consultables por su id con
+    `GET /generations/{id}`. No hace falta parametro de filtro porque no
+    hay ningun caso de uso que necesite ver las no listadas (design.md
     decision 2)."""
     result = (
         get_admin_client()
         .table("generation")
         .select(_GENERATION_SUMMARY_FIELDS)
-        .neq("status", "done")
+        .in_("status", ["generating", "ready"])
         .order("created_at", desc=True)
         .execute()
     )

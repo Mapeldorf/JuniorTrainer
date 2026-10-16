@@ -2,7 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { GenerationsApiService } from '../../core/generations-api.service';
-import { GenerationSummary, SavedExerciseListItem } from '../../core/generations-api.model';
+import { GenerationTrackerService } from '../../core/generation-tracker.service';
+import {
+  GenerationDetail,
+  GenerationStatus,
+  GenerationSummary,
+  SavedExerciseListItem,
+} from '../../core/generations-api.model';
 import { SupabaseService } from '../../core/supabase.service';
 import { EjerciciosComponent } from './ejercicios';
 
@@ -18,6 +24,13 @@ const GENERATING: GenerationSummary = {
 
 const READY: GenerationSummary = { ...GENERATING, status: 'ready', technologies: ['Git', 'Python'] };
 
+const ERROR: GenerationSummary = {
+  ...GENERATING,
+  status: 'error',
+  technologies: ['Rust'],
+  error_message: 'fallo de prueba',
+};
+
 const SAVED_ITEM: SavedExerciseListItem = {
   id: 'e1',
   type: 'knowledge',
@@ -30,15 +43,40 @@ const SAVED_ITEM: SavedExerciseListItem = {
   block_usage_count: 0,
 };
 
+function detail(
+  id: string,
+  status: GenerationStatus,
+  errorMessage: string | null = null,
+): GenerationDetail {
+  return { id, status, error_message: errorMessage, candidates: [] };
+}
+
 describe('EjerciciosComponent', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  function makeTracker(trackedIds: string[] = []) {
+    let ids = [...trackedIds];
+    return {
+      add: vi.fn((id: string) => {
+        if (!ids.includes(id)) {
+          ids = [...ids, id];
+        }
+      }),
+      list: vi.fn(() => [...ids]),
+      remove: vi.fn((id: string) => {
+        ids = ids.filter((x) => x !== id);
+      }),
+    };
+  }
+
   function createComponent(opts: {
     listPending?: ReturnType<typeof vi.fn>;
     listSaved?: ReturnType<typeof vi.fn>;
     deleteFn?: ReturnType<typeof vi.fn>;
+    getDetail?: ReturnType<typeof vi.fn>;
+    tracker?: ReturnType<typeof makeTracker>;
   }) {
     TestBed.configureTestingModule({
       imports: [EjerciciosComponent],
@@ -51,8 +89,10 @@ describe('EjerciciosComponent', () => {
             listPending: opts.listPending ?? vi.fn().mockReturnValue(of([])),
             listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of([])),
             delete: opts.deleteFn ?? vi.fn().mockReturnValue(of(SAVED_ITEM)),
+            getDetail: opts.getDetail ?? vi.fn().mockReturnValue(of(detail('g1', 'generating'))),
           },
         },
+        { provide: GenerationTrackerService, useValue: opts.tracker ?? makeTracker() },
       ],
     });
     const fixture = TestBed.createComponent(EjerciciosComponent);
@@ -168,5 +208,62 @@ describe('EjerciciosComponent', () => {
     await component.eliminar(SAVED_ITEM);
 
     expect(deleteFn).not.toHaveBeenCalled();
+  });
+
+  it('una generacion en error no se renderiza en la lista de pendientes', () => {
+    const listPending = vi.fn().mockReturnValue(of([ERROR]));
+    const fixture = createComponent({ listPending });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(fixture.componentInstance.pending()).toEqual([]);
+    expect(text).not.toContain('Rust');
+    expect(text).not.toContain('Error');
+    expect(text).toContain('No hay ninguna generación pendiente');
+  });
+
+  it('una generacion rastreada que pasa a error produce el aviso y deja de rastrearse', () => {
+    const tracker = makeTracker(['g1']);
+    const getDetail = vi.fn().mockReturnValue(of(detail('g1', 'error', 'fallo')));
+    const fixture = createComponent({ tracker, getDetail });
+
+    expect(tracker.remove).toHaveBeenCalledWith('g1');
+    expect(fixture.componentInstance.generationFailures()).toBe(1);
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('1 generación ha fallado');
+  });
+
+  it('dos generaciones rastreadas que pasan a error producen el aviso en plural', () => {
+    const tracker = makeTracker(['g1', 'g2']);
+    const getDetail = vi.fn((id: string) => of(detail(id, 'error')));
+    const fixture = createComponent({ tracker, getDetail });
+
+    expect(fixture.componentInstance.generationFailures()).toBe(2);
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('2 generaciones han fallado');
+  });
+
+  it('una generacion rastreada que queda ready deja de rastrearse sin aviso', () => {
+    const tracker = makeTracker(['g1']);
+    const getDetail = vi.fn().mockReturnValue(of(detail('g1', 'ready')));
+    const fixture = createComponent({ tracker, getDetail });
+
+    expect(tracker.remove).toHaveBeenCalledWith('g1');
+    expect(fixture.componentInstance.generationFailures()).toBe(0);
+  });
+
+  it('el aviso de fallo se muestra como alert y se descarta con el boton', () => {
+    const tracker = makeTracker(['g1']);
+    const getDetail = vi.fn().mockReturnValue(of(detail('g1', 'error')));
+    const fixture = createComponent({ tracker, getDetail });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const alert = el.querySelector('[role="alert"]');
+    expect(alert?.textContent).toContain('1 generación ha fallado');
+
+    fixture.componentInstance.dismissGenerationFailures();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.generationFailureNotice()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent ?? '').not.toContain('ha fallado');
   });
 });

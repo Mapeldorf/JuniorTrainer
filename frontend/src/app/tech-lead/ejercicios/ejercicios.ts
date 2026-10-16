@@ -1,7 +1,8 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ConfirmDialogService } from '../../core/confirm-dialog.service';
+import { GenerationTrackerService } from '../../core/generation-tracker.service';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import {
   ExerciseType,
@@ -30,12 +31,31 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   private readonly api = inject(GenerationsApiService);
   private readonly router = inject(Router);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly tracker = inject(GenerationTrackerService);
 
   readonly pending = signal<GenerationSummary[]>([]);
   readonly saved = signal<SavedExerciseListItem[]>([]);
   readonly loadingPending = signal(true);
   readonly loadingSaved = signal(true);
   readonly error = signal<string | null>(null);
+
+  /** Tarea 4.2 (`ocultar-generaciones-error`): recuento de generaciones
+   * lanzadas desde esta sesion que terminaron en `error`. Se mantiene
+   * separado de `error` (fallos de carga de datos) para no mezclar el
+   * aviso de generacion fallida con errores de la propia pantalla. */
+  readonly generationFailures = signal(0);
+
+  /** Mensaje agregado del aviso de fallos, en singular o plural; `null`
+   * cuando no hay ningun fallo que anunciar. */
+  readonly generationFailureNotice = computed(() => {
+    const count = this.generationFailures();
+    if (count <= 0) {
+      return null;
+    }
+    return count === 1
+      ? '1 generación ha fallado y no aparece en la lista porque no llegó a generar ejercicios.'
+      : `${count} generaciones han fallado y no aparecen en la lista porque no llegaron a generar ejercicios.`;
+  });
 
   readonly filterType = signal<ExerciseType | ''>('');
   readonly searchText = signal('');
@@ -53,13 +73,20 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
 
   /** Tarea 4.2: polling cada 3s de `listPending()` mientras haya alguna
    * generacion `generating`, deteniendolo en cuanto ninguna lo este
-   * (design.md decision 1). */
+   * (design.md decision 1). Se amplia (`ocultar-generaciones-error`,
+   * tarea 4.1) para consultar tambien las generaciones rastreadas y para
+   * seguir sondeando mientras quede alguna rastreada por resolver. */
   private loadPending(): void {
     this.api.listPending().subscribe({
       next: (generations) => {
-        this.pending.set(generations);
+        // El backend ya excluye las `error`; se filtran tambien aqui como
+        // red de seguridad para que la lista nunca muestre una generacion
+        // fallida (requisito "Aviso de generaciones fallidas en la
+        // interfaz": el sistema SHALL NOT mostrar esa generacion).
+        this.pending.set(generations.filter((g) => g.status !== 'error'));
         this.loadingPending.set(false);
-        this.syncPolling(generations);
+        this.checkTrackedGenerations();
+        this.updatePolling();
       },
       error: () => {
         this.error.set('No se han podido cargar las generaciones pendientes.');
@@ -68,13 +95,60 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
     });
   }
 
-  private syncPolling(generations: GenerationSummary[]): void {
-    const hayGenerando = generations.some((g) => g.status === 'generating');
-    if (hayGenerando && this.pollHandle === null) {
+  /** Arranca o detiene el polling segun haya generaciones en curso o ids
+   * rastreados sin resolver. */
+  private updatePolling(): void {
+    const hayGenerando = this.pending().some((g) => g.status === 'generating');
+    const hayRastreadas = this.tracker.list().length > 0;
+    if ((hayGenerando || hayRastreadas) && this.pollHandle === null) {
       this.pollHandle = setInterval(() => this.loadPending(), POLL_INTERVAL_MS);
-    } else if (!hayGenerando) {
+    } else if (!hayGenerando && !hayRastreadas) {
       this.stopPolling();
     }
+  }
+
+  /** Consulta `GET /generations/{id}` de cada generacion rastreada: si
+   * termino en `error`, suma un fallo al aviso y deja de rastrearla; si ya
+   * esta lista (o cerrada), simplemente deja de rastrearla (aparecera en
+   * el listado). Un id que ya no existe o falla la consulta tambien se
+   * descarta para no reintentar indefinidamente. */
+  private checkTrackedGenerations(): void {
+    const ids = this.tracker.list();
+    if (ids.length === 0) {
+      return;
+    }
+    let pendingChecks = ids.length;
+    const onCheckDone = (): void => {
+      pendingChecks -= 1;
+      if (pendingChecks === 0) {
+        this.updatePolling();
+      }
+    };
+
+    for (const id of ids) {
+      this.api.getDetail(id).subscribe({
+        next: (detail) => {
+          if (this.tracker.list().includes(id)) {
+            if (detail.status === 'error') {
+              this.tracker.remove(id);
+              this.generationFailures.update((count) => count + 1);
+            } else if (detail.status !== 'generating') {
+              this.tracker.remove(id);
+            }
+          }
+          onCheckDone();
+        },
+        error: () => {
+          this.tracker.remove(id);
+          onCheckDone();
+        },
+      });
+    }
+  }
+
+  /** Tarea 4.3: descarta el aviso agregado de generaciones fallidas. */
+  dismissGenerationFailures(): void {
+    this.generationFailures.set(0);
   }
 
   private stopPolling(): void {

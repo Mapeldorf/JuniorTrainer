@@ -1,6 +1,6 @@
 """Verificacion manual (sin servidor HTTP) de los ajustes de backend del
 change frontend-tech-lead-ejercicios (tareas 1.2-1.6): listar generaciones
-pendientes (excluyendo las `done`), cerrar la revision de una generacion
+pendientes (excluyendo las `done` y las `error`), cerrar la revision de una generacion
 lista (y el rechazo de cerrar una en curso o en error), guardar un
 candidato con una respuesta esperada editada (y sin ella), y que el
 listado de ejercicios guardados incluya las tecnologias y el repositorio
@@ -82,7 +82,7 @@ async def main() -> None:
     created_exercise_ids: list[str] = []
 
     try:
-        # --- 1.2: GET /generations solo devuelve las no-done ---
+        # --- 1.2: GET /generations solo devuelve generating/ready ---
         gen_ready = (
             admin.table("generation")
             .insert(
@@ -135,9 +135,9 @@ async def main() -> None:
         pending = await generations.list_pending_generations(_profile=tech_lead)
         pending_ids = {g.id for g in pending}
         assert gen_ready["id"] in pending_ids, "la generacion ready deberia aparecer en pendientes"
-        assert gen_error["id"] in pending_ids, "la generacion error deberia aparecer en pendientes"
+        assert gen_error["id"] not in pending_ids, "la generacion error NO deberia aparecer en pendientes"
         assert gen_done["id"] not in pending_ids, "la generacion done NO deberia aparecer en pendientes"
-        print("OK: 1.2 GET /generations devuelve ready/error y excluye done")
+        print("OK: 1.2 GET /generations devuelve ready y excluye error/done")
 
         # --- 1.3: POST /generations/{id}/close ---
         try:
@@ -177,6 +177,7 @@ async def main() -> None:
                 {
                     "generation_id": gen_ready["id"],
                     "type": "knowledge",
+                    "name": f"sin guardar {TAG}",
                     "statement": f"pregunta sin guardar {TAG}",
                     "code": [],
                     "expected_answer": "no se guarda",
@@ -206,6 +207,7 @@ async def main() -> None:
                 {
                     "generation_id": gen_ready["id"],
                     "type": "knowledge",
+                    "name": f"pregunta A {TAG}",
                     "statement": f"pregunta A {TAG}",
                     "code": [],
                     "expected_answer": "respuesta original A",
@@ -228,6 +230,7 @@ async def main() -> None:
                 {
                     "generation_id": gen_ready["id"],
                     "type": "knowledge",
+                    "name": f"pregunta B {TAG}",
                     "statement": f"pregunta B {TAG}",
                     "code": [],
                     "expected_answer": "respuesta original B",
