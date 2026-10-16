@@ -124,9 +124,13 @@ class GenerationStatusResponse(BaseModel):
 class GenerationSummary(BaseModel):
     """Fila de `GET /generations` (tarea 1.2 de frontend-tech-lead-ejercicios,
     capacidad exercise-generation: "Listar las generaciones pendientes").
-    Sin `candidates` -- el listado es solo para que el tech lead vea y actue
-    sobre sus generaciones no cerradas, no para revisar candidatos (eso sigue
-    siendo `GET /generations/{id}`)."""
+    Solo representa generaciones en curso (`generating`) o listas para
+    revisar (`ready`); las fallidas (`error`) y las cerradas (`done`) no se
+    listan (change `ocultar-generaciones-error`), por eso `error_message`
+    queda siempre a `None` en la practica. Sin `candidates` -- el listado
+    es solo para que el tech lead vea y actue sobre sus generaciones no
+    cerradas, no para revisar candidatos (eso sigue siendo
+    `GET /generations/{id}`)."""
 
     id: str
     status: GenerationStatus

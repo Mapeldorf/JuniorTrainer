@@ -6,6 +6,22 @@
       <p role="alert" class="alert-error">{{ error() }}</p>
     }
 
+    @if (generationFailureNotice(); as notice) {
+      <div
+        role="alert"
+        class="alert-error flex items-center justify-between gap-3"
+      >
+        <span>{{ notice }}</span>
+        <button
+          type="button"
+          (click)="dismissGenerationFailures()"
+          class="focus-ring shrink-0 rounded-sm text-sm font-medium underline"
+        >
+          Descartar
+        </button>
+      </div>
+    }
+
     <section class="flex flex-col gap-3">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-semibold tracking-tight text-content">Ejercicios</h1>
