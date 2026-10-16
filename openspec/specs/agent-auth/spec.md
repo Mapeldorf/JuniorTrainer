@@ -7,7 +7,7 @@ Define como cada agente LLM del sistema verifica que una peticion A2A procede de
 ## Requirements
 
 ### Requirement: Credencial de servicio obligatoria en toda peticion A2A
-El sistema SHALL exigir una credencial de servicio valida en toda peticion A2A entrante a cualquiera de los agentes LLM (`code`, `evaluator`, `exercises`, `reviewer`, `web`), verificada antes de que la peticion llegue a cualquier handler de negocio del agente.
+El sistema SHALL exigir una credencial de servicio valida en toda peticion A2A entrante a cualquiera de los agentes LLM (`code`, `evaluator`, `exercises`, `reviewer`, `validator`, `web`), verificada antes de que la peticion llegue a cualquier handler de negocio del agente.
 
 #### Scenario: Peticion con credencial valida se procesa
 - **WHEN** el backend envia una peticion A2A a un agente incluyendo la credencial de servicio vigente
@@ -21,12 +21,12 @@ El sistema SHALL exigir una credencial de servicio valida en toda peticion A2A e
 - **WHEN** una peticion A2A llega a un agente con una credencial de servicio que no coincide con la configurada
 - **THEN** el agente SHALL rechazarla con `401` sin ejecutar ninguna logica de negocio
 
-### Requirement: Mecanismo de verificacion uniforme en los 5 agentes
-El sistema SHALL verificar la credencial de servicio con el mismo mecanismo (misma cabecera, mismo formato de error, mismo punto de ejecucion antes del handler) en los 5 agentes, sin variantes por agente.
+### Requirement: Mecanismo de verificacion uniforme en todos los agentes
+El sistema SHALL verificar la credencial de servicio con el mismo mecanismo (misma cabecera, mismo formato de error, mismo punto de ejecucion antes del handler) en todos los agentes LLM, incluido el validador, sin variantes por agente.
 
 #### Scenario: Mismo formato de rechazo en cualquier agente
-- **WHEN** se envia una peticion sin credencial o con credencial invalida a cualquiera de los 5 agentes
-- **THEN** todos SHALL responder con el mismo codigo de estado y la misma forma de error, independientemente de a cual de los 5 se haya llamado
+- **WHEN** se envia una peticion sin credencial o con credencial invalida a cualquiera de los agentes LLM
+- **THEN** todos SHALL responder con el mismo codigo de estado y la misma forma de error, independientemente de a cual de ellos se haya llamado
 
 ### Requirement: Origen y proteccion de la credencial
 El sistema SHALL cargar la credencial de servicio desde configuracion o un gestor de secretos, SHALL NOT dejarla hardcodeada en el codigo fuente, y SHALL NOT registrarla en claro en logs ni en trazas (Langfuse u otro backend de tracing).
@@ -36,10 +36,14 @@ El sistema SHALL cargar la credencial de servicio desde configuracion o un gesto
 - **THEN** ningun log ni traza generado por esa peticion SHALL contener el valor literal de la credencial de servicio
 
 ### Requirement: El backend se autentica en toda llamada A2A
-El sistema SHALL incluir la credencial de servicio en toda llamada A2A que el backend orquestador haga a cualquiera de los 5 agentes, tanto en el flujo de generacion de ejercicios como en el de evaluacion de respuestas.
+El sistema SHALL incluir la credencial de servicio en toda llamada A2A que el backend orquestador haga a cualquiera de los agentes LLM, tanto en el flujo de generacion de ejercicios (incluido el validador) como en el de evaluacion de respuestas.
 
 #### Scenario: Llamada del backend a un agente de generacion incluye la credencial
 - **WHEN** el orquestador de generacion de ejercicios llama al agente de codigo, al agente web o al agente de ejercicios
+- **THEN** la peticion SHALL incluir la credencial de servicio configurada
+
+#### Scenario: Llamada del backend al validador incluye la credencial
+- **WHEN** el orquestador de generacion de ejercicios llama al agente validador antes que a los agentes de entrada
 - **THEN** la peticion SHALL incluir la credencial de servicio configurada
 
 #### Scenario: Llamada del backend a un agente de evaluacion incluye la credencial
