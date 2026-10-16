@@ -14,15 +14,24 @@ model_list:
       model: os.environ/GENERATOR_MODEL
       api_key: os.environ/GENERATOR_API_KEY
 
+  # Redaccion de PII (change presidio-solo-evaluador-revisor): solo el
+  # evaluador y el revisor reciben texto escrito por el alumno, asi que el
+  # guardrail presidio-pii (default_on: false, mas abajo) se vincula aqui.
+  # LiteLLM resuelve los guardrails a nivel de modelo en el pipeline previo
+  # a la llamada (check_and_merge_model_level_guardrails); como evaluator y
+  # reviewer tienen alias propio, distinto de generator, web/codigo/
+  # ejercicios quedan fuera sin tocar virtual keys ni el codigo de los agentes.
   - model_name: evaluator
     litellm_params:
       model: os.environ/EVALUATOR_MODEL
       api_key: os.environ/EVALUATOR_API_KEY
+      guardrails: ["presidio-pii"]
 
   - model_name: reviewer
     litellm_params:
       model: os.environ/REVIEWER_MODEL
       api_key: os.environ/REVIEWER_API_KEY
+      guardrails: ["presidio-pii"]
 
   # Fallback automatico a Hugging Face Inference Providers (propuesta
   # litellm-huggingface-fallback), si el modelo principal falla. Mismos
@@ -125,12 +134,20 @@ guardrails:
   # devolvemos a la app. Acotado a "input", la redaccion del dato del alumno
   # antes de salir al proveedor se mantiene, y el fail-closed tambien
   # (pii_entities_config sigue poblado, presidio.py:457).
+  #
+  # default_on: false (change presidio-solo-evaluador-revisor): Presidio ya no
+  # corre en los 5 agentes. Solo el evaluador y el revisor reciben texto del
+  # alumno; el guardrail se vincula a esos dos deployments con
+  # litellm_params.guardrails en model_list (arriba). Web, codigo y ejercicios
+  # (modelo "generator") procesan contenido de terceros/repositorio/derivado:
+  # enmascararlo no aporta privacidad y genera falsos positivos sobre codigo o
+  # rutas que el modelo debe reproducir.
   - guardrail_name: "presidio-pii"
     litellm_params:
       guardrail: presidio
       mode: "pre_call"
       presidio_filter_scope: "input"
-      default_on: true
+      default_on: false
       pii_entities_config:
         EMAIL_ADDRESS: "MASK"
         PHONE_NUMBER: "MASK"
