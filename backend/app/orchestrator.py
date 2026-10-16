@@ -5,16 +5,23 @@ del sistema con ese cliente (ver design.md "Decisions": `service_role`
 exclusivo de FastAPI).
 
 Flujo (requisitos de `specs/exercise-generation/spec.md`):
-  - 6.4 "Orquestacion en paralelo": web+codigo en paralelo si hay repo;
-    solo web si no hay repo.
-  - 6.5 "Manejo de fallos parciales": web falla con repo -> se degrada
-    (sigue sin fuentes de internet); codigo falla, ejercicios falla, o web
-    falla sin repo -> error con el mensaje de la causa.
+  - 6.4 "Orquestacion en paralelo": validacion de tecnologias (agente
+    validador) como primer paso obligatorio, despues web+codigo en paralelo
+    si hay repo (solo web si no hay repo).
+  - 6.5 "Manejo de fallos parciales": el validador rechaza o falla ->
+    error; web falla con repo -> se degrada (sigue sin fuentes de
+    internet); codigo falla, ejercicios falla, o web falla sin repo ->
+    error con el mensaje de la causa.
   - 6.6 "Limites de tiempo": 2 min por tarea A2A (ya lo aplica
     `send_a2a_task`, ver app/a2a_client.py), 5 min por generacion completa
     (aplicado aqui, envolviendo TODO el flujo).
   - 6.7 "Trazabilidad unificada": un trace_id de Langfuse por generacion,
-    propagado a las tres llamadas A2A.
+    propagado a las llamadas A2A (validador, web, codigo y ejercicios).
+
+Change `validacion-tecnologias-agente-juez`: el agente validador decide si
+las tecnologias son tecnologias de programacion antes de arrancar nada mas;
+un rechazo o un fallo del validador marca la generacion en error sin
+ejecutar ningun agente de entrada (fail-closed).
 """
 
 import asyncio
@@ -62,6 +69,28 @@ def _split_exercise_requests(kind: str, count: int) -> list[tuple[str, int]]:
     knowledge_count = -(-count // 2)  # techo
     debug_count = count - knowledge_count
     return [("knowledge", knowledge_count), ("debug", debug_count)]
+
+
+async def _call_validator(technologies: list[str], trace_id: str) -> None:
+    """Puerta de validacion previa (change `validacion-tecnologias-agente-juez`):
+    pide al agente validador que decida si las tecnologias son tecnologias de
+    programacion. Un rechazo o un fallo del validador es fatal para la
+    generacion (fail-closed): no se ejecuta ningun agente de entrada."""
+    settings = get_settings()
+    try:
+        result = await send_a2a_task(
+            settings.agent_validator_url, {"technologies": technologies}, trace_id=trace_id
+        )
+    except A2ATaskError as exc:
+        raise _GenerationFailed(f"el agente validador ha fallado: {exc}") from exc
+
+    if not result.get("valid"):
+        reason = result.get("reason") or "la entrada no parece una tecnologia de programacion"
+        invalid = result.get("invalid_technologies") or []
+        detail = f"{reason} ({', '.join(str(t) for t in invalid)})" if invalid else reason
+        raise _GenerationFailed(
+            f"las tecnologias no parecen tecnologias de programacion: {detail}"
+        )
 
 
 async def _call_web(technologies: list[str], trace_id: str, *, required: bool) -> dict | None:
@@ -226,6 +255,10 @@ async def _orchestrate(
     count: int,
     trace_id: str,
 ) -> None:
+    # Primer paso obligatorio: validar que las tecnologias son tecnologias de
+    # programacion. Si el validador rechaza o falla, no se ejecuta nada mas.
+    await _call_validator(technologies, trace_id)
+
     commit_sha: str | None = None
     if owner and repo:
         commit_sha = await _resolve_commit(generation_id, tech_lead_id, owner, repo)

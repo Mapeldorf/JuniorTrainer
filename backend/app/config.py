@@ -35,12 +35,15 @@ class Settings(BaseSettings):
     # valores por defecto que cada agente anuncia en su propia Agent Card
     # (ver agents/*/app/config.py). Los tres primeros son los agentes de
     # generacion (grupo 6 del change anterior); evaluator/reviewer son los
-    # del change `valoracion-respuestas` (grupo 5).
+    # del change `valoracion-respuestas` (grupo 5); validator es el agente
+    # juez que valida las tecnologias antes de la generacion (change
+    # `validacion-tecnologias-agente-juez`).
     agent_web_url: str = "http://agent-web:8010/"
     agent_code_url: str = "http://agent-code:8011/"
     agent_exercises_url: str = "http://agent-exercises:8012/"
     agent_evaluator_url: str = "http://agent-evaluator:8013/"
     agent_reviewer_url: str = "http://agent-reviewer:8014/"
+    agent_validator_url: str = "http://agent-validator:8015/"
 
     # Langfuse Cloud: el backend genera un trace_id por generacion/evaluacion
     # y abre su propio span de orquestacion bajo esa traza.
