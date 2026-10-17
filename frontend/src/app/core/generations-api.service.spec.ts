@@ -7,7 +7,7 @@ import {
   GenerationDetail,
   GenerationSummary,
   SavedExercise,
-  SavedExerciseListItem,
+  SavedExercisesPage,
   StartGenerationResponse,
 } from './generations-api.model';
 
@@ -111,29 +111,37 @@ describe('GenerationsApiService', () => {
     expect(result).toEqual(expected);
   });
 
-  it('listSaved(filters) llama a GET /exercises con los parametros de filtro', () => {
-    const expected: SavedExerciseListItem[] = [];
+  it('listSaved(filters) llama a GET /exercises con los parametros de filtro y paginacion', () => {
+    const expected: SavedExercisesPage = { items: [], total: 0, page: 2, page_size: 10 };
 
-    let result: SavedExerciseListItem[] | undefined;
-    service.listSaved({ type: 'knowledge', q: 'texto' }).subscribe((r) => (result = r));
+    let result: SavedExercisesPage | undefined;
+    service
+      .listSaved({ type: 'knowledge', q: 'texto', page: 2, page_size: 10 })
+      .subscribe((r) => (result = r));
 
     const req = httpTesting.expectOne(
       (r) => r.url === `${environment.apiUrl}/exercises` && r.method === 'GET',
     );
     expect(req.request.params.get('type')).toBe('knowledge');
     expect(req.request.params.get('q')).toBe('texto');
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('page_size')).toBe('10');
     req.flush(expected);
 
     expect(result).toEqual(expected);
   });
 
   it('listSaved() sin filtros llama a GET /exercises sin parametros', () => {
-    service.listSaved().subscribe();
+    let result: SavedExercisesPage | undefined;
+    service.listSaved().subscribe((r) => (result = r));
 
     const req = httpTesting.expectOne(`${environment.apiUrl}/exercises`);
     expect(req.request.method).toBe('GET');
     expect(req.request.params.keys().length).toBe(0);
-    req.flush([]);
+    const expected: SavedExercisesPage = { items: [], total: 0, page: 1, page_size: 0 };
+    req.flush(expected);
+
+    expect(result).toEqual(expected);
   });
 
   it('save(exerciseId) sin respuesta editada llama a POST /exercises/{id}/save con body vacio', () => {

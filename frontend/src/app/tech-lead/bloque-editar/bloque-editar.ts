@@ -115,11 +115,14 @@ export class BloqueEditarComponent {
   }
 
   private cargarCatalogo(): void {
+    // Sin paginacion: el backend devuelve todos los coincidentes
+    // (`page.items`), que es el catalogo completo que necesita el selector
+    // (change `paginacion-ejercicios-guardados`, design.md D4).
     this.exercisesApi
       .listSaved({ type: this.filterType() || undefined, q: this.searchText() || undefined })
       .subscribe({
-        next: (items) => {
-          const rows = items.map((item) => this.toRow(item));
+        next: (page) => {
+          const rows = page.items.map((item) => this.toRow(item));
           for (const row of rows) {
             this.knownRows.set(row.id, row);
           }

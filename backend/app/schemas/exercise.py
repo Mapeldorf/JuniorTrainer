@@ -33,6 +33,20 @@ class SavedExerciseListItem(ExerciseCandidate):
     block_usage_count: int = 0
 
 
+class SavedExercisesPage(BaseModel):
+    """Sobre de `GET /exercises` con paginacion (change
+    `paginacion-ejercicios-guardados`, capacidad exercise-catalog). `items`
+    es la pagina pedida (o todos los coincidentes si no se indica
+    `page_size`), `total` el numero de coincidencias con los filtros
+    aplicados —para calcular el numero de paginas— y `page`/`page_size` la
+    pagina servida y su tamano (`page_size` = `total` cuando no se pagina)."""
+
+    items: list[SavedExerciseListItem]
+    total: int
+    page: int
+    page_size: int
+
+
 class SaveExerciseRequest(BaseModel):
     """Body opcional de `POST /exercises/{id}/save` (tarea 1.4 de
     frontend-tech-lead-ejercicios, capacidad exercise-catalog: "Guardar un
@@ -58,6 +72,7 @@ class ExerciseDeleteRequest(BaseModel):
 __all__ = [
     "SavedExercise",
     "SavedExerciseListItem",
+    "SavedExercisesPage",
     "SaveExerciseRequest",
     "ExerciseDeleteRequest",
     "ExerciseType",

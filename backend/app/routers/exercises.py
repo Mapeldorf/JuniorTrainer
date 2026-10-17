@@ -8,6 +8,7 @@ from app.schemas.exercise import (
     SaveExerciseRequest,
     SavedExercise,
     SavedExerciseListItem,
+    SavedExercisesPage,
 )
 from app.schemas.generation import ExerciseType
 from app.schemas.profile import Profile
@@ -106,8 +107,15 @@ async def save_exercise(
 async def list_saved_exercises(
     type: ExerciseType | None = Query(default=None),
     q: str | None = Query(default=None, description="Texto a buscar en el nombre o en el enunciado"),
+    page: int = Query(default=1, ge=1, description="Pagina solicitada (1-based)"),
+    page_size: int | None = Query(
+        default=None,
+        ge=1,
+        le=100,
+        description="Elementos por pagina; si se omite, devuelve todos los coincidentes",
+    ),
     _tech_lead: Profile = Depends(require_tech_lead),
-) -> list[SavedExerciseListItem]:
+) -> SavedExercisesPage:
     """Lista los ejercicios definitivos (tarea 2.3, capacidad exercise-catalog:
     "Listar y buscar ejercicios definitivos"): `saved = true`, no eliminados,
     filtrables por tipo y buscables por texto en el nombre o en el enunciado
@@ -117,11 +125,18 @@ async def list_saved_exercises(
     Incluye las tecnologias y el repositorio de la generacion de cada
     ejercicio (tarea 1.5 de frontend-tech-lead-ejercicios), sin filtrar por
     el estado de esa generacion -- la pantalla de guardados los necesita
-    incluso cuando ya esta `done` (design.md decision 9)."""
+    incluso cuando ya esta `done` (design.md decision 9).
+
+    Paginacion (change `paginacion-ejercicios-guardados`, design.md D1-D3):
+    `page` es 1-based y `page_size` opcional. Si `page_size` se omite, se
+    devuelven todos los coincidentes (comportamiento que necesita la
+    composicion de bloques); si se informa, se corta la pagina con `range` y
+    siempre se devuelve `total`, el numero de coincidencias con los mismos
+    filtros."""
     query = (
         get_admin_client()
         .table("exercise")
-        .select(_SAVED_EXERCISE_FIELDS)
+        .select(_SAVED_EXERCISE_FIELDS, count="exact")
         .eq("saved", True)
         .is_("deleted_at", "null")
         .order("created_at", desc=True)
@@ -131,8 +146,13 @@ async def list_saved_exercises(
     if q:
         query = query.or_(f"name.ilike.%{q}%,statement.ilike.%{q}%")
 
+    if page_size is not None:
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1)
+
     result = query.execute()
     rows = result.data or []
+    total = result.count if result.count is not None else len(rows)
 
     # tarea 2.2, design.md - decision D4: en cuantos bloques (activos o
     # eliminados) esta cada ejercicio, en una sola consulta agrupada sobre
@@ -152,10 +172,15 @@ async def list_saved_exercises(
         for usage_row in usage_rows:
             usage_counts[usage_row["exercise_id"]] = usage_counts.get(usage_row["exercise_id"], 0) + 1
 
-    return [
-        _to_saved_exercise_list_item(row, block_usage_count=usage_counts.get(row["id"], 0))
-        for row in rows
-    ]
+    return SavedExercisesPage(
+        items=[
+            _to_saved_exercise_list_item(row, block_usage_count=usage_counts.get(row["id"], 0))
+            for row in rows
+        ],
+        total=total,
+        page=page,
+        page_size=page_size if page_size is not None else total,
+    )
 
 
 @router.patch("/exercises/{exercise_id}")
