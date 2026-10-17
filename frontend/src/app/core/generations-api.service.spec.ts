@@ -89,6 +89,20 @@ describe('GenerationsApiService', () => {
     expect(result).toEqual(expected);
   });
 
+  it('createTechnology(name) llama a POST /technologies con el body', () => {
+    const expected: Technology = { id: 't9', name: 'Vitest' };
+
+    let result: Technology | undefined;
+    service.createTechnology('Vitest').subscribe((r) => (result = r));
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/technologies`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ name: 'Vitest' });
+    req.flush(expected);
+
+    expect(result).toEqual(expected);
+  });
+
   it('getDetail(id) llama a GET /generations/{id}', () => {
     const expected: GenerationDetail = {
       id: 'g1',

@@ -39,6 +39,13 @@ export class GenerationsApiService {
     return this.http.get<Technology[]>(`${environment.apiUrl}/technologies`);
   }
 
+  /** `POST /technologies` (change `generacion-tecnologias`): da de alta una
+   * tecnologia en el catalogo. El backend la valida con el agente juez antes
+   * de guardarla (403/409/422/502 se propagan al llamante). */
+  createTechnology(name: string): Observable<Technology> {
+    return this.http.post<Technology>(`${environment.apiUrl}/technologies`, { name });
+  }
+
   getDetail(generationId: string): Observable<GenerationDetail> {
     return this.http.get<GenerationDetail>(`${environment.apiUrl}/generations/${generationId}`);
   }

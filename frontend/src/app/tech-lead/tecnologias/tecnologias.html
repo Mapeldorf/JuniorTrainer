@@ -1,0 +1,58 @@
+<div class="min-h-screen bg-surface">
+  <app-tech-lead-nav />
+
+  <div class="app-container flex flex-col gap-6 py-10">
+    <h1 class="text-2xl font-semibold tracking-tight text-content">Tecnologías</h1>
+
+    <form
+      (submit)="$event.preventDefault(); create()"
+      class="card flex max-w-[480px] flex-col gap-4 p-6"
+    >
+      <div class="flex flex-col gap-1.5 text-sm">
+        <label for="tech-name" class="label">Añadir tecnología al catálogo</label>
+        <div class="flex gap-2">
+          <input
+            id="tech-name"
+            type="text"
+            placeholder="p. ej. Angular"
+            [ngModel]="name()"
+            (ngModelChange)="name.set($event)"
+            name="name"
+            class="input"
+          />
+          <button type="submit" [disabled]="!canSubmit()" class="btn btn-primary shrink-0 px-3.5">
+            {{ submitting() ? 'Validando…' : 'Añadir' }}
+          </button>
+        </div>
+        <span class="text-sm text-muted">
+          El agente validador comprueba que sea una tecnología de programación antes de guardarla.
+        </span>
+      </div>
+
+      @if (error()) {
+        <p role="alert" class="alert-error">{{ error() }}</p>
+      }
+      @if (success()) {
+        <p role="status" class="text-sm text-success">Tecnología añadida al catálogo.</p>
+      }
+    </form>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-content">Catálogo</h2>
+
+      @if (loading()) {
+        <p class="text-sm text-muted">Cargando…</p>
+      } @else if (loadError()) {
+        <p role="alert" class="alert-error">No se ha podido cargar el catálogo.</p>
+      } @else if (technologies().length === 0) {
+        <p class="text-sm text-muted">El catálogo está vacío.</p>
+      } @else {
+        <ul class="flex flex-wrap gap-2">
+          @for (tech of technologies(); track tech.id) {
+            <li class="badge border border-primary/30 bg-primary/10 text-primary">{{ tech.name }}</li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+</div>
