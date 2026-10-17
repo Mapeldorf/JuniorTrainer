@@ -10,6 +10,7 @@ import {
   SavedExercisesPage,
   StartGenerationRequest,
   StartGenerationResponse,
+  Technology,
 } from './generations-api.model';
 
 /**
@@ -29,6 +30,13 @@ export class GenerationsApiService {
 
   start(body: StartGenerationRequest): Observable<StartGenerationResponse> {
     return this.http.post<StartGenerationResponse>(`${environment.apiUrl}/generations`, body);
+  }
+
+  /** `GET /technologies` (change `catalogo-tecnologias`): catalogo canonico de
+   * tecnologias, para poblar el selector determinista del formulario de
+   * generacion. */
+  getTechnologies(): Observable<Technology[]> {
+    return this.http.get<Technology[]>(`${environment.apiUrl}/technologies`);
   }
 
   getDetail(generationId: string): Observable<GenerationDetail> {

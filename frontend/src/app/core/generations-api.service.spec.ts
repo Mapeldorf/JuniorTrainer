@@ -9,6 +9,7 @@ import {
   SavedExercise,
   SavedExercisesPage,
   StartGenerationResponse,
+  Technology,
 } from './generations-api.model';
 
 describe('GenerationsApiService', () => {
@@ -67,6 +68,22 @@ describe('GenerationsApiService', () => {
       kind: 'knowledge',
       count: 3,
     });
+    req.flush(expected);
+
+    expect(result).toEqual(expected);
+  });
+
+  it('getTechnologies() llama a GET /technologies', () => {
+    const expected: Technology[] = [
+      { id: 't1', name: 'Angular' },
+      { id: 't2', name: 'RxJS' },
+    ];
+
+    let result: Technology[] | undefined;
+    service.getTechnologies().subscribe((r) => (result = r));
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/technologies`);
+    expect(req.request.method).toBe('GET');
     req.flush(expected);
 
     expect(result).toEqual(expected);

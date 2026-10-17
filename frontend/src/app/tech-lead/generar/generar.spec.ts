@@ -7,7 +7,13 @@ import { SupabaseService } from '../../core/supabase.service';
 import { GenerarComponent } from './generar';
 
 describe('GenerarComponent', () => {
-  function createComponent(opts: { start?: ReturnType<typeof vi.fn>; tracker?: object } = {}) {
+  function createComponent(
+    opts: {
+      start?: ReturnType<typeof vi.fn>;
+      getTechnologies?: ReturnType<typeof vi.fn>;
+      tracker?: object;
+    } = {},
+  ) {
     TestBed.configureTestingModule({
       imports: [GenerarComponent],
       providers: [
@@ -15,7 +21,12 @@ describe('GenerarComponent', () => {
         { provide: SupabaseService, useValue: { signOut: async () => undefined } },
         {
           provide: GenerationsApiService,
-          useValue: { start: opts.start ?? vi.fn().mockReturnValue(of({ id: 'g1' })) },
+          useValue: {
+            start: opts.start ?? vi.fn().mockReturnValue(of({ id: 'g1' })),
+            getTechnologies:
+              opts.getTechnologies ??
+              vi.fn().mockReturnValue(of([{ id: 't1', name: 'Angular' }])),
+          },
         },
         {
           provide: GenerationTrackerService,
@@ -149,31 +160,42 @@ describe('GenerarComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios']);
   });
 
-  it('addTechnology() anade la tecnologia y vacia el campo; no admite duplicados ni vacios', () => {
+  it('carga el catálogo de tecnologías y lo expone al selector', () => {
     const fixture = createComponent();
-    const component = fixture.componentInstance;
-
-    component.newTechnology.set('Git');
-    component.addTechnology();
-    expect(component.technologies()).toEqual(['Git']);
-    expect(component.newTechnology()).toBe('');
-
-    component.newTechnology.set('Git');
-    component.addTechnology();
-    expect(component.technologies()).toEqual(['Git']);
-
-    component.newTechnology.set('   ');
-    component.addTechnology();
-    expect(component.technologies()).toEqual(['Git']);
+    expect(fixture.componentInstance.catalog()).toEqual([{ id: 't1', name: 'Angular' }]);
+    expect(fixture.componentInstance.catalogLoading()).toBe(false);
   });
 
-  it('removeTechnology() quita solo la tecnologia indicada', () => {
-    const fixture = createComponent();
-    const component = fixture.componentInstance;
-    component.technologies.set(['Git', 'Python']);
+  it('permite seleccionar varias tecnologías del catálogo', () => {
+    const getTechnologies = vi.fn().mockReturnValue(
+      of([
+        { id: '1', name: 'Angular' },
+        { id: '2', name: 'RxJS' },
+      ]),
+    );
+    const fixture = createComponent({ getTechnologies });
 
-    component.removeTechnology('Git');
-    expect(component.technologies()).toEqual(['Python']);
+    const combo = fixture.nativeElement.querySelector('[role="combobox"]') as HTMLElement;
+    combo.click();
+    fixture.detectChanges();
+    let options = fixture.nativeElement.querySelectorAll('[role="option"]');
+    (options[0] as HTMLElement).click();
+    fixture.detectChanges();
+    options = fixture.nativeElement.querySelectorAll('[role="option"]');
+    (options[1] as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.technologies()).toEqual(['Angular', 'RxJS']);
+  });
+
+  it('si falla la carga del catálogo, marca el error sin romper el formulario', () => {
+    const getTechnologies = vi.fn().mockReturnValue(throwError(() => new Error('fallo')));
+    const fixture = createComponent({ getTechnologies });
+    const component = fixture.componentInstance;
+
+    expect(component.catalogError()).toBe(true);
+    expect(component.catalogLoading()).toBe(false);
+    expect(component.catalog()).toEqual([]);
   });
 
   it('si start() falla, muestra un error y no navega', () => {

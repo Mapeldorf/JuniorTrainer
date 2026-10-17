@@ -37,6 +37,15 @@ export interface StartGenerationResponse {
   id: string;
 }
 
+/** Una tecnologia del catalogo canonico (change `catalogo-tecnologias`,
+ * capacidad technology-catalog). `name` es el valor canonico que se envia en
+ * `StartGenerationRequest.technologies` y que alimenta las claves de cache de
+ * memoria de los agentes. */
+export interface Technology {
+  id: string;
+  name: string;
+}
+
 /** Fila de `GET /generations` (tarea 1.2 de backend): generaciones no
  * cerradas (`status != 'done'`), para la lista de pendientes de la
  * pantalla 2. */

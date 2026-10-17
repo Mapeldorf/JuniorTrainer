@@ -1,0 +1,81 @@
+<div class="relative" (keydown)="onKeydown($event)">
+  <div
+    role="combobox"
+    tabindex="0"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="listboxId"
+    [attr.aria-activedescendant]="activeOptionId()"
+    [attr.aria-labelledby]="labelledby()"
+    (click)="toggle()"
+    class="input flex h-auto min-h-10 cursor-pointer flex-wrap items-center gap-1.5"
+  >
+    @if (selected().length === 0) {
+      <span class="text-muted">Selecciona tecnologías…</span>
+    } @else {
+      @for (name of selected(); track name) {
+        <span
+          class="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm text-primary"
+        >
+          {{ name }}
+          <button
+            type="button"
+            (click)="remove(name, $event)"
+            [attr.aria-label]="'Quitar ' + name"
+            class="focus-ring rounded-full font-medium hover:text-primary-hover"
+          >
+            ×
+          </button>
+        </span>
+      }
+    }
+    <span class="pointer-events-none ml-auto pl-2 text-muted" aria-hidden="true">▾</span>
+  </div>
+
+  @if (open()) {
+    <div class="absolute z-20 mt-1 w-full rounded-lg border border-border bg-surface-raised p-1 shadow-lg">
+      <input
+        #searchInput
+        type="search"
+        placeholder="Buscar tecnología…"
+        [value]="search()"
+        (input)="onSearch($event)"
+        aria-label="Buscar tecnología"
+        class="input mb-1"
+      />
+      <ul
+        role="listbox"
+        aria-multiselectable="true"
+        [id]="listboxId"
+        class="max-h-60 overflow-auto"
+      >
+        @if (loading()) {
+          <li class="px-3 py-2 text-sm text-muted">Cargando…</li>
+        } @else if (error()) {
+          <li role="alert" class="alert-error m-1">No se ha podido cargar el catálogo.</li>
+        } @else if (filtered().length === 0) {
+          <li class="px-3 py-2 text-sm text-muted">Sin resultados</li>
+        } @else {
+          @for (tech of filtered(); track tech.id; let i = $index) {
+            <li
+              role="option"
+              [id]="optionId(tech)"
+              [attr.aria-selected]="isSelected(tech.name)"
+              [class]="optionClass(i)"
+              (click)="toggleTechnology(tech.name)"
+            >
+              <input
+                type="checkbox"
+                tabindex="-1"
+                [checked]="isSelected(tech.name)"
+                (click)="$event.stopPropagation(); toggleTechnology(tech.name)"
+                class="accent-primary"
+              />
+              {{ tech.name }}
+            </li>
+          }
+        }
+      </ul>
+    </div>
+  }
+</div>
