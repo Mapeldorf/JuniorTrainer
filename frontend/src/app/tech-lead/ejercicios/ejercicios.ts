@@ -257,6 +257,34 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/ejercicios', generation.id, 'revisar']);
   }
 
+  /** Tarea 4.1 del change `eliminar-generaciones-por-revisar`: boton
+   * Eliminar en cada generacion por revisar, con confirmacion previa
+   * (dialogo propio via `ConfirmDialogService`, mismo patron que
+   * `eliminar()` de guardados). El backend borra la generacion y sus
+   * candidatos; despues se recarga el listado de pendientes. */
+  async eliminarGeneracion(generation: GenerationSummary): Promise<void> {
+    if (!(await this.confirmarEliminarGeneracion(generation))) {
+      return;
+    }
+    this.api.deleteGeneration(generation.id).subscribe({
+      next: () => this.loadPending(),
+      error: () => this.error.set('No se ha podido eliminar la generación.'),
+    });
+  }
+
+  /** Envuelto en un metodo propio (mismo patron que `confirmarEliminar()`)
+   * para poder sustituirlo en los tests sin depender del dialogo real. */
+  confirmarEliminarGeneracion(generation: GenerationSummary): Promise<boolean> {
+    const technologies = generation.technologies.join(', ');
+    return this.confirmDialog.confirm({
+      title: 'Eliminar generación',
+      message: `Se van a eliminar los ejercicios de la generación de ${technologies}. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
+  }
+
   /** Abre el panel de detalle de un ejercicio guardado (change
    * `detalle-ejercicio-guardado`). Todo el contenido sale del item ya
    * cargado en el listado, sin consultas adicionales. */

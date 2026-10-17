@@ -2,9 +2,12 @@
 change frontend-tech-lead-ejercicios (tareas 1.2-1.6): listar generaciones
 pendientes (excluyendo las `done` y las `error`), cerrar la revision de una generacion
 lista (y el rechazo de cerrar una en curso o en error), guardar un
-candidato con una respuesta esperada editada (y sin ella), y que el
+candidato con una respuesta esperada editada (y sin ella), que el
 listado de ejercicios guardados incluya las tecnologias y el repositorio
-de su generacion incluso cuando esa generacion ya esta `done`.
+de su generacion incluso cuando esa generacion ya esta `done`, y (change
+`eliminar-generaciones-por-revisar`) eliminar una generacion `ready` con
+sus candidatos (y el rechazo de una en curso, una con ejercicios guardados
+y una inexistente).
 
 Llama directamente a las funciones de los routers (sin levantar un
 servidor HTTP) contra el proyecto Supabase REAL configurado en el .env de
@@ -311,6 +314,129 @@ async def main() -> None:
         assert filtered.total == 0, filtered.total
         assert filtered.items == [], filtered.items
         print("OK: 1.4 el total y la pagina respetan el filtro por tipo")
+
+        # --- change eliminar-generaciones-por-revisar (tarea 2.1/2.2):
+        # DELETE /generations/{id} ---
+        gen_to_delete = (
+            admin.table("generation")
+            .insert(
+                {
+                    "repo_name": "",
+                    "technologies": f"Eliminar ({TAG})",
+                    "kind": "knowledge",
+                    "status": "ready",
+                    "created_by": tech_lead.id,
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        created_generation_ids.append(gen_to_delete["id"])
+        candidate_to_delete = (
+            admin.table("exercise")
+            .insert(
+                {
+                    "generation_id": gen_to_delete["id"],
+                    "type": "knowledge",
+                    "name": f"candidato a borrar {TAG}",
+                    "statement": f"candidato a borrar {TAG}",
+                    "code": [],
+                    "expected_answer": "x",
+                    "saved": False,
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        created_exercise_ids.append(candidate_to_delete["id"])
+
+        await generations.delete_generation(gen_to_delete["id"], _profile=tech_lead)
+        pending_now = await generations.list_pending_generations(_profile=tech_lead)
+        assert gen_to_delete["id"] not in {g.id for g in pending_now}, (
+            "la generacion eliminada no debe aparecer en pendientes"
+        )
+        assert (
+            admin.table("exercise").select("id").eq("id", candidate_to_delete["id"]).execute().data
+            == []
+        ), "los candidatos deben desaparecer en cascada con la generacion"
+        assert (
+            admin.table("generation").select("id").eq("id", gen_to_delete["id"]).execute().data
+            == []
+        ), "la fila de la generacion debe quedar borrada"
+        print("OK: 2.1/2.2 eliminar una generacion ready la quita de pendientes y borra sus candidatos")
+
+        gen_generating_delete = (
+            admin.table("generation")
+            .insert(
+                {
+                    "repo_name": "",
+                    "technologies": f"No borrar ({TAG})",
+                    "kind": "knowledge",
+                    "status": "generating",
+                    "created_by": tech_lead.id,
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        created_generation_ids.append(gen_generating_delete["id"])
+        try:
+            await generations.delete_generation(gen_generating_delete["id"], _profile=tech_lead)
+            raise AssertionError("eliminar una generacion generating deberia rechazarse")
+        except HTTPException as exc:
+            assert exc.status_code == 409
+        print("OK: 2.1 eliminar una generacion generating se rechaza (409)")
+
+        gen_ready_saved = (
+            admin.table("generation")
+            .insert(
+                {
+                    "repo_name": "",
+                    "technologies": f"Con guardado ({TAG})",
+                    "kind": "knowledge",
+                    "status": "ready",
+                    "created_by": tech_lead.id,
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        created_generation_ids.append(gen_ready_saved["id"])
+        saved_candidate = (
+            admin.table("exercise")
+            .insert(
+                {
+                    "generation_id": gen_ready_saved["id"],
+                    "type": "knowledge",
+                    "name": f"guardado {TAG}",
+                    "statement": f"guardado {TAG}",
+                    "code": [],
+                    "expected_answer": "y",
+                    "saved": True,
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        created_exercise_ids.append(saved_candidate["id"])
+        try:
+            await generations.delete_generation(gen_ready_saved["id"], _profile=tech_lead)
+            raise AssertionError("eliminar una generacion con ejercicios guardados deberia rechazarse")
+        except HTTPException as exc:
+            assert exc.status_code == 409
+        assert (
+            admin.table("generation").select("id").eq("id", gen_ready_saved["id"]).execute().data
+        ), "la generacion con ejercicios guardados no debe borrarse"
+        print("OK: 2.1 eliminar una generacion con ejercicios guardados se rechaza (409)")
+
+        try:
+            await generations.delete_generation(
+                "00000000-0000-0000-0000-000000000000", _profile=tech_lead
+            )
+            raise AssertionError("eliminar una generacion inexistente deberia responder 404")
+        except HTTPException as exc:
+            assert exc.status_code == 404
+        print("OK: 2.1 eliminar una generacion inexistente responde 404")
 
         print("TODAS LAS COMPROBACIONES PASARON")
     finally:

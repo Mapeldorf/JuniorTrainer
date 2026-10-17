@@ -111,6 +111,17 @@ describe('GenerationsApiService', () => {
     expect(result).toEqual(expected);
   });
 
+  it('deleteGeneration(id) llama a DELETE /generations/{id}', () => {
+    let called = false;
+    service.deleteGeneration('g1').subscribe(() => (called = true));
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/generations/g1`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+
+    expect(called).toBe(true);
+  });
+
   it('listSaved(filters) llama a GET /exercises con los parametros de filtro y paginacion', () => {
     const expected: SavedExercisesPage = { items: [], total: 0, page: 2, page_size: 10 };
 

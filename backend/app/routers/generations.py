@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 
 from app.deps import require_tech_lead
 from app.orchestrator import run_generation
@@ -183,3 +183,56 @@ async def get_generation(
         error_message=generation.get("error_message"),
         candidates=candidates,
     )
+
+
+@router.delete("/generations/{generation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_generation(
+    generation_id: str,
+    _profile: Profile = Depends(require_tech_lead),
+) -> Response:
+    """Elimina una generacion por revisar y todos sus candidatos (tarea 2.1
+    del change `eliminar-generaciones-por-revisar`, capacidad
+    `exercise-generation`: "Eliminar una generacion por revisar"). Solo
+    desde `ready` (mismo criterio que el cierre); se rechaza si algun
+    ejercicio de la generacion ya esta guardado como definitivo, para no
+    tocar el catalogo ni los bloques o asignaciones que puedan
+    referenciarlo (design.md - D3).
+
+    El borrado es una unica sentencia: las FK de `exercise` y
+    `repo_access_log` hacia `generation` son `on delete cascade`
+    (0008_generation_cascade_delete.sql), asi que candidatos y registros de
+    auditoria desaparecen con ella (design.md - D2)."""
+    gen_result = (
+        get_admin_client()
+        .table("generation")
+        .select("id, status")
+        .eq("id", generation_id)
+        .limit(1)
+        .execute()
+    )
+    rows = gen_result.data or []
+    if not rows:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Generacion no encontrada")
+    if rows[0]["status"] != "ready":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Solo se puede eliminar una generacion lista (ready)",
+        )
+
+    saved_result = (
+        get_admin_client()
+        .table("exercise")
+        .select("id")
+        .eq("generation_id", generation_id)
+        .eq("saved", True)
+        .limit(1)
+        .execute()
+    )
+    if saved_result.data:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar una generacion con ejercicios ya guardados",
+        )
+
+    get_admin_client().table("generation").delete().eq("id", generation_id).execute()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
