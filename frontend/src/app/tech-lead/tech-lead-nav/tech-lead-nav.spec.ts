@@ -44,11 +44,20 @@ describe('TechLeadNavComponent', () => {
     expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/alumnos');
   });
 
-  it('las tres pestanas son enlaces, ninguna deshabilitada', () => {
+  it('"Tecnologías" es un enlace a /tecnologias', () => {
     const fixture = createComponent();
     const el = fixture.nativeElement as HTMLElement;
     const links = el.querySelectorAll('a');
-    expect(links.length).toBe(3);
+    const link = Array.from(links).find((a) => a.textContent?.includes('Tecnologías'));
+    expect(link).toBeTruthy();
+    expect(link!.getAttribute('routerLink') ?? link!.getAttribute('href')).toContain('/tecnologias');
+  });
+
+  it('las cuatro pestanas son enlaces, ninguna deshabilitada', () => {
+    const fixture = createComponent();
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('a');
+    expect(links.length).toBe(4);
     expect(el.querySelectorAll('[aria-disabled="true"]').length).toBe(0);
   });
 

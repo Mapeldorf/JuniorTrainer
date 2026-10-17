@@ -57,6 +57,18 @@ from app.supabase_client import get_admin_client
 TAG = f"verify-ejercicios-{uuid.uuid4().hex[:8]}"
 
 
+async def _fake_validator_positive(*_args, **_kwargs) -> dict:
+    return {"valid": True}
+
+
+async def _fake_validator_negative(*_args, **_kwargs) -> dict:
+    return {
+        "valid": False,
+        "reason": "no es una tecnologia de programacion",
+        "invalid_technologies": [],
+    }
+
+
 async def main() -> None:
     admin = get_admin_client()
 
@@ -528,6 +540,45 @@ async def main() -> None:
         print(
             "OK: 3.1/3.2 POST /generations canonicaliza las tecnologias del catalogo y "
             "rechaza (422) las que estan fuera sin crear generacion"
+        )
+
+        # --- change generacion-tecnologias (tarea 1.2): POST /technologies ---
+        import app.routers.technologies as technologies_router
+
+        from app.main import app
+
+        app.dependency_overrides[require_tech_lead] = lambda: tech_lead
+        created_technology_ids: list[str] = []
+        try:
+            client = TestClient(app)
+
+            # duplicado: un nombre que ya esta en el catalogo -> 409 (antes de validar)
+            duplicate = client.post("/technologies", json={"name": "Angular"})
+            assert duplicate.status_code == 409, duplicate.text
+
+            # rechazo del validador (simulado) -> 422 sin guardar
+            original_validator = technologies_router.send_a2a_task
+            technologies_router.send_a2a_task = _fake_validator_negative
+            rejected = client.post("/technologies", json={"name": f"NoEsTecnologia-{TAG}"})
+            assert rejected.status_code == 422, rejected.text
+
+            # alta valida (validador simulado afirmativo) -> 201 y disponible
+            technologies_router.send_a2a_task = _fake_validator_positive
+            new_name = f"TecnologiaPrueba-{TAG}"
+            created = client.post("/technologies", json={"name": new_name})
+            assert created.status_code == 201, created.text
+            created_technology_ids.append(created.json()["id"])
+            listed = client.get("/technologies")
+            assert listed.status_code == 200, listed.text
+            assert any(t["name"] == new_name for t in listed.json()), listed.text
+            technologies_router.send_a2a_task = original_validator
+        finally:
+            for technology_id in created_technology_ids:
+                admin.table("technology").delete().eq("id", technology_id).execute()
+            app.dependency_overrides.clear()
+        print(
+            "OK: 1.2 POST /technologies da de alta una tecnologia validada, rechaza "
+            "duplicados (409) y rechazos del validador (422)"
         )
 
         print("TODAS LAS COMPROBACIONES PASARON")
