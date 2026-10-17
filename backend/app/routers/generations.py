@@ -31,6 +31,32 @@ def _to_generation_summary(row: dict) -> GenerationSummary:
     )
 
 
+def _canonicalize_technologies(technologies: list[str]) -> list[str]:
+    """Valida las tecnologias contra el catalogo canonico y devuelve sus
+    nombres canonicos, sin duplicados (change `catalogo-tecnologias`,
+    requisito "Tecnologias de la generacion limitadas al catalogo"). La
+    comparacion ignora mayusculas y espacios sobrantes; cualquier tecnologia
+    que no exista en el catalogo hace que la peticion se rechace con 422."""
+    catalog_rows = get_admin_client().table("technology").select("name").execute().data or []
+    catalog = {row["name"].strip().lower(): row["name"] for row in catalog_rows}
+
+    canonical: list[str] = []
+    unknown: list[str] = []
+    for tech in technologies:
+        name = catalog.get(tech.strip().lower())
+        if name is None:
+            unknown.append(tech)
+        elif name not in canonical:
+            canonical.append(name)
+
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"tecnologias fuera del catalogo: {unknown!r}",
+        )
+    return canonical
+
+
 @router.post("/generations", status_code=status.HTTP_201_CREATED)
 @limiter.limit(START_GENERATION_LIMIT)
 async def start_generation(
@@ -48,6 +74,10 @@ async def start_generation(
     # generation.repo_name es texto libre de display; guarda la referencia
     # "owner/repo" tal cual (change acceso-repo-github-tool), igual que
     # antes guardaba repo_path -- sigue sin anadirse una columna nueva.
+    # Las tecnologias se validan contra el catalogo canonico antes de crear
+    # la fila (change catalogo-tecnologias): una tecnologia fuera del
+    # catalogo responde 422 sin crear ninguna generacion.
+    technologies = _canonicalize_technologies(body.technologies)
     repo_name = f"{body.owner}/{body.repo}" if body.owner and body.repo else ""
     result = (
         get_admin_client()
@@ -55,7 +85,7 @@ async def start_generation(
         .insert(
             {
                 "repo_name": repo_name,
-                "technologies": ", ".join(body.technologies),
+                "technologies": ", ".join(technologies),
                 "kind": body.kind,
                 "status": "generating",
                 "created_by": profile.id,
@@ -68,7 +98,7 @@ async def start_generation(
     background_tasks.add_task(
         run_generation,
         generation_id,
-        body.technologies,
+        technologies,
         body.owner,
         body.repo,
         body.kind,

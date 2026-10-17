@@ -12,46 +12,22 @@
         <p role="alert" class="alert-error">{{ error() }}</p>
       }
 
-      <label class="flex flex-col gap-1.5 text-sm">
-        <span class="label">Tecnologías a evaluar</span>
-        <div class="flex gap-2">
-          <input
-            type="text"
-            placeholder="p. ej. Git"
-            [ngModel]="newTechnology()"
-            (ngModelChange)="newTechnology.set($event)"
-            name="newTechnology"
-            (keydown.enter)="$event.preventDefault(); addTechnology()"
-            class="input"
-          />
-          <button
-            type="button"
-            (click)="addTechnology()"
-            class="btn btn-secondary shrink-0 px-3.5"
-          >
-            Añadir
-          </button>
-        </div>
-        @if (technologies().length > 0) {
-          <ul class="flex flex-wrap gap-2 pt-1">
-            @for (tech of technologies(); track tech) {
-              <li class="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm text-primary">
-                {{ tech }}
-                <button
-                  type="button"
-                  (click)="removeTechnology(tech)"
-                  [attr.aria-label]="'Quitar ' + tech"
-                  class="focus-ring rounded-full font-medium hover:text-primary-hover"
-                >
-                  ×
-                </button>
-              </li>
-            }
-          </ul>
-        } @else {
-          <span class="text-sm text-muted">Añade al menos una tecnología.</span>
+      <div class="flex flex-col gap-1.5 text-sm">
+        <span id="technologies-label" class="label">Tecnologías a evaluar</span>
+        <app-technology-multiselect
+          [technologies]="catalog()"
+          [loading]="catalogLoading()"
+          [error]="catalogError()"
+          [labelledby]="'technologies-label'"
+          [selected]="technologies()"
+          (selectedChange)="technologies.set($event)"
+        />
+        @if (catalogError()) {
+          <span role="alert" class="text-sm text-danger">
+            No se ha podido cargar el catálogo de tecnologías. Inténtalo de nuevo más tarde.
+          </span>
         }
-      </label>
+      </div>
 
       <fieldset class="flex flex-col gap-1.5 text-sm">
         <legend class="label">Repositorio de GitHub (opcional)</legend>

@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { GenerationKind } from '../../core/generations-api.model';
+import { GenerationKind, Technology } from '../../core/generations-api.model';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import { GenerationTrackerService } from '../../core/generation-tracker.service';
+import { TechnologyMultiselectComponent } from '../../core/technology-multiselect/technology-multiselect';
 import { TechLeadNavComponent } from '../tech-lead-nav/tech-lead-nav';
 
 const MIN_COUNT = 1;
@@ -19,11 +20,17 @@ const MAX_COUNT = 5;
  * solo se puede elegir el tipo `knowledge` (requisito "Tipo de ejercicio
  * exige repositorio salvo conocimiento" de
  * `specs/exercise-generation/spec.md`).
+ *
+ * El change `catalogo-tecnologias` sustituye el campo de texto libre por un
+ * selector determinista: las tecnologias se eligen de `catalog()` (el
+ * catalogo canonico) mediante `TechnologyMultiselectComponent`, de modo que
+ * siempre llegan al backend nombres canonicos que alimentan las claves de
+ * cache de memoria de los agentes.
  */
 @Component({
   selector: 'app-generar',
   standalone: true,
-  imports: [FormsModule, TechLeadNavComponent],
+  imports: [FormsModule, TechnologyMultiselectComponent, TechLeadNavComponent],
   templateUrl: './generar.html',
 })
 export class GenerarComponent {
@@ -31,8 +38,13 @@ export class GenerarComponent {
   private readonly router = inject(Router);
   private readonly tracker = inject(GenerationTrackerService);
 
+  /** Catalogo canonico de tecnologias y estado de su carga. */
+  readonly catalog = signal<Technology[]>([]);
+  readonly catalogLoading = signal(true);
+  readonly catalogError = signal(false);
+
+  /** Nombres canonicos seleccionados del catalogo. */
   readonly technologies = signal<string[]>([]);
-  readonly newTechnology = signal('');
   readonly owner = signal('');
   readonly repo = signal('');
   readonly kind = signal<GenerationKind>('knowledge');
@@ -60,18 +72,20 @@ export class GenerarComponent {
       (this.hasRepo() || this.kind() === 'knowledge'),
   );
 
-  addTechnology(): void {
-    const value = this.newTechnology().trim();
-    if (!value || this.technologies().includes(value)) {
-      this.newTechnology.set('');
-      return;
-    }
-    this.technologies.set([...this.technologies(), value]);
-    this.newTechnology.set('');
-  }
-
-  removeTechnology(value: string): void {
-    this.technologies.set(this.technologies().filter((t) => t !== value));
+  constructor() {
+    // El catalogo se carga al abrir la pantalla (tarea 6.1). Si la carga
+    // falla, el selector muestra su estado de error sin romper el
+    // formulario, y `catalogError()` lo refleja para mostrar el aviso.
+    this.api.getTechnologies().subscribe({
+      next: (list) => {
+        this.catalog.set(list);
+        this.catalogLoading.set(false);
+      },
+      error: () => {
+        this.catalogError.set(true);
+        this.catalogLoading.set(false);
+      },
+    });
   }
 
   /** Si se vacía el repositorio mientras el tipo no era `knowledge`, se

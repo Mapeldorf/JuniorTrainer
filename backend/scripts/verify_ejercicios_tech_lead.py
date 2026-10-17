@@ -48,7 +48,8 @@ import uuid
 from fastapi import HTTPException
 
 import app.orchestrator as orchestrator
-from app.routers import exercises, generations
+from app.deps import require_tech_lead
+from app.routers import exercises, generations, technologies
 from app.schemas.exercise import SaveExerciseRequest
 from app.schemas.profile import Profile
 from app.supabase_client import get_admin_client
@@ -85,6 +86,39 @@ async def main() -> None:
     created_exercise_ids: list[str] = []
 
     try:
+        # --- change catalogo-tecnologias (tarea 2.2): GET /technologies ---
+        catalog = await technologies.list_technologies(_profile=tech_lead)
+        catalog_names = {t.name for t in catalog}
+        expected_catalog = {
+            "Angular",
+            "TypeScript",
+            "RxJS",
+            "NgRx",
+            "Angular Material",
+            "Angular CDK",
+            "Angular Router",
+            "Angular Forms",
+            "Angular CLI",
+            "Jasmine",
+        }
+        assert expected_catalog <= catalog_names, (
+            f"faltan tecnologias del catalogo: {expected_catalog - catalog_names}"
+        )
+        print(f"OK: 2.2 GET /technologies devuelve el catalogo ({len(catalog)} tecnologias)")
+
+        student_profile = Profile(
+            id="00000000-0000-0000-0000-000000000000",
+            email="student@example.com",
+            name="student",
+            role="student",
+        )
+        try:
+            await require_tech_lead(profile=student_profile)
+            raise AssertionError("GET /technologies deberia rechazar a un alumno (403)")
+        except HTTPException as exc:
+            assert exc.status_code == 403
+        print("OK: 2.2 GET /technologies rechaza a un alumno (403)")
+
         # --- 1.2: GET /generations solo devuelve generating/ready ---
         gen_ready = (
             admin.table("generation")
@@ -437,6 +471,64 @@ async def main() -> None:
         except HTTPException as exc:
             assert exc.status_code == 404
         print("OK: 2.1 eliminar una generacion inexistente responde 404")
+
+        # --- change catalogo-tecnologias (tareas 3.1/3.2): POST /generations
+        # valida las tecnologias contra el catalogo ---
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        app.dependency_overrides[require_tech_lead] = lambda: tech_lead
+        original_run_generation = generations.run_generation
+        generations.run_generation = lambda *args, **kwargs: None  # no lanzar agentes
+        try:
+            client = TestClient(app)
+            ok = client.post(
+                "/generations",
+                json={"technologies": ["Angular", "TypeScript"], "kind": "knowledge", "count": 1},
+            )
+            assert ok.status_code == 201, ok.text
+            created_generation_ids.append(ok.json()["id"])
+
+            variant = client.post(
+                "/generations",
+                json={"technologies": ["  angular  ", "TYPESCRIPT"], "kind": "knowledge", "count": 1},
+            )
+            assert variant.status_code == 201, variant.text
+            created_generation_ids.append(variant.json()["id"])
+
+            unknown_name = f"NoExiste-{TAG}"
+            bad = client.post(
+                "/generations",
+                json={"technologies": ["Angular", unknown_name], "kind": "knowledge", "count": 1},
+            )
+            assert bad.status_code == 422, bad.text
+            assert (
+                admin.table("generation")
+                .select("id")
+                .like("technologies", f"%{unknown_name}%")
+                .execute()
+                .data
+                == []
+            ), "una tecnologia fuera del catalogo no debe crear ninguna generacion"
+        finally:
+            generations.run_generation = original_run_generation
+            app.dependency_overrides.clear()
+
+        for generation_id in (ok.json()["id"], variant.json()["id"]):
+            stored = (
+                admin.table("generation")
+                .select("technologies")
+                .eq("id", generation_id)
+                .limit(1)
+                .execute()
+                .data[0]
+            )
+            assert stored["technologies"] == "Angular, TypeScript", stored["technologies"]
+        print(
+            "OK: 3.1/3.2 POST /generations canonicaliza las tecnologias del catalogo y "
+            "rechaza (422) las que estan fuera sin crear generacion"
+        )
 
         print("TODAS LAS COMPROBACIONES PASARON")
     finally:

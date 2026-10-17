@@ -7,7 +7,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.body_size_limit import BodySizeLimitMiddleware
 from app.config import get_settings
 from app.rate_limit import limiter
-from app.routers import assignments, blocks, exercises, generations, health, users
+from app.routers import assignments, blocks, exercises, generations, health, technologies, users
 from app.security_headers import SecurityHeadersMiddleware
 
 settings = get_settings()
@@ -56,6 +56,7 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSO
 app.include_router(health.router)
 app.include_router(users.router)
 app.include_router(generations.router)
+app.include_router(technologies.router)
 app.include_router(exercises.router)
 app.include_router(blocks.router)
 app.include_router(assignments.router)
