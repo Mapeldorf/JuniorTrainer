@@ -251,8 +251,10 @@ async def main() -> None:
 
         # --- 1.5: GET /exercises incluye technologies/repo, incluso
         # con la generacion ya done ---
-        listing = await exercises.list_saved_exercises(type=None, q=TAG, _tech_lead=tech_lead)
-        by_id = {e.id: e for e in listing}
+        all_page = await exercises.list_saved_exercises(
+            type=None, q=TAG, page=1, page_size=None, _tech_lead=tech_lead
+        )
+        by_id = {e.id: e for e in all_page.items}
         assert candidate_a["id"] in by_id and candidate_b["id"] in by_id
         assert unsaved_candidate["id"] not in by_id, "un candidato sin guardar no debe listarse"
         item = by_id[candidate_a["id"]]
@@ -262,6 +264,53 @@ async def main() -> None:
             f"OK: 1.5 GET /exercises incluye technologies ({item.technologies}) y "
             f"repo de una generacion que ya esta done"
         )
+
+        # --- 1.4 (change paginacion-ejercicios-guardados): GET /exercises
+        # paginado ---
+        # Sin page_size el listado sigue devolviendo todos los coincidentes
+        # (comportamiento que necesita la composicion de bloques).
+        assert all_page.total == 2, all_page.total
+        assert all_page.page == 1
+        assert all_page.page_size == 2, all_page.page_size
+        assert len(all_page.items) == 2, len(all_page.items)
+        print("OK: 1.4 sin page_size GET /exercises devuelve todos los coincidentes con total")
+
+        # Primera y segunda pagina de tamano 1: una fila cada una, mismo
+        # total, y entre las dos cubren los dos ejercicios (sin solaparse).
+        first = await exercises.list_saved_exercises(
+            type=None, q=TAG, page=1, page_size=1, _tech_lead=tech_lead
+        )
+        second = await exercises.list_saved_exercises(
+            type=None, q=TAG, page=2, page_size=1, _tech_lead=tech_lead
+        )
+        assert first.total == 2 and second.total == 2
+        assert len(first.items) == 1 and len(second.items) == 1
+        assert first.page_size == 1 and second.page_size == 1
+        first_id = first.items[0].id
+        second_id = second.items[0].id
+        assert {first_id, second_id} == {candidate_a["id"], candidate_b["id"]}, (
+            first_id,
+            second_id,
+        )
+        print("OK: 1.4 paginar con page_size=1 reparte los coincidentes en paginas")
+
+        # Una pagina mas alla de la ultima devuelve una lista vacia y el
+        # total real de coincidencias.
+        beyond = await exercises.list_saved_exercises(
+            type=None, q=TAG, page=3, page_size=1, _tech_lead=tech_lead
+        )
+        assert beyond.items == [], beyond.items
+        assert beyond.total == 2, beyond.total
+        print("OK: 1.4 una pagina fuera de rango devuelve items vacios y el total real")
+
+        # La paginacion respeta los filtros: un tipo sin coincidencias con
+        # TAG da total 0 aunque existan coincidencias por texto.
+        filtered = await exercises.list_saved_exercises(
+            type="debug", q=TAG, page=1, page_size=1, _tech_lead=tech_lead
+        )
+        assert filtered.total == 0, filtered.total
+        assert filtered.items == [], filtered.items
+        print("OK: 1.4 el total y la pagina respetan el filtro por tipo")
 
         print("TODAS LAS COMPROBACIONES PASARON")
     finally:
@@ -340,8 +389,10 @@ async def verify_full_flow(tech_lead: Profile) -> None:
         # contiene TAG (que solo esta en el campo technologies, puesto a
         # mano al crear la generacion) -- a diferencia de los candidatos
         # fijos de la tarea 1.5, aqui no hay texto propio que buscar.
-        listing = await exercises.list_saved_exercises(type=None, q=None, _tech_lead=tech_lead)
-        saved_by_id = {e.id: e for e in listing}
+        listing_page = await exercises.list_saved_exercises(
+            type=None, q=None, page=1, page_size=None, _tech_lead=tech_lead
+        )
+        saved_by_id = {e.id: e for e in listing_page.items}
         assert candidate.id in saved_by_id, "el ejercicio guardado deberia aparecer en GET /exercises"
         listed = saved_by_id[candidate.id]
         assert listed.technologies == [f"Git ({TAG} full)"], listed.technologies

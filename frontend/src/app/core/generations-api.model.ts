@@ -102,8 +102,26 @@ export interface SavedExerciseListItem extends ExerciseCandidate {
   block_usage_count: number;
 }
 
-/** Filtros opcionales de `GET /exercises` (tarea 2.3 de backend). */
+/** Respuesta paginada de `GET /exercises` (change
+ * `paginacion-ejercicios-guardados`, capacidad exercise-catalog). `items` es
+ * la pagina pedida (o todos los coincidentes si no se indica `page_size`),
+ * `total` el numero de coincidencias con los filtros aplicados --para
+ * calcular el numero de paginas-- y `page`/`page_size` la pagina servida y su
+ * tamano (`page_size` = `total` cuando no se pagina). */
+export interface SavedExercisesPage {
+  items: SavedExerciseListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+/** Filtros opcionales de `GET /exercises` (tarea 2.3 de backend, ampliados
+ * con paginacion por el change `paginacion-ejercicios-guardados`). `page` es
+ * 1-based y `page_size` opcional: si se omite, el backend devuelve todos los
+ * coincidentes (lo que necesita la composicion de bloques). */
 export interface ListSavedExercisesFilters {
   type?: ExerciseType;
   q?: string;
+  page?: number;
+  page_size?: number;
 }

@@ -7,7 +7,7 @@ import {
   GenerationSummary,
   ListSavedExercisesFilters,
   SavedExercise,
-  SavedExerciseListItem,
+  SavedExercisesPage,
   StartGenerationRequest,
   StartGenerationResponse,
 } from './generations-api.model';
@@ -42,7 +42,11 @@ export class GenerationsApiService {
     );
   }
 
-  listSaved(filters: ListSavedExercisesFilters = {}): Observable<SavedExerciseListItem[]> {
+  /** `GET /exercises` (change `paginacion-ejercicios-guardados`): devuelve un
+   * sobre `{ items, total, page, page_size }`. `page`/`page_size` son
+   * opcionales; sin `page_size` el backend devuelve todos los coincidentes,
+   * que es lo que necesita la composicion de bloques (design.md D4). */
+  listSaved(filters: ListSavedExercisesFilters = {}): Observable<SavedExercisesPage> {
     let params = new HttpParams();
     if (filters.type) {
       params = params.set('type', filters.type);
@@ -50,7 +54,13 @@ export class GenerationsApiService {
     if (filters.q) {
       params = params.set('q', filters.q);
     }
-    return this.http.get<SavedExerciseListItem[]>(`${environment.apiUrl}/exercises`, { params });
+    if (filters.page !== undefined) {
+      params = params.set('page', filters.page);
+    }
+    if (filters.page_size !== undefined) {
+      params = params.set('page_size', filters.page_size);
+    }
+    return this.http.get<SavedExercisesPage>(`${environment.apiUrl}/exercises`, { params });
   }
 
   /** `overrides.name`/`overrides.expected_answer` (change

@@ -100,36 +100,50 @@
       } @else if (saved().length === 0) {
         <p class="text-sm text-muted">No hay ningún ejercicio guardado todavía.</p>
       } @else {
-        <table class="w-full table-auto border-collapse text-left text-sm">
-          <thead>
-            <tr class="border-b border-border text-muted">
-              <th class="py-2 pr-4 font-medium">Nombre</th>
-              <th class="py-2 pr-4 font-medium">Tipo</th>
-              <th class="py-2 pr-4 font-medium">Tecnologías</th>
-              <th class="py-2 pr-4 font-medium">Repositorio</th>
-              <th class="py-2 pr-4 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (exercise of saved(); track exercise.id) {
-              <tr class="border-b border-border">
-                <td class="py-3 pr-4 text-content">{{ exercise.name }}</td>
-                <td class="py-3 pr-4 text-muted">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
-                <td class="py-3 pr-4 text-muted">{{ exercise.technologies.join(', ') }}</td>
-                <td class="py-3 pr-4 text-muted">{{ exercise.repo ?? '—' }}</td>
-                <td class="py-3 pr-4 text-right">
-                  <button
-                    type="button"
-                    (click)="eliminar(exercise)"
-                    class="focus-ring rounded-sm text-sm font-medium text-danger hover:underline"
-                  >
-                    Eliminar
-                  </button>
-                </td>
+        <div
+          class="flex flex-col gap-4 transition-opacity"
+          [class.opacity-60]="refreshingSaved()"
+          [class.pointer-events-none]="refreshingSaved()"
+        >
+          <table class="w-full table-auto border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-border text-muted">
+                <th class="py-2 pr-4 font-medium">Nombre</th>
+                <th class="py-2 pr-4 font-medium">Tipo</th>
+                <th class="py-2 pr-4 font-medium">Tecnologías</th>
+                <th class="py-2 pr-4 font-medium">Repositorio</th>
+                <th class="py-2 pr-4 font-medium"></th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (exercise of saved(); track exercise.id) {
+                <tr class="border-b border-border">
+                  <td class="py-3 pr-4 text-content">{{ exercise.name }}</td>
+                  <td class="py-3 pr-4 text-muted">{{ exercise.type === 'knowledge' ? 'Conocimiento' : 'Depuración' }}</td>
+                  <td class="py-3 pr-4 text-muted">{{ exercise.technologies.join(', ') }}</td>
+                  <td class="py-3 pr-4 text-muted">{{ exercise.repo ?? '—' }}</td>
+                  <td class="py-3 pr-4 text-right">
+                    <button
+                      type="button"
+                      (click)="eliminar(exercise)"
+                      class="focus-ring rounded-sm text-sm font-medium text-danger hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          @if (totalPages() > 1) {
+            <app-pagination
+              [page]="page()"
+              [totalPages]="totalPages()"
+              (pageChange)="onPageChange($event)"
+            />
+          }
+        </div>
       }
     </section>
   </div>

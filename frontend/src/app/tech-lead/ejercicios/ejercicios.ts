@@ -10,6 +10,7 @@ import {
   GenerationSummary,
   SavedExerciseListItem,
 } from '../../core/generations-api.model';
+import { PaginationComponent } from '../../core/pagination';
 import { TechLeadNavComponent } from '../tech-lead-nav/tech-lead-nav';
 
 const POLL_INTERVAL_MS = 3000;
@@ -24,7 +25,7 @@ const POLL_INTERVAL_MS = 3000;
 @Component({
   selector: 'app-ejercicios',
   standalone: true,
-  imports: [FormsModule, TechLeadNavComponent],
+  imports: [FormsModule, PaginationComponent, TechLeadNavComponent],
   templateUrl: './ejercicios.html',
 })
 export class EjerciciosComponent implements OnInit, OnDestroy {
@@ -36,8 +37,21 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   readonly pending = signal<GenerationSummary[]>([]);
   readonly saved = signal<SavedExerciseListItem[]>([]);
   readonly loadingPending = signal(true);
+  /** Primera carga de guardados: aun no hay tabla que mostrar. */
   readonly loadingSaved = signal(true);
+  /** Recarga de guardados (cambio de pagina o de filtro) con la tabla ya
+   * montada: se atenua en vez de sustituirse, para no colapsar la altura de
+   * la pagina y que el scroll no salte hacia arriba. */
+  readonly refreshingSaved = signal(false);
   readonly error = signal<string | null>(null);
+
+  /** Paginacion de la tabla de guardados (change
+   * `paginacion-ejercicios-guardados`): 10 por pagina, con la pagina actual
+   * y el total de coincidencias que devuelve `GET /exercises`. */
+  readonly pageSize = 10;
+  readonly page = signal(1);
+  readonly total = signal(0);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize)));
 
   /** Tarea 4.2 (`ocultar-generaciones-error`): recuento de generaciones
    * lanzadas desde esta sesion que terminaron en `error`. Se mantiene
@@ -61,6 +75,10 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   readonly searchText = signal('');
 
   private pollHandle: ReturnType<typeof setInterval> | null = null;
+
+  /** Si ya se ha cargado el listado alguna vez; distingue la primera carga
+   * (placeholder "Cargando…") de las recargas (tabla atenuada). */
+  private hasLoadedSaved = false;
 
   ngOnInit(): void {
     this.loadPending();
@@ -159,31 +177,57 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   }
 
   loadSaved(): void {
-    this.loadingSaved.set(true);
+    // La primera carga muestra el placeholder; las recargas mantienen la
+    // tabla montada (atenuada) para no colapsar la altura de la pagina y
+    // evitar que el scroll salte hacia arriba al cambiar de pagina.
+    const firstLoad = !this.hasLoadedSaved;
+    this.hasLoadedSaved = true;
+    if (firstLoad) {
+      this.loadingSaved.set(true);
+    } else {
+      this.refreshingSaved.set(true);
+    }
     this.api
       .listSaved({
         type: this.filterType() || undefined,
         q: this.searchText() || undefined,
+        page: this.page(),
+        page_size: this.pageSize,
       })
       .subscribe({
-        next: (items) => {
-          this.saved.set(items);
+        next: (result) => {
+          this.saved.set(result.items);
+          this.total.set(result.total);
           this.loadingSaved.set(false);
+          this.refreshingSaved.set(false);
         },
         error: () => {
           this.error.set('No se han podido cargar los ejercicios guardados.');
           this.loadingSaved.set(false);
+          this.refreshingSaved.set(false);
         },
       });
   }
 
   onFilterTypeChange(value: ExerciseType | ''): void {
     this.filterType.set(value);
+    this.page.set(1);
     this.loadSaved();
   }
 
   onSearchTextChange(value: string): void {
     this.searchText.set(value);
+    this.page.set(1);
+    this.loadSaved();
+  }
+
+  /** Cambia de pagina y recarga el listado (change
+   * `paginacion-ejercicios-guardados`). */
+  onPageChange(target: number): void {
+    if (target < 1 || target > this.totalPages() || target === this.page()) {
+      return;
+    }
+    this.page.set(target);
     this.loadSaved();
   }
 
@@ -216,7 +260,16 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
       return;
     }
     this.api.delete(exercise.id).subscribe({
-      next: () => this.loadSaved(),
+      next: () => {
+        // Si era el unico de esta pagina y no es la primera, retrocede para
+        // no dejar al tech lead en una pagina vacia (change
+        // `paginacion-ejercicios-guardados`, escenario "Eliminar el ultimo
+        // ejercicio de una pagina").
+        if (this.saved().length === 1 && this.page() > 1) {
+          this.page.update((current) => current - 1);
+        }
+        this.loadSaved();
+      },
       error: () => this.error.set('No se ha podido eliminar el ejercicio.'),
     });
   }

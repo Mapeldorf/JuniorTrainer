@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import { GenerationTrackerService } from '../../core/generation-tracker.service';
 import {
@@ -8,6 +8,7 @@ import {
   GenerationStatus,
   GenerationSummary,
   SavedExerciseListItem,
+  SavedExercisesPage,
 } from '../../core/generations-api.model';
 import { SupabaseService } from '../../core/supabase.service';
 import { EjerciciosComponent } from './ejercicios';
@@ -51,6 +52,19 @@ function detail(
   return { id, status, error_message: errorMessage, candidates: [] };
 }
 
+function pageResponse(
+  items: SavedExerciseListItem[],
+  total = items.length,
+  page = 1,
+  pageSize = 10,
+): SavedExercisesPage {
+  return { items, total, page, page_size: pageSize };
+}
+
+function savedItem(id: string): SavedExerciseListItem {
+  return { ...SAVED_ITEM, id };
+}
+
 describe('EjerciciosComponent', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -87,7 +101,7 @@ describe('EjerciciosComponent', () => {
           provide: GenerationsApiService,
           useValue: {
             listPending: opts.listPending ?? vi.fn().mockReturnValue(of([])),
-            listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of([])),
+            listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of(pageResponse([]))),
             delete: opts.deleteFn ?? vi.fn().mockReturnValue(of(SAVED_ITEM)),
             getDetail: opts.getDetail ?? vi.fn().mockReturnValue(of(detail('g1', 'generating'))),
           },
@@ -103,12 +117,53 @@ describe('EjerciciosComponent', () => {
   it('renderiza las generaciones pendientes y los ejercicios guardados', () => {
     const fixture = createComponent({
       listPending: vi.fn().mockReturnValue(of([READY])),
-      listSaved: vi.fn().mockReturnValue(of([SAVED_ITEM])),
+      listSaved: vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM]))),
     });
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Git, Python');
     expect(text).toContain('Por revisar');
     expect(text).toContain(SAVED_ITEM.name);
+  });
+
+  it('muestra el control de paginacion cuando hay mas de una pagina', () => {
+    const items = Array.from({ length: 10 }, (_, i) => savedItem(`e${i}`));
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse(items, 11)));
+    const fixture = createComponent({ listSaved });
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-pagination')).not.toBeNull();
+    expect(el.querySelector('nav[aria-label="Paginación"]')).not.toBeNull();
+  });
+
+  it('al cambiar de pagina mantiene la tabla montada, sin el placeholder que colapsa el scroll', () => {
+    const subject = new Subject<SavedExercisesPage>();
+    const listSaved = vi.fn().mockReturnValue(subject.asObservable());
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+
+    const items = Array.from({ length: 10 }, (_, i) => savedItem(`e${i}`));
+    subject.next(pageResponse(items, 30, 1, 10));
+    fixture.detectChanges();
+    expect(component.loadingSaved()).toBe(false);
+
+    component.onPageChange(2);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(component.refreshingSaved()).toBe(true);
+    expect(el.querySelector('table')).not.toBeNull();
+    expect(el.textContent).not.toContain('Cargando');
+  });
+
+  it('no muestra el control de paginacion con una sola pagina', () => {
+    const items = Array.from({ length: 10 }, (_, i) => savedItem(`e${i}`));
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse(items, 10)));
+    const fixture = createComponent({ listSaved });
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-pagination')).toBeNull();
   });
 
   it('sin generaciones pendientes ni guardados, muestra los mensajes vacios', () => {
@@ -149,17 +204,81 @@ describe('EjerciciosComponent', () => {
     expect(listPending).toHaveBeenCalledTimes(1);
   });
 
-  it('onFilterTypeChange y onSearchTextChange llaman a listSaved con los filtros', () => {
-    const listSaved = vi.fn().mockReturnValue(of([]));
+  it('la primera carga pide la pagina 1 con 10 por pagina', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([])));
+    createComponent({ listSaved });
+
+    expect(listSaved).toHaveBeenCalledWith({
+      type: undefined,
+      q: undefined,
+      page: 1,
+      page_size: 10,
+    });
+  });
+
+  it('onFilterTypeChange y onSearchTextChange llaman a listSaved desde la pagina 1 con los filtros', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([])));
     const fixture = createComponent({ listSaved });
     const component = fixture.componentInstance;
     listSaved.mockClear();
 
     component.onFilterTypeChange('knowledge');
-    expect(listSaved).toHaveBeenCalledWith({ type: 'knowledge', q: undefined });
+    expect(listSaved).toHaveBeenCalledWith({
+      type: 'knowledge',
+      q: undefined,
+      page: 1,
+      page_size: 10,
+    });
 
     component.onSearchTextChange('rebase');
-    expect(listSaved).toHaveBeenCalledWith({ type: 'knowledge', q: 'rebase' });
+    expect(listSaved).toHaveBeenCalledWith({
+      type: 'knowledge',
+      q: 'rebase',
+      page: 1,
+      page_size: 10,
+    });
+  });
+
+  it('onFilterTypeChange vuelve a la pagina 1 aunque estuviera en otra', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM], 30)));
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+
+    component.onPageChange(3);
+    expect(component.page()).toBe(3);
+
+    listSaved.mockClear();
+    component.onFilterTypeChange('debug');
+    expect(component.page()).toBe(1);
+    expect(listSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, page_size: 10 }),
+    );
+  });
+
+  it('onPageChange carga la pagina indicada', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM], 30)));
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+    listSaved.mockClear();
+
+    component.onPageChange(2);
+
+    expect(component.page()).toBe(2);
+    expect(listSaved).toHaveBeenCalledWith(expect.objectContaining({ page: 2, page_size: 10 }));
+  });
+
+  it('onPageChange ignora la pagina actual y las fuera de rango', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM], 30)));
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+    listSaved.mockClear();
+
+    component.onPageChange(1);
+    component.onPageChange(99);
+    component.onPageChange(0);
+
+    expect(listSaved).not.toHaveBeenCalled();
+    expect(component.page()).toBe(1);
   });
 
   it('generar() navega a /ejercicios/generar', () => {
@@ -184,7 +303,7 @@ describe('EjerciciosComponent', () => {
     let listSavedCalls = 0;
     const listSaved = vi.fn(() => {
       listSavedCalls += 1;
-      return of(listSavedCalls === 1 ? [SAVED_ITEM] : []);
+      return of(listSavedCalls === 1 ? pageResponse([SAVED_ITEM]) : pageResponse([]));
     });
     const deleteFn = vi.fn().mockReturnValue(of(SAVED_ITEM));
 
@@ -197,6 +316,35 @@ describe('EjerciciosComponent', () => {
     expect(deleteFn).toHaveBeenCalledWith(SAVED_ITEM.id);
     expect(listSavedCalls).toBe(2);
     expect(component.saved()).toEqual([]);
+  });
+
+  it('eliminar() el unico ejercicio de una pagina posterior retrocede de pagina', async () => {
+    const listSaved = vi
+      .fn()
+      .mockReturnValue(of(pageResponse([savedItem('e2')], 11, 2, 10)));
+    const deleteFn = vi.fn().mockReturnValue(of(SAVED_ITEM));
+
+    const fixture = createComponent({ listSaved, deleteFn });
+    const component = fixture.componentInstance;
+    component.page.set(2);
+    vi.spyOn(component, 'confirmarEliminar').mockResolvedValue(true);
+
+    await component.eliminar(savedItem('e2'));
+
+    expect(component.page()).toBe(1);
+  });
+
+  it('eliminar() en la primera pagina no retrocede', async () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM])));
+    const deleteFn = vi.fn().mockReturnValue(of(SAVED_ITEM));
+
+    const fixture = createComponent({ listSaved, deleteFn });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarEliminar').mockResolvedValue(true);
+
+    await component.eliminar(SAVED_ITEM);
+
+    expect(component.page()).toBe(1);
   });
 
   it('eliminar() no llama a delete si no se confirma', async () => {

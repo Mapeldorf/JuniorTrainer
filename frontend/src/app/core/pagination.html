@@ -1,0 +1,44 @@
+@if (totalPages() > 1) {
+  <nav class="flex flex-wrap items-center justify-center gap-1" aria-label="Paginación">
+    <button
+      type="button"
+      (click)="goTo(page() - 1)"
+      [disabled]="page() === 1"
+      aria-label="Página anterior"
+      class="btn btn-secondary h-9 px-3.5"
+    >
+      Anterior
+    </button>
+
+    @for (p of pages(); track p) {
+      @if (p === page()) {
+        <button
+          type="button"
+          aria-current="page"
+          class="focus-ring flex h-9 min-w-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-white"
+        >
+          {{ p }}
+        </button>
+      } @else {
+        <button
+          type="button"
+          (click)="goTo(p)"
+          aria-label="Página {{ p }}"
+          class="focus-ring flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-content transition-colors hover:bg-surface-overlay"
+        >
+          {{ p }}
+        </button>
+      }
+    }
+
+    <button
+      type="button"
+      (click)="goTo(page() + 1)"
+      [disabled]="page() === totalPages()"
+      aria-label="Página siguiente"
+      class="btn btn-secondary h-9 px-3.5"
+    >
+      Siguiente
+    </button>
+  </nav>
+}

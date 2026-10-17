@@ -4,7 +4,7 @@ import { of } from 'rxjs';
 import { BlocksApiService } from '../../core/blocks-api.service';
 import { BlockDetail } from '../../core/blocks-api.model';
 import { GenerationsApiService } from '../../core/generations-api.service';
-import { SavedExerciseListItem } from '../../core/generations-api.model';
+import { SavedExerciseListItem, SavedExercisesPage } from '../../core/generations-api.model';
 import { SupabaseService } from '../../core/supabase.service';
 import { BloqueEditarComponent } from './bloque-editar';
 
@@ -18,6 +18,13 @@ const CATALOG_ITEM: SavedExerciseListItem = {
   technologies: ['Git'],
   repo: null,
   block_usage_count: 0,
+};
+
+const CATALOG_PAGE: SavedExercisesPage = {
+  items: [CATALOG_ITEM],
+  total: 1,
+  page: 1,
+  page_size: 1,
 };
 
 const BLOCK_DETAIL: BlockDetail = {
@@ -51,7 +58,7 @@ describe('BloqueEditarComponent', () => {
         { provide: SupabaseService, useValue: { signOut: async () => undefined } },
         {
           provide: GenerationsApiService,
-          useValue: { listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of([CATALOG_ITEM])) },
+          useValue: { listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of(CATALOG_PAGE)) },
         },
         {
           provide: BlocksApiService,
