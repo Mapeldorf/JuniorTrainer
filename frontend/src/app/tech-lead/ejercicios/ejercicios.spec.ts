@@ -299,6 +299,41 @@ describe('EjerciciosComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios', READY.id, 'revisar']);
   });
 
+  it('pulsar Ver abre el detalle con el ejercicio correcto', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM])));
+    const fixture = createComponent({ listSaved });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const verButton = Array.from(el.querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Ver',
+    );
+    expect(verButton).toBeDefined();
+    verButton!.click();
+    fixture.detectChanges();
+
+    const dialog = el.querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain(SAVED_ITEM.statement);
+    expect(dialog?.textContent).toContain(SAVED_ITEM.expected_answer!);
+  });
+
+  it('cerrar el detalle vuelve al listado sin modificar el ejercicio', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([SAVED_ITEM])));
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+    const el = fixture.nativeElement as HTMLElement;
+
+    component.ver(SAVED_ITEM);
+    fixture.detectChanges();
+    expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+
+    component.cerrarDetalle();
+    fixture.detectChanges();
+
+    expect(el.querySelector('[role="dialog"]')).toBeNull();
+    expect(component.saved()).toEqual([SAVED_ITEM]);
+  });
+
   it('eliminar() pide confirmacion: si se confirma, llama a delete y refresca la lista', async () => {
     let listSavedCalls = 0;
     const listSaved = vi.fn(() => {

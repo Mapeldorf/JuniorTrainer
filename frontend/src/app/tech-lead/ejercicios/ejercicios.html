@@ -123,13 +123,22 @@
                   <td class="py-3 pr-4 text-muted">{{ exercise.technologies.join(', ') }}</td>
                   <td class="py-3 pr-4 text-muted">{{ exercise.repo ?? '—' }}</td>
                   <td class="py-3 pr-4 text-right">
-                    <button
-                      type="button"
-                      (click)="eliminar(exercise)"
-                      class="focus-ring rounded-sm text-sm font-medium text-danger hover:underline"
-                    >
-                      Eliminar
-                    </button>
+                    <div class="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        (click)="ver(exercise)"
+                        class="focus-ring rounded-sm text-sm font-medium text-content hover:underline"
+                      >
+                        Ver
+                      </button>
+                      <button
+                        type="button"
+                        (click)="eliminar(exercise)"
+                        class="focus-ring rounded-sm text-sm font-medium text-danger hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -147,4 +156,8 @@
       }
     </section>
   </div>
+
+  @if (selected(); as selectedExercise) {
+    <app-exercise-detail [exercise]="selectedExercise" (closed)="cerrarDetalle()" />
+  }
 </div>

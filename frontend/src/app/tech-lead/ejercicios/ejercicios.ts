@@ -10,6 +10,7 @@ import {
   GenerationSummary,
   SavedExerciseListItem,
 } from '../../core/generations-api.model';
+import { ExerciseDetailComponent } from '../../core/exercise-detail';
 import { PaginationComponent } from '../../core/pagination';
 import { TechLeadNavComponent } from '../tech-lead-nav/tech-lead-nav';
 
@@ -25,7 +26,7 @@ const POLL_INTERVAL_MS = 3000;
 @Component({
   selector: 'app-ejercicios',
   standalone: true,
-  imports: [FormsModule, PaginationComponent, TechLeadNavComponent],
+  imports: [FormsModule, PaginationComponent, TechLeadNavComponent, ExerciseDetailComponent],
   templateUrl: './ejercicios.html',
 })
 export class EjerciciosComponent implements OnInit, OnDestroy {
@@ -73,6 +74,10 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
 
   readonly filterType = signal<ExerciseType | ''>('');
   readonly searchText = signal('');
+
+  /** Ejercicio cuyo detalle se esta mostrando en el panel (change
+   * `detalle-ejercicio-guardado`); `null` cuando el panel esta cerrado. */
+  readonly selected = signal<SavedExerciseListItem | null>(null);
 
   private pollHandle: ReturnType<typeof setInterval> | null = null;
 
@@ -250,6 +255,18 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
 
   revisar(generation: GenerationSummary): void {
     void this.router.navigate(['/ejercicios', generation.id, 'revisar']);
+  }
+
+  /** Abre el panel de detalle de un ejercicio guardado (change
+   * `detalle-ejercicio-guardado`). Todo el contenido sale del item ya
+   * cargado en el listado, sin consultas adicionales. */
+  ver(exercise: SavedExerciseListItem): void {
+    this.selected.set(exercise);
+  }
+
+  /** Cierra el panel de detalle. */
+  cerrarDetalle(): void {
+    this.selected.set(null);
   }
 
   /** Tarea 4.3: boton Eliminar en cada ejercicio guardado, con
