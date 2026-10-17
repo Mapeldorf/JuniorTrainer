@@ -42,6 +42,13 @@ export class GenerationsApiService {
     );
   }
 
+  /** `DELETE /generations/{id}` (change `eliminar-generaciones-por-revisar`):
+   * elimina una generacion `ready` junto con sus candidatos. El backend
+   * responde 204 sin cuerpo. */
+  deleteGeneration(generationId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/generations/${generationId}`);
+  }
+
   /** `GET /exercises` (change `paginacion-ejercicios-guardados`): devuelve un
    * sobre `{ items, total, page, page_size }`. `page`/`page_size` son
    * opcionales; sin `page_size` el backend devuelve todos los coincidentes,

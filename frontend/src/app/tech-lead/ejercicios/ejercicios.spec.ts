@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { GenerationsApiService } from '../../core/generations-api.service';
 import { GenerationTrackerService } from '../../core/generation-tracker.service';
 import {
@@ -89,6 +89,7 @@ describe('EjerciciosComponent', () => {
     listPending?: ReturnType<typeof vi.fn>;
     listSaved?: ReturnType<typeof vi.fn>;
     deleteFn?: ReturnType<typeof vi.fn>;
+    deleteGenerationFn?: ReturnType<typeof vi.fn>;
     getDetail?: ReturnType<typeof vi.fn>;
     tracker?: ReturnType<typeof makeTracker>;
   }) {
@@ -103,6 +104,8 @@ describe('EjerciciosComponent', () => {
             listPending: opts.listPending ?? vi.fn().mockReturnValue(of([])),
             listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of(pageResponse([]))),
             delete: opts.deleteFn ?? vi.fn().mockReturnValue(of(SAVED_ITEM)),
+            deleteGeneration:
+              opts.deleteGenerationFn ?? vi.fn().mockReturnValue(of(undefined)),
             getDetail: opts.getDetail ?? vi.fn().mockReturnValue(of(detail('g1', 'generating'))),
           },
         },
@@ -297,6 +300,68 @@ describe('EjerciciosComponent', () => {
 
     fixture.componentInstance.revisar(READY);
     expect(navigateSpy).toHaveBeenCalledWith(['/ejercicios', READY.id, 'revisar']);
+  });
+
+  it('el boton Eliminar solo aparece en las generaciones ready', () => {
+    const listPending = vi.fn().mockReturnValue(of([READY, { ...GENERATING, id: 'g2' }]));
+    const fixture = createComponent({ listPending });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const eliminarButtons = Array.from(el.querySelectorAll('button')).filter(
+      (b) => b.textContent?.trim() === 'Eliminar',
+    );
+    expect(eliminarButtons.length).toBe(1);
+  });
+
+  it('una generacion generating no muestra el boton Eliminar', () => {
+    const listPending = vi.fn().mockReturnValue(of([GENERATING]));
+    const fixture = createComponent({ listPending });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const eliminarButtons = Array.from(el.querySelectorAll('button')).filter(
+      (b) => b.textContent?.trim() === 'Eliminar',
+    );
+    expect(eliminarButtons.length).toBe(0);
+  });
+
+  it('eliminarGeneracion() pide confirmacion: si se confirma, llama a deleteGeneration y recarga pendientes', async () => {
+    let listPendingCalls = 0;
+    const listPending = vi.fn(() => {
+      listPendingCalls += 1;
+      return of(listPendingCalls === 1 ? [READY] : []);
+    });
+    const deleteGenerationFn = vi.fn().mockReturnValue(of(undefined));
+
+    const fixture = createComponent({ listPending, deleteGenerationFn });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarEliminarGeneracion').mockResolvedValue(true);
+
+    await component.eliminarGeneracion(READY);
+
+    expect(deleteGenerationFn).toHaveBeenCalledWith(READY.id);
+    expect(listPendingCalls).toBe(2);
+  });
+
+  it('eliminarGeneracion() no llama a deleteGeneration si no se confirma', async () => {
+    const deleteGenerationFn = vi.fn().mockReturnValue(of(undefined));
+    const fixture = createComponent({ deleteGenerationFn });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarEliminarGeneracion').mockResolvedValue(false);
+
+    await component.eliminarGeneracion(READY);
+
+    expect(deleteGenerationFn).not.toHaveBeenCalled();
+  });
+
+  it('eliminarGeneracion() muestra el error de la pantalla si la peticion falla', async () => {
+    const deleteGenerationFn = vi.fn().mockReturnValue(throwError(() => new Error('fallo')));
+    const fixture = createComponent({ deleteGenerationFn });
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'confirmarEliminarGeneracion').mockResolvedValue(true);
+
+    await component.eliminarGeneracion(READY);
+
+    expect(component.error()).toBe('No se ha podido eliminar la generación.');
   });
 
   it('pulsar Ver abre el detalle con el ejercicio correcto', () => {
