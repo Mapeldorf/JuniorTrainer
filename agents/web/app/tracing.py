@@ -23,8 +23,8 @@ y `trace_id`"). Este modulo:
     crearla -- ver la integracion de Langfuse de LiteLLM).
 
 Un fallo escribiendo a Langfuse (red, credenciales, lo que sea) nunca debe
-bloquear la generacion -- igual que un fallo de memoria (`app/memory.py`,
-`app/checkpoint.py`): se registra y se ignora.
+bloquear la generacion -- igual que un fallo de memoria (`app/memory.py`):
+se registra y se ignora.
 """
 
 import logging

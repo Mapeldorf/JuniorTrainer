@@ -5,8 +5,8 @@ from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events.event_queue_v2 import EventQueue
 from a2a.types import Role
 
-from app.checkpoint import research_with_checkpoint
 from app.input import parse_technologies
+from app.service import research
 from app.tracing import record_task, resolve_trace_id
 
 
@@ -19,7 +19,7 @@ class WebAgentExecutor(AgentExecutor):
         # mensaje; si no hay ninguno (agente en solitario, sin orquestador),
         # resolve_trace_id() genera uno nuevo para que la traza exista igual.
         trace_id = resolve_trace_id(context.message.metadata)
-        result = await research_with_checkpoint(context.task_id, technologies, trace_id)
+        result = await research(technologies, trace_id)
         record_task(
             trace_id, technologies, memory_hit=result.memory_hit, sources=len(result.sources)
         )
