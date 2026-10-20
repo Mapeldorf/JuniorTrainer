@@ -53,6 +53,7 @@ export class BloqueEditarComponent {
   readonly name = signal('');
   readonly filterType = signal<ExerciseType | ''>('');
   readonly searchText = signal('');
+  readonly searchDraft = signal('');
 
   readonly catalogRows = signal<ExerciseRow[]>([]);
   readonly deletedRows = signal<ExerciseRow[]>([]);
@@ -152,8 +153,12 @@ export class BloqueEditarComponent {
     this.cargarCatalogo();
   }
 
-  onSearchTextChange(value: string): void {
-    this.searchText.set(value);
+  onSearchDraftChange(value: string): void {
+    this.searchDraft.set(value);
+  }
+
+  buscar(): void {
+    this.searchText.set(this.searchDraft());
     this.cargarCatalogo();
   }
 
