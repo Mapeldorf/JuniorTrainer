@@ -87,6 +87,7 @@ describe('EjerciciosComponent', () => {
 
   function createComponent(opts: {
     listPending?: ReturnType<typeof vi.fn>;
+    waitForPendingChange?: ReturnType<typeof vi.fn>;
     listSaved?: ReturnType<typeof vi.fn>;
     deleteFn?: ReturnType<typeof vi.fn>;
     deleteGenerationFn?: ReturnType<typeof vi.fn>;
@@ -102,6 +103,14 @@ describe('EjerciciosComponent', () => {
           provide: GenerationsApiService,
           useValue: {
             listPending: opts.listPending ?? vi.fn().mockReturnValue(of([])),
+            // Propuesta `long-polling-generaciones-pendientes`: sustituye al
+            // sondeo cada 3s. Por defecto no emite nunca (como una espera
+            // larga real que todavia no ha cambiado ni agotado su timeout):
+            // un `of(...)` que resuelve al instante sobreescribiria el
+            // listado de forma sincrona con datos que no reflejarian ya el
+            // ultimo estado conocido, algo que una peticion HTTP real nunca
+            // hace. Solo los tests que ejercitan el bucle la sobreescriben.
+            waitForPendingChange: opts.waitForPendingChange ?? vi.fn().mockReturnValue(new Subject()),
             listSaved: opts.listSaved ?? vi.fn().mockReturnValue(of(pageResponse([]))),
             delete: opts.deleteFn ?? vi.fn().mockReturnValue(of(SAVED_ITEM)),
             deleteGeneration:
@@ -176,35 +185,89 @@ describe('EjerciciosComponent', () => {
     expect(text).toContain('No hay ningún ejercicio guardado todavía');
   });
 
-  it('el polling se detiene en cuanto ya no hay ninguna generacion generando', () => {
-    vi.useFakeTimers();
-    const listPending = vi
-      .fn()
-      .mockReturnValueOnce(of([GENERATING]))
-      .mockReturnValueOnce(of([READY]))
-      .mockReturnValue(of([READY]));
+  it('tras la primera carga, si hay una generacion generando, encadena una espera larga sin esperar un temporizador', () => {
+    const listPending = vi.fn().mockReturnValue(of([GENERATING]));
+    const waitForPendingChange = vi.fn().mockReturnValue(of([READY]));
 
-    createComponent({ listPending });
-    expect(listPending).toHaveBeenCalledTimes(1);
+    createComponent({ listPending, waitForPendingChange });
 
-    vi.advanceTimersByTime(3000);
-    expect(listPending).toHaveBeenCalledTimes(2);
-
-    // ya no quedaba ninguna 'generating' tras la 2a llamada: el polling
-    // deberia haberse detenido, asi que no debe haber una 3a llamada.
-    vi.advanceTimersByTime(3000);
-    vi.advanceTimersByTime(3000);
-    expect(listPending).toHaveBeenCalledTimes(2);
+    expect(waitForPendingChange).toHaveBeenCalledTimes(1);
   });
 
-  it('el polling no arranca si ninguna generacion esta generando', () => {
-    vi.useFakeTimers();
+  it('sigue encadenando la espera larga mientras la respuesta siga teniendo una generacion generando', () => {
+    const listPending = vi.fn().mockReturnValue(of([GENERATING]));
+    let calls = 0;
+    const waitForPendingChange = vi.fn(() => {
+      calls += 1;
+      return of(calls < 3 ? [GENERATING] : [READY]);
+    });
+
+    createComponent({ listPending, waitForPendingChange });
+
+    expect(waitForPendingChange).toHaveBeenCalledTimes(3);
+  });
+
+  it('la espera larga no arranca si la primera carga no tiene ninguna generacion generando', () => {
     const listPending = vi.fn().mockReturnValue(of([READY]));
+    const waitForPendingChange = vi.fn().mockReturnValue(of([READY]));
 
-    createComponent({ listPending });
-    vi.advanceTimersByTime(9000);
+    createComponent({ listPending, waitForPendingChange });
 
-    expect(listPending).toHaveBeenCalledTimes(1);
+    expect(waitForPendingChange).not.toHaveBeenCalled();
+  });
+
+  it('un fallo en la espera larga no detiene el bucle: se reintenta', () => {
+    const listPending = vi.fn().mockReturnValue(of([GENERATING]));
+    let calls = 0;
+    const waitForPendingChange = vi.fn(() => {
+      calls += 1;
+      return calls === 1 ? throwError(() => new Error('fallo de red')) : of([READY]);
+    });
+
+    const fixture = createComponent({ listPending, waitForPendingChange });
+
+    expect(waitForPendingChange).toHaveBeenCalledTimes(2);
+    expect(fixture.componentInstance.error()).toBe(
+      'No se han podido cargar las generaciones pendientes.',
+    );
+  });
+
+  it('una generacion rastreada que sigue generating en la respuesta no genera una consulta a getDetail', () => {
+    const tracker = makeTracker(['g1']);
+    const listPending = vi.fn().mockReturnValue(of([GENERATING]));
+    // Pasa a `ready` sin desaparecer del listado (sigue visible con el
+    // mismo id): ni la primera carga ni la espera larga deberian
+    // necesitar consultar getDetail para saberlo.
+    const waitForPendingChange = vi.fn().mockReturnValue(of([READY]));
+    const getDetail = vi.fn();
+
+    createComponent({ listPending, waitForPendingChange, tracker, getDetail });
+
+    expect(getDetail).not.toHaveBeenCalled();
+  });
+
+  it('una generacion rastreada que llega a ready sin desaparecer del listado deja de rastrearse y detiene el bucle', () => {
+    // Regresion: si no se retira del rastreo al quedar visible-y-ready,
+    // `hayRastreadas` se queda en true para siempre y la espera larga se
+    // encadena sin fin (bug detectado al implementar esta tarea).
+    const tracker = makeTracker(['g1']);
+    const listPending = vi.fn().mockReturnValue(of([GENERATING]));
+    const waitForPendingChange = vi.fn().mockReturnValue(of([READY]));
+
+    createComponent({ listPending, waitForPendingChange, tracker });
+
+    expect(tracker.remove).toHaveBeenCalledWith('g1');
+    expect(waitForPendingChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('una generacion rastreada que desaparece del listado sigue generando una consulta a getDetail', () => {
+    const tracker = makeTracker(['g1']);
+    const listPending = vi.fn().mockReturnValue(of([]));
+    const getDetail = vi.fn().mockReturnValue(of(detail('g1', 'error')));
+
+    createComponent({ listPending, tracker, getDetail });
+
+    expect(getDetail).toHaveBeenCalledWith('g1');
   });
 
   it('la primera carga pide la pagina 1 con 10 por pagina', () => {

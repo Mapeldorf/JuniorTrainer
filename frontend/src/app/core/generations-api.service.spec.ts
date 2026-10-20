@@ -51,6 +51,29 @@ describe('GenerationsApiService', () => {
     expect(result).toEqual(expected);
   });
 
+  it('waitForPendingChange() llama a GET /generations/pending/wait', () => {
+    const expected: GenerationSummary[] = [
+      {
+        id: 'g1',
+        status: 'generating',
+        technologies: ['Git'],
+        repo: null,
+        kind: 'knowledge',
+        error_message: null,
+        created_at: '2026-01-01',
+      },
+    ];
+
+    let result: GenerationSummary[] | undefined;
+    service.waitForPendingChange().subscribe((r) => (result = r));
+
+    const req = httpTesting.expectOne(`${environment.apiUrl}/generations/pending/wait`);
+    expect(req.request.method).toBe('GET');
+    req.flush(expected);
+
+    expect(result).toEqual(expected);
+  });
+
   it('start(...) llama a POST /generations con el body', () => {
     const expected: StartGenerationResponse = { id: 'g1' };
 

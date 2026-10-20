@@ -29,6 +29,7 @@ import logging
 
 from app.a2a_client import A2ATaskError, send_a2a_task
 from app.config import get_settings
+from app.generation_events import notify_status_change
 from app.github_client import CommitResolutionError, resolve_head_commit
 from app.supabase_client import get_admin_client
 from app.tracing import new_trace_id, record_generation
@@ -212,6 +213,10 @@ def _mark_status(generation_id: str, status: str, error_message: str | None = No
     get_admin_client().table("generation").update(
         {"status": status, "error_message": error_message}
     ).eq("id", generation_id).execute()
+    # Avisa a quien este esperando este cambio en `GET /generations/pending/wait`
+    # (propuesta `long-polling-generaciones-pendientes`), para que no tenga que
+    # sondear hasta su propio timeout.
+    notify_status_change(generation_id)
 
 
 def _write_repo_access_log(
