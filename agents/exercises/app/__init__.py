@@ -2,8 +2,7 @@
 
 Fix de compatibilidad Windows + psycopg async: por defecto, Python usa
 ProactorEventLoop como event loop de asyncio en Windows, pero psycopg en
-modo async (usado por langgraph-checkpoint-postgres para la memoria larga,
-ver app/memory.py, y por la conexion de solo lectura de
+modo async (usado por la conexion de solo lectura de
 app/tools/saved_exercises.py) exige un event loop basado en selector. Sin
 esto, cualquier conexion a Postgres desde un script de verificacion en
 Windows falla con:

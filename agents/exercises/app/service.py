@@ -7,9 +7,12 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
     los resultados de web/codigo, el tipo, el numero pedido y los
     enunciados ya guardados (via `search_saved_exercises`), y devuelve
     exactamente `count` candidatos.
-  - 5.4: memoria larga PROPIA (ver app/memory.py) -- se suma al
-    historial de enunciados a evitar (que antes solo llevaba los
-    guardados) y se escribe el historial tras generar.
+  - 5.4 (eliminado por el change `eliminar-memoria-agente-ejercicios`,
+    ver design.md): tuvo una memoria larga PROPIA en Postgres que se
+    sumaba a `search_saved_exercises`. Se quito por solapar con esa
+    misma consulta (ver proposal.md - Why); `search_saved_exercises` es
+    ahora la UNICA fuente de "enunciados a evitar", ampliada para
+    incluir tambien los ejercicios eliminados.
   - 5.5: `trace_id` opcional que se reenvia a LiteLLM (ver
     app/tracing.py), igual que en los otros dos agentes.
 
@@ -32,7 +35,6 @@ import logging
 
 from app.db import exercise_reader_conn_string
 from app.llm import build_generator_model
-from app.memory import get_recent_statements, save_statements
 from app.models import CandidateExercise, ExerciseCodeBlock, ExerciseGenerationResult
 from app.tools.saved_exercises import SearchBudget, SearchBudgetExceeded, search_saved_exercises
 from app.tracing import litellm_trace_metadata
@@ -103,11 +105,11 @@ async def generate_exercises(
     code_result: dict | None,
     trace_id: str | None = None,
 ) -> ExerciseGenerationResult:
-    saved_statements: list[str] = []
+    avoid_statements: list[str] = []
     try:
         budget = SearchBudget(max_calls=3)
-        saved = await search_saved_exercises(exercise_reader_conn_string(), exercise_type, budget, limit=10)
-        saved_statements = [s.statement for s in saved]
+        saved = await search_saved_exercises(exercise_reader_conn_string(), exercise_type, budget, limit=200)
+        avoid_statements = [s.statement for s in saved]
     except SearchBudgetExceeded:
         # No deberia pasar en una unica llamada con un budget de 3, pero si
         # pasara no es razon para fallar la tarea: se sigue sin esa lista.
@@ -115,28 +117,12 @@ async def generate_exercises(
     except Exception:
         # "Una memoria caida no bloquea la generacion" aplica igual a esta
         # consulta de solo lectura: si Supabase no responde, se continua
-        # sin la lista de guardados en vez de fallar la tarea entera.
-        logger.warning("fallo consultando ejercicios guardados", exc_info=True)
-
-    # Memoria larga PROPIA (tarea 5.4): enunciados ya propuestos antes para
-    # este tipo, guardados o no -- se suma a los guardados para formar la
-    # lista completa de temas a evitar. Un fallo de lectura ya se trata
-    # como "sin historial" dentro de get_recent_statements().
-    recent_statements = await get_recent_statements(exercise_type)
-
-    avoid_statements = [*saved_statements, *recent_statements]
+        # sin la lista de guardados/eliminados en vez de fallar la tarea entera.
+        logger.warning("fallo consultando ejercicios guardados o eliminados", exc_info=True)
 
     candidates = await _draft_candidates(
         exercise_type, count, web_result, code_result, avoid_statements, trace_id
     )
-
-    # Se escribe DESPUES de generar con exito: si _draft_candidates lanza
-    # (JSON invalido, numero incorrecto, limite de palabras tras el
-    # reintento...), no hay enunciados nuevos que guardar -- y por tanto
-    # ningun enunciado demasiado largo entra nunca en el historial
-    # (design.md decision 3). Un fallo de escritura se ignora dentro de
-    # save_statements().
-    await save_statements(exercise_type, [c.statement for c in candidates])
 
     return ExerciseGenerationResult(
         candidates=candidates,
