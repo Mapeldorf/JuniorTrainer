@@ -36,6 +36,3 @@ agents/**/*.egg-info/
 
 # opencode (config local con token de Supabase)
 opencode.json
-
-#docs (temporal)
-docs/
