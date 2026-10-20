@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     litellm_base_url: str = "http://litellm:4000/v1"
     agent_validator_litellm_key: str
 
+    # Conexion directa a Postgres: rol agents_validator_reader, solo SELECT
+    # sobre public.technology (change validador-duplicados-tecnologias, ver
+    # infra/supabase/migrations/0010_agents_validator_reader.sql y
+    # app/tools/technology_catalog.py). El pooler de Supabase exige el
+    # project ref como sufijo del usuario, mismo patron que los demas
+    # agentes con conexion directa.
+    agents_pg_host: str
+    agents_pg_port: int = 5432
+    agents_pg_database: str = "postgres"
+    agents_validator_reader_password: str
+    supabase_project_ref: str
+
     # Langfuse Cloud: igual que el resto de agentes (ver app/tracing.py).
     langfuse_public_key: str
     langfuse_secret_key: str

@@ -72,6 +72,14 @@ async def create_technology(
 
     if not result.get("valid"):
         reason = result.get("reason") or "no parece una tecnologia de programacion"
+        # Duplicado semantico (change validador-duplicados-tecnologias): el
+        # validador detecto que esta entrada ya esta cubierta por una
+        # tecnologia existente del catalogo con otro nombre, variante o
+        # abreviatura. Se trata como el mismo tipo de conflicto que el
+        # duplicado exacto comprobado mas arriba (409), no como una entrada
+        # invalida (422).
+        if result.get("duplicate_technologies"):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=reason)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=reason)
 
     inserted = admin.table("technology").insert({"name": body.name}).execute().data[0]
