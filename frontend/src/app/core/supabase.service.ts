@@ -36,6 +36,14 @@ export class SupabaseService {
     return data.session;
   }
 
+  /** Fuerza la renovacion del access token contra Supabase Auth (se usa
+   * como reintento cuando el backend rechaza el token por caducado pese a
+   * que `getSession()` lo diera por valido, p.ej. por sesgo de reloj). */
+  async refreshSession(): Promise<Session | null> {
+    const { data } = await this.client.auth.refreshSession();
+    return data.session;
+  }
+
   /** Rol leido de los metadatos del JWT (los mismos que crean el Profile al alta). */
   async getRole(): Promise<'tech_lead' | 'student' | null> {
     const session = await this.getSession();
