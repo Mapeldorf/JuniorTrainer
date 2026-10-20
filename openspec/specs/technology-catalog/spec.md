@@ -52,7 +52,7 @@ Si el agente validador falla o no responde, el sistema SHALL NOT guardar la tecn
 - **THEN** la petición responde con un error y no se guarda ninguna tecnología
 
 ### Requirement: Rechazo de tecnologías duplicadas en el alta
-El sistema SHALL rechazar dar de alta una tecnología que ya existe en el catálogo, comparando sin distinguir mayúsculas ni espacios sobrantes, y SHALL NOT crear una fila duplicada.
+El sistema SHALL rechazar dar de alta una tecnología que ya existe en el catálogo, comparando sin distinguir mayúsculas ni espacios sobrantes, y SHALL NOT crear una fila duplicada. Además, SHALL rechazar dar de alta una tecnología que el agente validador identifique como semánticamente cubierta por una tecnología ya existente con otro nombre, variante o abreviatura, devolviendo con qué tecnología existente coincide.
 
 #### Scenario: Nombre ya existente
 - **WHEN** un tech lead da de alta una tecnología cuyo nombre ya está en el catálogo
@@ -61,6 +61,10 @@ El sistema SHALL rechazar dar de alta una tecnología que ya existe en el catál
 #### Scenario: Variante de mayúsculas o espacios de un nombre existente
 - **WHEN** un tech lead da de alta una tecnología que coincide con una existente salvo por mayúsculas o espacios sobrantes
 - **THEN** la petición se rechaza y el catálogo no cambia
+
+#### Scenario: Variante semántica de un nombre existente
+- **WHEN** un tech lead da de alta una tecnología que el agente validador identifica como la misma tecnología que una ya existente en el catálogo, aunque el nombre no coincida de forma exacta
+- **THEN** la petición se rechaza indicando con qué tecnología existente coincide, y el catálogo no cambia
 
 ### Requirement: Permiso de alta del catálogo
 El alta de tecnologías SHALL estar reservada al tech lead; cualquier otro rol SHALL recibir una respuesta de acceso denegado y el catálogo SHALL NOT cambiar.
