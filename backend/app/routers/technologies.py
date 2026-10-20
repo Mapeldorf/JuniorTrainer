@@ -61,7 +61,7 @@ async def create_technology(
     try:
         result = await send_a2a_task(
             settings.agent_validator_url,
-            {"technologies": [body.name]},
+            {"technologies": [body.name], "context": "catalog_entry"},
             trace_id=new_trace_id(),
         )
     except A2ATaskError as exc:
