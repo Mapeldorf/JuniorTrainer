@@ -28,7 +28,7 @@ import asyncio
 import logging
 import uuid
 
-from app.checkpoint import research_with_checkpoint
+from app.service import research
 from app.tracing import get_client, init_client, new_trace_id, record_task
 
 logging.basicConfig(level=logging.INFO)
@@ -41,9 +41,8 @@ async def main() -> None:
     # Caso 1: cache-miss -- debe generar una llamada real al modelo,
     # agrupada bajo trace_id_1.
     trace_id_1 = new_trace_id()
-    task_id_1 = f"verify-trace-miss-{uuid.uuid4()}"
     tecnologia_1 = f"Vue-{uuid.uuid4().hex[:8]}"  # unica, para forzar cache-miss
-    result_1 = await research_with_checkpoint(task_id_1, [tecnologia_1], trace_id_1)
+    result_1 = await research([tecnologia_1], trace_id_1)
     record_task(trace_id_1, [tecnologia_1], memory_hit=result_1.memory_hit, sources=len(result_1.sources))
     print(f"cache-miss: trace_id={trace_id_1}, memory_hit={result_1.memory_hit}")
     print(f"  URL: {client.get_trace_url(trace_id=trace_id_1)}")
@@ -52,8 +51,7 @@ async def main() -> None:
     # cache-hit (gracias a la tarea 3.4) y la traza debe aparecer igual,
     # con memory_hit=true, SIN ninguna generacion nueva del modelo.
     trace_id_2 = new_trace_id()
-    task_id_2 = f"verify-trace-hit-{uuid.uuid4()}"
-    result_2 = await research_with_checkpoint(task_id_2, [tecnologia_1], trace_id_2)
+    result_2 = await research([tecnologia_1], trace_id_2)
     record_task(trace_id_2, [tecnologia_1], memory_hit=result_2.memory_hit, sources=len(result_2.sources))
     print(f"cache-hit: trace_id={trace_id_2}, memory_hit={result_2.memory_hit}")
     print(f"  URL: {client.get_trace_url(trace_id=trace_id_2)}")

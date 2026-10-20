@@ -1,0 +1,23 @@
+# Tasks
+
+## 1. Quitar el checkpoint del flujo real
+
+- [x] 1.1 En `agents/web/app/executor.py`, cambiar el import de `from app.checkpoint import research_with_checkpoint` a `from app.service import research`, y la llamada en `execute()` de `research_with_checkpoint(context.task_id, technologies, trace_id)` a `research(technologies, trace_id)`. Verificar leyendo el fichero: ya no queda ninguna referencia a `app.checkpoint` ni a `research_with_checkpoint`.
+- [x] 1.2 Eliminar `agents/web/app/checkpoint.py`. Verificar con `grep -r "app.checkpoint\|research_with_checkpoint\|count_checkpoints" agents/web` que no queda ninguna referencia en el codigo del agente (los scripts se actualizan en la tarea 2).
+
+## 2. Actualizar los scripts de verificacion manual
+
+- [x] 2.1 Eliminar `agents/web/scripts/verify_short_term_memory.py` (verificaba exclusivamente el borrado del checkpoint que ya no existe).
+- [x] 2.2 En `agents/web/scripts/verify_trace_id.py`, cambiar el import de `app.checkpoint` a `from app.service import research` y las dos llamadas `research_with_checkpoint(task_id_X, [...], trace_id_X)` a `research([...], trace_id_X)`, quitando las variables `task_id_1`/`task_id_2` que ya no se usan para nada. Verificar ejecutando `python -m scripts.verify_trace_id` (requiere las variables de entorno indicadas en la cabecera del script, LiteLLM y Langfuse corriendo): debe completar sin excepciones y mostrar `memory_hit=False` en la primera llamada y `memory_hit=True` en la segunda, igual que antes.
+
+## 3. Limpiar comentarios que atribuian su razon de ser al checkpoint
+
+- [x] 3.1 Actualizar el docstring de `agents/web/app/db.py` para que ya no diga que `conn_string()` esta "compartida por memoria larga (...) y memoria corta (`app/checkpoint.py`, `AsyncPostgresSaver`)": debe quedar claro que solo la usa la memoria larga (`app/memory.py`, `AsyncPostgresStore`). Verificar leyendo el fichero: no queda ninguna mencion a `app/checkpoint.py`.
+- [x] 3.2 Actualizar el docstring de `agents/web/app/__init__.py` para que el fix de event loop de Windows se atribuya al modo async de `psycopg` que usa `AsyncPostgresStore` (`app/memory.py`), no a `langgraph-checkpoint-postgres`. Verificar leyendo el fichero: la mencion a `langgraph-checkpoint-postgres` desaparece o se sustituye por la razon real que queda.
+- [x] 3.3 Corregir el comentario de progresion en `agents/web/app/service.py` (lista "3.1/3.2 ... 3.5: memoria corta (checkpoint por tarea, ver app/checkpoint.py) ...") para que ya no apunte a un fichero que no existe. Verificar leyendo el fichero: no queda ninguna referencia a `app/checkpoint.py`.
+
+## 4. Dependencias y verificacion final
+
+- [x] 4.1 Confirmar con `grep -r "langgraph.checkpoint.postgres\|langgraph_checkpoint_postgres" agents/web` que ningun modulo del agente web importa ya `langgraph.checkpoint.postgres` tras las tareas 1 y 2 (confirmado: cero resultados fuera de `.venv`). **Correccion sobre el supuesto de design.md**: la linea `langgraph-checkpoint-postgres>=2.0,<4` de `agents/web/requirements.txt` NO se retira — ese mismo paquete pip provee tambien `langgraph.store.postgres` (`AsyncPostgresStore`), que `app/memory.py` sigue usando para la memoria larga; son el mismo distributable (verificado via el `RECORD` del paquete instalado), no dos paquetes independientes. Retirarlo romperia la memoria larga.
+- [x] 4.2 Reinstalar dependencias (`pip install -r agents/web/requirements.txt` en el entorno del agente web) y verificar que no hay errores de resolucion ni de imports rotos (`python -c "import app.executor"` desde `agents/web/` con las variables de entorno necesarias para `app.config`).
+- [x] 4.3 Ejecutar de punta a punta una generacion real a traves de `WebAgentExecutor` (o el script/orquestador que ya se use para probarlo) con tecnologias nuevas y luego con las mismas tecnologias otra vez, y verificar que el resultado (`summary`, `sources`, `memory_hit`) es el mismo que antes del cambio: `memory_hit=False` la primera vez, `memory_hit=True` la segunda, sin ninguna traza de error relacionada con Postgres/checkpoints en los logs del servicio. Verificado llamando a `research()` dos veces con la infra real levantada (Docker: litellm + litellm-db, Tavily, Postgres de Supabase): `memory_hit=False` con 5 fuentes en la primera llamada, `memory_hit=True` con las mismas 5 fuentes en la segunda, sin errores de Postgres/checkpoint. (El script `verify_trace_id.py` tambien llego a completar la llamada real a `research()`; su fallo adicional en `client.get_trace_url()` es un problema de credenciales de Langfuse ajeno a este cambio, no bloquea esta tarea.)

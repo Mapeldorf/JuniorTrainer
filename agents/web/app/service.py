@@ -4,7 +4,6 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
   - 3.1/3.2: scaffold + `tavily_search` (ver app/tools/tavily_search.py).
   - 3.3: resumen con el modelo `generator` via LiteLLM.
   - 3.4: memoria larga (cache por tecnologias, ver app/memory.py).
-  - 3.5: memoria corta (checkpoint por tarea, ver app/checkpoint.py).
   - 3.6 (este fichero, ahora): `trace_id` opcional que se reenvia a
     LiteLLM (ver app/tracing.py) para agrupar la llamada al modelo bajo
     la traza de la tarea en vez de una traza suelta.
