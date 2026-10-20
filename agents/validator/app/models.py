@@ -11,6 +11,17 @@ han considerado ya cubiertas por una tecnologia existente del catalogo
 (`duplicate_technologies`, change `validador-duplicados-tecnologias`)."""
 
 from dataclasses import dataclass, field
+from typing import Literal
+
+# Contexto de la llamada (change `validador-contexto-generacion`): el alta de
+# una tecnologia en el catalogo (`catalog_entry`) comprueba tambien duplicados
+# semanticos contra el catalogo; la validacion previa a una generacion
+# (`generation`) comprueba unicamente que la entrada es una tecnologia de
+# programacion, sin tocar el catalogo. `catalog_entry` es el valor por
+# defecto cuando el llamador no lo indica (ver app/input.py) -- es el
+# comportamiento mas estricto, asi que ningun llamador se vuelve mas
+# permisivo por omision.
+ValidationContext = Literal["catalog_entry", "generation"]
 
 
 @dataclass

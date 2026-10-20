@@ -79,7 +79,9 @@ async def _call_validator(technologies: list[str], trace_id: str) -> None:
     settings = get_settings()
     try:
         result = await send_a2a_task(
-            settings.agent_validator_url, {"technologies": technologies}, trace_id=trace_id
+            settings.agent_validator_url,
+            {"technologies": technologies, "context": "generation"},
+            trace_id=trace_id,
         )
     except A2ATaskError as exc:
         raise _GenerationFailed(f"el agente validador ha fallado: {exc}") from exc

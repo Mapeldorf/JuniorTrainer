@@ -16,12 +16,22 @@ de invocar al modelo se rechaza cualquier entrada que coincida con un
 patron de dato personal o identificador (email, telefono, IBAN o documento
 nacional de identidad/extranjero), de forma no probabilistica. Cubre el
 caso del DNI, que Presidio no detecta (sus entidades son email, telefono,
-tarjeta, IP, IBAN)."""
+tarjeta, IP, IBAN).
+
+Contexto de la llamada (change `validador-contexto-generacion`): la parte de
+datos puede traer tambien `"context"` (`"catalog_entry"` o `"generation"`,
+ver `app/models.py`), que decide si `app/service.py` aplica la comprobacion
+de duplicados contra el catalogo. `parse_context` lo extrae con el mismo
+criterio fail-safe en los dos sentidos: ausencia o valor no reconocido
+siempre caen a `"catalog_entry"` (la comprobacion mas estricta, la que ya
+se hacia antes de que existiera este campo)."""
 
 import re
 
 from a2a.helpers.proto_helpers import get_data_parts, get_text_parts
 from a2a.types import Message
+
+from app.models import ValidationContext
 
 _MAX_TECHNOLOGIES = 15
 _MAX_TECHNOLOGY_LENGTH = 60
@@ -50,6 +60,17 @@ def parse_technologies(message: Message) -> list[str]:
         return []
     raw = text.replace("\n", ",").split(",")
     return _normalize(raw)
+
+
+def parse_context(message: Message) -> ValidationContext:
+    """Extrae el contexto de la llamada de la parte de datos del mensaje
+    (ver cabecera del modulo). Solo la parte de datos puede traerlo -- la
+    forma de texto (depuracion manual) no tiene donde ponerlo y siempre cae
+    al valor por defecto."""
+    for data in get_data_parts(message.parts):
+        if isinstance(data, dict) and data.get("context") == "generation":
+            return "generation"
+    return "catalog_entry"
 
 
 def _normalize(items: list[str]) -> list[str]:
