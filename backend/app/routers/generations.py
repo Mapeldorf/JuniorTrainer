@@ -1,6 +1,9 @@
+import asyncio
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 
 from app.deps import require_tech_lead
+from app.generation_events import wait_for_change
 from app.orchestrator import run_generation
 from app.rate_limit import START_GENERATION_LIMIT, limiter
 from app.schemas.generation import (
@@ -17,6 +20,13 @@ router = APIRouter(tags=["generations"])
 
 
 _GENERATION_SUMMARY_FIELDS = "id, status, technologies, repo_name, kind, error_message, created_at"
+
+# Tiempo maximo que `GET /generations/pending/wait` espera un cambio antes
+# de responder igualmente con el listado vigente (propuesta
+# `long-polling-generaciones-pendientes`, design.md decision 4): por
+# debajo de cualquier timeout de proxy/navegador razonable (tipicamente
+# >=30s), para que sea siempre el propio endpoint el que responda.
+PENDING_WAIT_TIMEOUT_SECONDS = 25.0
 
 
 def _to_generation_summary(row: dict) -> GenerationSummary:
@@ -109,6 +119,23 @@ async def start_generation(
     return StartGenerationResponse(id=generation_id)
 
 
+def _fetch_pending_rows() -> list[dict]:
+    """Consulta compartida por `GET /generations` y `GET
+    /generations/pending/wait` (propuesta `long-polling-generaciones-pendientes`):
+    las generaciones en curso (`generating`) o listas para revisar
+    (`ready`), mas recientes primero. Las ya cerradas (`done`) y las
+    fallidas (`error`) quedan fuera (change `ocultar-generaciones-error`)."""
+    result = (
+        get_admin_client()
+        .table("generation")
+        .select(_GENERATION_SUMMARY_FIELDS)
+        .in_("status", ["generating", "ready"])
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return result.data or []
+
+
 @router.get("/generations")
 async def list_pending_generations(
     _profile: Profile = Depends(require_tech_lead),
@@ -122,16 +149,50 @@ async def list_pending_generations(
     este listado, siguen almacenadas y consultables por su id con
     `GET /generations/{id}`. No hace falta parametro de filtro porque no
     hay ningun caso de uso que necesite ver las no listadas (design.md
-    decision 2)."""
-    result = (
-        get_admin_client()
-        .table("generation")
-        .select(_GENERATION_SUMMARY_FIELDS)
-        .in_("status", ["generating", "ready"])
-        .order("created_at", desc=True)
-        .execute()
-    )
-    return [_to_generation_summary(row) for row in (result.data or [])]
+    decision 2).
+
+    Responde con el estado actual, sin esperar nada; para quedarse
+    esperando un cambio, ver `GET /generations/pending/wait`."""
+    return [_to_generation_summary(row) for row in _fetch_pending_rows()]
+
+
+# Ruta estatica declarada antes de las que usan `{generation_id}` (tarea
+# 2.1 de la propuesta `long-polling-generaciones-pendientes`): aunque
+# `/generations/pending/wait` tiene un segmento de mas y por tanto no
+# colisiona con `/generations/{generation_id}`, mantenerla junto a `GET
+# /generations` (que responde el mismo contrato) deja claro que es una
+# variante suya, no una operacion sobre una generacion concreta.
+@router.get("/generations/pending/wait")
+async def wait_for_pending_change(
+    _profile: Profile = Depends(require_tech_lead),
+) -> list[GenerationSummary]:
+    """Espera larga (requisito "Espera larga para detectar cambios en las
+    generaciones pendientes" de `specs/exercise-generation/spec.md`): si
+    hay alguna generacion en curso (`generating`), espera hasta
+    `PENDING_WAIT_TIMEOUT_SECONDS` a que cualquiera de ellas cambie de
+    estado antes de responder; si ninguna cambia en ese tiempo, responde
+    igualmente con el listado vigente en ese momento. Sin ninguna
+    generacion en curso, responde de inmediato (nada que esperar). En
+    cualquier caso, la respuesta es siempre una consulta fresca -- nunca
+    el listado que se leyo antes de empezar a esperar (design.md decision
+    2)."""
+    rows = _fetch_pending_rows()
+    generating_ids = [row["id"] for row in rows if row["status"] == "generating"]
+
+    if generating_ids:
+        waits = [
+            asyncio.ensure_future(wait_for_change(generation_id, PENDING_WAIT_TIMEOUT_SECONDS))
+            for generation_id in generating_ids
+        ]
+        try:
+            await asyncio.wait(waits, return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            for wait_task in waits:
+                if not wait_task.done():
+                    wait_task.cancel()
+        rows = _fetch_pending_rows()
+
+    return [_to_generation_summary(row) for row in rows]
 
 
 @router.post("/generations/{generation_id}/close")

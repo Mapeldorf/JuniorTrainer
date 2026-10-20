@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ConfirmDialogService } from '../../core/confirm-dialog.service';
 import { GenerationTrackerService } from '../../core/generation-tracker.service';
 import { GenerationsApiService } from '../../core/generations-api.service';
@@ -13,8 +14,6 @@ import {
 import { ExerciseDetailComponent } from '../../core/exercise-detail';
 import { PaginationComponent } from '../../core/pagination';
 import { TechLeadNavComponent } from '../tech-lead-nav/tech-lead-nav';
-
-const POLL_INTERVAL_MS = 3000;
 
 /**
  * Pantalla 2 "Ejercicios guardados" (tareas 4.1-4.3, capacidades
@@ -79,7 +78,11 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
    * `detalle-ejercicio-guardado`); `null` cuando el panel esta cerrado. */
   readonly selected = signal<SavedExerciseListItem | null>(null);
 
-  private pollHandle: ReturnType<typeof setInterval> | null = null;
+  /** Suscripcion de la espera larga en curso (`GET
+   * /generations/pending/wait`, propuesta
+   * `long-polling-generaciones-pendientes`); `null` cuando no hay ninguna
+   * encadenada en ese momento. */
+  private pendingWaitSubscription: Subscription | null = null;
 
   /** Si ya se ha cargado el listado alguna vez; distingue la primera carga
    * (placeholder "Cargando…") de las recargas (tabla atenuada). */
@@ -91,25 +94,20 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.stopPolling();
+    this.stopWaitLoop();
   }
 
-  /** Tarea 4.2: polling cada 3s de `listPending()` mientras haya alguna
-   * generacion `generating`, deteniendolo en cuanto ninguna lo este
-   * (design.md decision 1). Se amplia (`ocultar-generaciones-error`,
-   * tarea 4.1) para consultar tambien las generaciones rastreadas y para
-   * seguir sondeando mientras quede alguna rastreada por resolver. */
+  /** Primera carga (o recarga manual, p. ej. tras eliminar una
+   * generacion) del listado de pendientes via `GET /generations`: responde
+   * de inmediato con el estado actual, sin esperar nada. Si queda alguna
+   * generacion `generating`, arranca a continuacion la espera larga
+   * encadenada (`ensureWaitLoopRunning`) que sustituye al antiguo sondeo
+   * cada 3s. */
   private loadPending(): void {
     this.api.listPending().subscribe({
       next: (generations) => {
-        // El backend ya excluye las `error`; se filtran tambien aqui como
-        // red de seguridad para que la lista nunca muestre una generacion
-        // fallida (requisito "Aviso de generaciones fallidas en la
-        // interfaz": el sistema SHALL NOT mostrar esa generacion).
-        this.pending.set(generations.filter((g) => g.status !== 'error'));
+        this.applyPendingResult(generations);
         this.loadingPending.set(false);
-        this.checkTrackedGenerations();
-        this.updatePolling();
       },
       error: () => {
         this.error.set('No se han podido cargar las generaciones pendientes.');
@@ -118,37 +116,99 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Arranca o detiene el polling segun haya generaciones en curso o ids
-   * rastreados sin resolver. */
-  private updatePolling(): void {
-    const hayGenerando = this.pending().some((g) => g.status === 'generating');
+  /** Comun a `loadPending()` y a cada respuesta de la espera larga:
+   * filtra las `error` (red de seguridad, requisito "Aviso de
+   * generaciones fallidas en la interfaz": el sistema SHALL NOT mostrar
+   * esa generacion aunque el backend ya las excluye), actualiza el
+   * listado visible, resuelve las generaciones rastreadas que hayan
+   * desaparecido, y decide si hace falta seguir esperando cambios. */
+  private applyPendingResult(generations: GenerationSummary[]): void {
+    const visible = generations.filter((g) => g.status !== 'error');
+    this.pending.set(visible);
+    this.checkTrackedGenerations(visible);
+    this.updateWaitLoop(visible);
+  }
+
+  /** Tarea 4.1 (propuesta `long-polling-generaciones-pendientes`): arranca
+   * o detiene la espera larga encadenada segun haya generaciones en curso
+   * o ids rastreados sin resolver (misma condicion que el antiguo
+   * `updatePolling()`). */
+  private updateWaitLoop(visible: GenerationSummary[]): void {
+    const hayGenerando = visible.some((g) => g.status === 'generating');
     const hayRastreadas = this.tracker.list().length > 0;
-    if ((hayGenerando || hayRastreadas) && this.pollHandle === null) {
-      this.pollHandle = setInterval(() => this.loadPending(), POLL_INTERVAL_MS);
-    } else if (!hayGenerando && !hayRastreadas) {
-      this.stopPolling();
+    if (hayGenerando || hayRastreadas) {
+      this.ensureWaitLoopRunning();
+    } else {
+      this.stopWaitLoop();
     }
   }
 
-  /** Consulta `GET /generations/{id}` de cada generacion rastreada: si
-   * termino en `error`, suma un fallo al aviso y deja de rastrearla; si ya
-   * esta lista (o cerrada), simplemente deja de rastrearla (aparecera en
-   * el listado). Un id que ya no existe o falla la consulta tambien se
-   * descarta para no reintentar indefinidamente. */
-  private checkTrackedGenerations(): void {
-    const ids = this.tracker.list();
-    if (ids.length === 0) {
+  /** Si ya hay una espera larga en curso no hace nada (evita duplicar la
+   * peticion); si no, encadena la siguiente llamada a
+   * `waitForPendingChange()`. */
+  private ensureWaitLoopRunning(): void {
+    if (this.pendingWaitSubscription !== null) {
       return;
     }
-    let pendingChecks = ids.length;
+    this.pendingWaitSubscription = this.api.waitForPendingChange().subscribe({
+      next: (generations) => {
+        this.pendingWaitSubscription = null;
+        this.applyPendingResult(generations);
+      },
+      error: () => {
+        // Tarea 4.3: un fallo puntual de una espera larga (p. ej. un 429)
+        // no debe dejar la pantalla en un estado roto -- se avisa igual
+        // que hoy, pero se reintenta con el ultimo listado conocido en vez
+        // de detener el bucle.
+        this.pendingWaitSubscription = null;
+        this.error.set('No se han podido cargar las generaciones pendientes.');
+        this.updateWaitLoop(this.pending());
+      },
+    });
+  }
+
+  /** Resuelve las generaciones rastreadas sin tener que consultar
+   * `GET /generations/{id}` de todas ellas en cada ciclo (tarea 4.2):
+   * mientras una rastreada sigue visible y `generating`, no hace falta
+   * nada; si sigue visible pero ya no `generating` (`ready`), su estado
+   * ya se sabe por el propio listado y se deja de rastrear sin ninguna
+   * consulta -- SI NO se retirara aqui, se quedaria rastreada para
+   * siempre (nunca vuelve a desaparecer del listado por si misma) y
+   * `updateWaitLoop` no dejaria nunca de encadenar la espera larga. Solo
+   * las que YA NO aparecen (ni `generating` ni `ready`) necesitan la
+   * consulta puntual, para distinguir `error` (suma al aviso agregado) de
+   * otra causa de desaparicion. */
+  private checkTrackedGenerations(visible: GenerationSummary[]): void {
+    const visibleById = new Map(visible.map((g) => [g.id, g]));
+    const idsToQuery: string[] = [];
+
+    for (const id of this.tracker.list()) {
+      const match = visibleById.get(id);
+      if (match === undefined) {
+        idsToQuery.push(id);
+      } else if (match.status !== 'generating') {
+        this.tracker.remove(id);
+      }
+    }
+
+    if (idsToQuery.length === 0) {
+      return;
+    }
+
+    // `updateWaitLoop(visible)` ya se ha llamado una vez de forma eager en
+    // `applyPendingResult`, con el estado del tracker de antes de resolver
+    // estas consultas; se vuelve a llamar aqui cuando todas terminan, para
+    // que un id que se resuelve en esta misma ronda (y que era el ultimo
+    // pendiente) detenga el bucle sin esperar a otra ronda de mas.
+    let pendingChecks = idsToQuery.length;
     const onCheckDone = (): void => {
       pendingChecks -= 1;
       if (pendingChecks === 0) {
-        this.updatePolling();
+        this.updateWaitLoop(visible);
       }
     };
 
-    for (const id of ids) {
+    for (const id of idsToQuery) {
       this.api.getDetail(id).subscribe({
         next: (detail) => {
           if (this.tracker.list().includes(id)) {
@@ -174,11 +234,9 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
     this.generationFailures.set(0);
   }
 
-  private stopPolling(): void {
-    if (this.pollHandle !== null) {
-      clearInterval(this.pollHandle);
-      this.pollHandle = null;
-    }
+  private stopWaitLoop(): void {
+    this.pendingWaitSubscription?.unsubscribe();
+    this.pendingWaitSubscription = null;
   }
 
   loadSaved(): void {

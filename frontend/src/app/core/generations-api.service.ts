@@ -28,6 +28,16 @@ export class GenerationsApiService {
     return this.http.get<GenerationSummary[]>(`${environment.apiUrl}/generations`);
   }
 
+  /** `GET /generations/pending/wait` (propuesta
+   * `long-polling-generaciones-pendientes`): espera larga en el backend,
+   * que responde en cuanto cambia alguna generacion pendiente o, si no
+   * cambia nada, al cabo de un timeout acotado (~25s); en ambos casos
+   * devuelve el listado de pendientes vigente. Sustituye al sondeo cada
+   * 3s de `listPending()` mientras haya alguna generacion `generating`. */
+  waitForPendingChange(): Observable<GenerationSummary[]> {
+    return this.http.get<GenerationSummary[]>(`${environment.apiUrl}/generations/pending/wait`);
+  }
+
   start(body: StartGenerationRequest): Observable<StartGenerationResponse> {
     return this.http.post<StartGenerationResponse>(`${environment.apiUrl}/generations`, body);
   }
