@@ -40,10 +40,14 @@
               <input
                 type="search"
                 placeholder="Buscar por nombre, enunciado, tecnología o repositorio…"
-                [ngModel]="searchText()"
-                (ngModelChange)="onSearchTextChange($event)"
+                [ngModel]="searchDraft()"
+                (ngModelChange)="onSearchDraftChange($event)"
+                (keydown.enter)="buscar()"
                 class="input max-w-[360px]"
               />
+              <button type="button" (click)="buscar()" class="btn btn-secondary">
+                Buscar
+              </button>
             </div>
 
             @if (hasDeletedSelected) {

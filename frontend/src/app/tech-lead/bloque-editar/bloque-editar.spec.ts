@@ -129,4 +129,75 @@ describe('BloqueEditarComponent', () => {
     expect(component.hasDeletedSelected).toBe(false);
     expect(component.canSave).toBe(true);
   });
+
+  it('escribir en el campo de busqueda sin confirmar no recarga el listado', () => {
+    const listSaved = vi.fn().mockReturnValue(of(CATALOG_PAGE));
+    const fixture = createComponent({ listSaved });
+    listSaved.mockClear();
+
+    fixture.componentInstance.onSearchDraftChange('rebase');
+    fixture.detectChanges();
+
+    expect(listSaved).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.searchText()).toBe('');
+  });
+
+  it('confirmar la busqueda con el boton "Buscar" recarga el listado con el texto escrito', () => {
+    const listSaved = vi.fn().mockReturnValue(of(CATALOG_PAGE));
+    const fixture = createComponent({ listSaved });
+    listSaved.mockClear();
+
+    fixture.componentInstance.onSearchDraftChange('rebase');
+    fixture.componentInstance.buscar();
+    fixture.detectChanges();
+
+    expect(listSaved).toHaveBeenCalledTimes(1);
+    expect(listSaved).toHaveBeenCalledWith(expect.objectContaining({ q: 'rebase' }));
+    expect(fixture.componentInstance.searchText()).toBe('rebase');
+  });
+
+  it('confirmar la busqueda con Enter en el campo tiene el mismo efecto que el boton', () => {
+    const listSaved = vi.fn().mockReturnValue(of(CATALOG_PAGE));
+    const fixture = createComponent({ listSaved });
+    listSaved.mockClear();
+
+    const input = fixture.nativeElement.querySelector(
+      'input[type="search"]',
+    ) as HTMLInputElement;
+    input.value = 'rebase';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+
+    expect(listSaved).toHaveBeenCalledTimes(1);
+    expect(listSaved).toHaveBeenCalledWith(expect.objectContaining({ q: 'rebase' }));
+  });
+
+  it('cambiar el filtro de tipo sigue recargando el listado inmediatamente', () => {
+    const listSaved = vi.fn().mockReturnValue(of(CATALOG_PAGE));
+    const fixture = createComponent({ listSaved });
+    listSaved.mockClear();
+
+    fixture.componentInstance.onFilterTypeChange('debug');
+    fixture.detectChanges();
+
+    expect(listSaved).toHaveBeenCalledTimes(1);
+    expect(listSaved).toHaveBeenCalledWith(expect.objectContaining({ type: 'debug' }));
+  });
+
+  it('un borrador sin confirmar no se filtra al cambiar el tipo', () => {
+    const listSaved = vi.fn().mockReturnValue(of(CATALOG_PAGE));
+    const fixture = createComponent({ listSaved });
+    listSaved.mockClear();
+
+    fixture.componentInstance.onSearchDraftChange('sin confirmar');
+    fixture.componentInstance.onFilterTypeChange('debug');
+    fixture.detectChanges();
+
+    expect(listSaved).toHaveBeenCalledTimes(1);
+    expect(listSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'debug', q: undefined }),
+    );
+  });
 });
