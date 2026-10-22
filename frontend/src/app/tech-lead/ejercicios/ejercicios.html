@@ -98,8 +98,12 @@
           placeholder="Buscar por nombre o enunciado…"
           [ngModel]="searchText()"
           (ngModelChange)="onSearchTextChange($event)"
+          (keyup.enter)="buscarPorTexto()"
           class="input max-w-[320px]"
         />
+        <button type="button" (click)="buscarPorTexto()" class="btn btn-secondary">
+          Buscar
+        </button>
       </div>
 
       @if (loadingSaved()) {

@@ -278,8 +278,16 @@ export class EjerciciosComponent implements OnInit, OnDestroy {
     this.loadSaved();
   }
 
+  /** Actualiza el texto de busqueda a medida que se escribe, sin lanzar
+   * ninguna llamada a la API: la busqueda solo se dispara al pulsar el
+   * boton "Buscar" (o Intro), via `buscarPorTexto()`. */
   onSearchTextChange(value: string): void {
     this.searchText.set(value);
+  }
+
+  /** Boton/Intro del campo de busqueda por texto: dispara la busqueda con
+   * el texto actual desde la pagina 1. */
+  buscarPorTexto(): void {
     this.page.set(1);
     this.loadSaved();
   }
