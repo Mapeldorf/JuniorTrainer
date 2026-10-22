@@ -1705,6 +1705,21 @@ key, con presupuesto de 5 USD/30 días y 60 rpm por clave (§3.4), y expone una
 interfaz de administración con credenciales propias —no la master key
 (`litellm-admin-ui-credentials`)—.
 
+**Un aviso con fecha, descubierto al verificar las trazas.** El endpoint de
+lectura de trazas de Langfuse v3 (`GET /api/public/traces`) ya responde **410
+Gone** en Langfuse Cloud, y su eliminación completa está anunciada para el **16 de
+noviembre de 2026**. La lectura funciona por `GET /api/public/v2/observations`.
+Cualquier cuadro de mando o herramienta que se construya sobre la API de trazas
+tiene que apuntar ya a la v2.
+
+**Y un límite que condiciona dos de las métricas.** Los spans `guardrail` que el
+proxy escribe en Langfuse llegan **vacíos** —solo nombre y nivel—, y el proxy
+registra los *bloqueos* con todo detalle pero **enmascarar es silencioso**: no
+emite ninguna línea. Es decir, la tasa de activación de la red de redacción no es
+hoy medible ni desde las trazas ni desde los registros. Se desbloquea subiendo el
+proxy a nivel de depuración o enganchando sus *callbacks* de observabilidad, o
+emitiendo el contador desde el propio agente.
+
 **Lo que falta: el cuadro de mando y los SLO.** Los indicadores están disponibles
 en las trazas; lo que no existe es el umbral ni la acción. La tabla a completar con
 la línea base:
