@@ -25,6 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY en el .env de la raiz del repo, LiteLLM corriendo):
 import asyncio
 import logging
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -55,7 +56,9 @@ _WEB_RESULT = {
 }
 
 
-def _seed_exercise(client: httpx.Client, *, statement: str, saved: bool, deleted: bool) -> tuple[str, str]:
+def _seed_exercise(
+    client: httpx.Client, *, name: str, statement: str, saved: bool, deleted: bool
+) -> tuple[str, str]:
     """Crea una `generation` minima y un `exercise` colgando de ella.
 
     Reutiliza el primer perfil que encuentra como `created_by` (el valor
@@ -77,16 +80,25 @@ def _seed_exercise(client: httpx.Client, *, statement: str, saved: bool, deleted
         },
     ).json()[0]
 
-    exercise = client.post(
+    # `name` es NOT NULL desde la migracion 0006 (change `ejercicios-con-nombre`):
+    # sin el, el insert falla con 23502 y la siembra no llega a ocurrir.
+    # `deleted_at` se manda como marca de tiempo ISO real, no como "now()":
+    # PostgREST lo pasa como literal y Postgres no acepta 'now()' como
+    # timestamptz.
+    response = client.post(
         "/rest/v1/exercise",
         json={
             "generation_id": generation["id"],
             "type": "knowledge",
+            "name": name,
             "statement": statement,
             "saved": saved,
-            "deleted_at": "now()" if deleted else None,
+            "deleted_at": datetime.now(timezone.utc).isoformat() if deleted else None,
         },
-    ).json()[0]
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"no se pudo sembrar el ejercicio ({response.status_code}): {response.text}")
+    exercise = response.json()[0]
 
     return generation["id"], exercise["id"]
 
@@ -102,8 +114,20 @@ async def main() -> None:
     deleted_statement = f"[verify-{marker}] Explica la diferencia entre una tupla y una lista en Python."
 
     with httpx.Client(base_url=_SUPABASE_URL, headers=_HEADERS, timeout=10.0) as client:
-        gen_id_1, ex_id_1 = _seed_exercise(client, statement=saved_statement, saved=True, deleted=False)
-        gen_id_2, ex_id_2 = _seed_exercise(client, statement=deleted_statement, saved=False, deleted=True)
+        gen_id_1, ex_id_1 = _seed_exercise(
+            client,
+            name=f"[verify-{marker}] Decorador staticmethod",
+            statement=saved_statement,
+            saved=True,
+            deleted=False,
+        )
+        gen_id_2, ex_id_2 = _seed_exercise(
+            client,
+            name=f"[verify-{marker}] Tupla frente a lista",
+            statement=deleted_statement,
+            saved=False,
+            deleted=True,
+        )
         try:
             result = await generate_exercises("knowledge", 2, _WEB_RESULT, None)
         finally:
