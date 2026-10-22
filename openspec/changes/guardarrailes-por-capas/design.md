@@ -120,7 +120,11 @@ El patron exige nueve digitos que empiecen por `6`, `7`, `8` o `9` -- los digito
 
 ## Risks / Trade-offs
 
-**Falso positivo del detector de inyeccion sobre una respuesta legitima de un alumno** → Se mide la tasa de falsos positivos sobre un corpus de respuestas reales ya almacenadas *antes* de activar el bloqueo. Si la tasa no es cero, el cambio se revisa antes de activarlo: volver a modo de observacion en ese deployment es una linea de configuracion. El falso positivo que motivo `fix-falso-positivo-lakera` fue sobre rutas de repositorio, un dominio de entrada distinto al de la prosa de un alumno, pero eso es una hipotesis que hay que comprobar, no un hecho.
+**Falso positivo del detector de inyeccion sobre una respuesta legitima de un alumno** → **MEDIDO, y la hipotesis era falsa.** Sobre el corpus de 15 respuestas reales ya almacenadas, con el texto redactado -- que es lo que el detector vera en produccion--, **1 de 15 se marca** como `prompt_attack`. La respuesta marcada son 11 palabras, sin un solo termino tipico de inyeccion, con veredicto `incomplete`: un falso positivo inequivoco. Y el propio detector la clasifica como `l4_less_likely`, es decir *poco probable*, pero la politica por defecto de Lakera la bloquea igualmente (`action: enforce`).
+
+Consecuencia para la decision 9: **el bloqueo NO se activa en el evaluador ni en el revisor.** Con esa tasa, activarlo impediria corregir a aproximadamente una respuesta de cada quince, y el falso positivo que motivo `fix-falso-positivo-lakera` resulta no ser un caso aislado del dominio de las rutas de repositorio: tambien ocurre sobre prosa de alumno.
+
+El camino para activarlo existe y es concreto: la politica de Lakera se gestiona en su plataforma, no en este repositorio, y el umbral de enforcement se puede subir para que solo bloquee en niveles de confianza altos. Ajustarlo y volver a medir sobre el mismo corpus es la condicion previa, y es trabajo de otro change.
 
 **Apagar el detector en la ruta de generacion deja sin deteccion automatizada el contenido de repositorio y de web** → Los delimitadores y la frase defensiva siguen aplicandose, y ningun agente tiene herramientas de escritura: el radio de dano de una inyeccion que burle esa capa queda acotado a la calidad del resultado, que un humano revisa antes de guardar.
 

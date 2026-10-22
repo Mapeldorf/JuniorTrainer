@@ -2070,14 +2070,43 @@ abierto al reducir su alcance.
    `valid=false`— la PII llegó al proveedor y el control no está funcionando. Un
    rechazo parecería el resultado correcto y es justo el síntoma del fallo.
 
-   **Estado honesto a día de hoy.** El bloqueo de inyección está activo en el
-   validador y su respaldo. En el evaluador y el revisor —el único punto con un
-   autor que tiene incentivo adverso— **no está activado todavía**: depende de
-   medir antes la tasa de falsos positivos sobre respuestas reales, y el corpus
-   disponible son 15 respuestas, muestra demasiado pequeña para encender a ciegas
-   un control que, si se equivoca, impide corregir a un alumno. Encenderlo sin esa
-   medición sería repetir exactamente el error que costó el falso positivo de
-   Lakera.
+   **La medición se hizo, y el resultado desmontó la hipótesis.** El bloqueo de
+   inyección está activo en el validador y su respaldo. Para activarlo en el
+   evaluador y el revisor —el único punto con un autor que tiene incentivo
+   adverso— se midió primero la tasa de falsos positivos sobre las 15 respuestas
+   reales almacenadas, con el texto ya redactado, que es lo que el detector verá
+   en producción:
+
+   | | |
+   |---|---|
+   | Respuestas evaluadas | 15 |
+   | Marcadas como `prompt_attack` | **1** |
+   | Confianza que les asigna el propio detector | `l4_less_likely` (*poco probable*) |
+   | Acción de la política por defecto | `enforce` — bloquea igualmente |
+
+   La respuesta marcada son **11 palabras, sin un solo término típico de
+   inyección, con veredicto `incomplete`**: una respuesta corta y algo
+   equivocada, es decir un falso positivo inequívoco. **Así que el bloqueo no se
+   activa en el evaluador ni en el revisor**: con esa tasa impediría corregir a
+   una respuesta de cada quince.
+
+   Y la hipótesis que sostenía la decisión era falsa. Se había razonado que el
+   falso positivo de `fix-falso-positivo-lakera` pertenecía al dominio de las
+   rutas de repositorio y no se daría sobre prosa de alumno. Se da. Haberlo
+   medido antes de encenderlo es la diferencia entre un control y una avería.
+
+   El camino para activarlo es concreto y queda para otro change: la política de
+   Lakera se gestiona en su plataforma, no en este repositorio, y el umbral de
+   *enforcement* puede subirse para que solo bloquee en niveles de confianza
+   altos. Ajustarlo y volver a medir sobre el mismo corpus es la condición previa.
+
+   Un detalle que la medición dejó a la vista y que afecta a §6.6: el desglose de
+   Lakera muestra que su política evalúa **también detectores de PII**
+   (`pii/email`, `pii/iban_code`, `pii/name`…) y de moderación de contenido. Es
+   decir, Lakera no es solo un detector de inyección: es un procesador de datos
+   personales. Que la redacción ocurra ahora en el agente, **antes** del proxy,
+   significa que lo que recibe es texto ya redactado — exactamente la propiedad
+   que el refactor buscaba.
 
 3. **Protocolo.** Por cada objetivo: casos de ataque versionados, criterio
    inequívoco de éxito, ejecución registrada y clasificación del hallazgo por

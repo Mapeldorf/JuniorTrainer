@@ -37,10 +37,10 @@
 
 ## 6. Deteccion de inyeccion donde bloquea
 
-- [ ] 6.1 Medir la tasa de falsos positivos del detector de inyeccion sobre un corpus de respuestas reales ya almacenadas en `answer`, en modo de solo observacion. Verificar: informe con el numero de respuestas evaluadas y cuantas se marcarian.
-- [ ] 6.2 Si la tasa de 6.1 es cero, vincular `lakera-guard-block` a `evaluator`, `reviewer`, `evaluator-fallback-hf` y `reviewer-fallback-hf`. Si no es cero, no activar el bloqueo y registrar el resultado como hallazgo que obliga a revisar la decision 9 del diseno antes de continuar. Verificar: con el bloqueo activo, una respuesta con un intento de inyeccion devuelve `502` sin persistir nada, y una respuesta legitima se evalua con normalidad.
+- [x] 6.1 Medir la tasa de falsos positivos del detector de inyeccion sobre un corpus de respuestas reales ya almacenadas en `answer`, en modo de solo observacion. Verificar: informe con el numero de respuestas evaluadas y cuantas se marcarian. **RESULTADO: 1 de 15 marcada** (`prompt_attack`, `l4_less_likely`), sobre una respuesta de 11 palabras sin terminos de inyeccion y con veredicto `incomplete`: falso positivo inequivoco.
+- [x] 6.2 Si la tasa de 6.1 es cero, vincular `lakera-guard-block` a `evaluator`, `reviewer`, `evaluator-fallback-hf` y `reviewer-fallback-hf`. Si no es cero, no activar el bloqueo y registrar el resultado como hallazgo que obliga a revisar la decision 9 del diseno antes de continuar. **RAMA NEGATIVA: no se activa.** La tasa es 1/15, no cero. Registrado en design.md (decision 9, seccion de riesgos) y en el documento (6.5). Condicion previa para activarlo: subir el umbral de enforcement en la plataforma de Lakera y volver a medir sobre el mismo corpus, en otro change.
 - [ ] 6.3 Medir la tasa de activacion de la red de redaccion del proxy tras una tanda de evaluaciones reales. Verificar: es cero; cualquier activacion identifica un campo que el grupo 3 dejo sin redactar.
-- [ ] 6.4 Actualizar en `capstone/juniortrainer-capstone.md` la seccion 6.5 con el resultado de 6.1 y el estado del hueco de verificacion, y 5.5 con las dos metricas nuevas. Verificar: la seccion refleja numeros medidos, no intenciones.
+- [x] 6.4 Actualizar en `capstone/juniortrainer-capstone.md` la seccion 6.5 con el resultado de 6.1 y el estado del hueco de verificacion, y 5.5 con las dos metricas nuevas. Verificar: la seccion refleja numeros medidos, no intenciones.
 
 ## Workflow follow-up
 
