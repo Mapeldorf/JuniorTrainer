@@ -65,3 +65,31 @@ jobs:
       - name: Test
         if: steps.changes.outputs.frontend == 'true'
         run: npx ng test --no-watch
+
+  # Cobertura de guardarrailes del proxy (change guardarrailes-por-capas):
+  # comprobacion estatica sobre infra/litellm/config.yaml. No necesita red,
+  # modelo ni secretos, asi que puede correr en cada PR -- a diferencia de las
+  # comprobaciones verify_*.py de los agentes, que exigen el stack levantado.
+  litellm-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            litellm:
+              - 'infra/litellm/**'
+      - uses: actions/setup-python@v5
+        if: steps.changes.outputs.litellm == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        if: steps.changes.outputs.litellm == 'true'
+        run: pip install pyyaml
+      - name: Self-test de la comprobacion
+        if: steps.changes.outputs.litellm == 'true'
+        run: python infra/litellm/verify_guardrail_coverage.py --self-test
+      - name: Cobertura de guardarrailes
+        if: steps.changes.outputs.litellm == 'true'
+        run: python infra/litellm/verify_guardrail_coverage.py

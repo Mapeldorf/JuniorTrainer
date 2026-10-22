@@ -12,3 +12,8 @@ slowapi>=0.1.9,<0.2
 # Conexion directa a Postgres (change validador-duplicados-tecnologias),
 # misma version que agents/exercises/requirements.txt.
 psycopg[binary]>=3.2,<4
+
+# Cliente HTTP para consultar al detector de PII en la admision (change
+# guardarrailes-por-capas, app/pii.py). Misma version que
+# backend/requirements.txt.
+httpx>=0.27,<1

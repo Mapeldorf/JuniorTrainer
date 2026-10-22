@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     agents_validator_reader_password: str
     supabase_project_ref: str
 
+    # Presidio autoalojado (change guardarrailes-por-capas): el rechazo por
+    # dato personal se adelanta a la admision de la peticion, donde no cuesta
+    # ni un token, en vez de delegarlo a un guardarrail de bloqueo del proxy
+    # (ver app/pii.py). A diferencia de VALIDATOR_MODEL, aqui NO hay colision
+    # de nombres con la configuracion de LiteLLM: el valor es el mismo para
+    # los dos consumidores (la URL del servicio) y significa lo mismo.
+    presidio_analyzer_api_base: str = "http://presidio-analyzer:3000"
+    presidio_anonymizer_api_base: str = "http://presidio-anonymizer:3000"
+
     # Langfuse Cloud: igual que el resto de agentes (ver app/tracing.py).
     langfuse_public_key: str
     langfuse_secret_key: str

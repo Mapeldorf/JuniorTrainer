@@ -17,6 +17,32 @@ El sistema SHALL aplicar la redaccion de PII unicamente a los campos de una llam
 - **WHEN** el agente web, el de codigo o el de ejercicios realiza una llamada
 - **THEN** ningun campo de esa llamada se redacta en el agente: su contenido no lo escribe ningun usuario del sistema
 
+### Requirement: Cobertura determinista donde el detector no llega
+La redaccion del agente SHALL completar la deteccion del detector de PII con comprobaciones deterministas propias para los casos en los que este no reconoce una entidad de la politica vigente sobre texto en prosa: el telefono espanol sin prefijo internacional y el IBAN que no esta al final de la frase.
+
+#### Scenario: Telefono espanol sin prefijo internacional
+- **WHEN** la respuesta de un alumno contiene un numero de telefono espanol escrito sin prefijo (p. ej. nueve digitos seguidos, o separados por espacios, puntos o guiones)
+- **THEN** el sistema SHALL sustituirlo por su marcador generico antes de que el contenido salga del proceso del agente
+
+#### Scenario: Telefono con prefijo internacional
+- **WHEN** la respuesta de un alumno contiene un numero de telefono con prefijo internacional
+- **THEN** el sistema SHALL sustituirlo igualmente por su marcador generico
+
+#### Scenario: Una cifra que no es un telefono
+- **WHEN** la respuesta de un alumno contiene una cifra que no tiene forma de numero de telefono nacional (p. ej. un numero de menos de nueve digitos, o uno que no empieza por un digito valido de telefono espanol)
+- **THEN** el sistema SHALL dejarla tal cual
+
+#### Scenario: IBAN en medio de una frase
+- **WHEN** la respuesta de un alumno contiene un IBAN seguido de mas texto, no al final de la frase
+- **THEN** el sistema SHALL sustituirlo por su marcador generico
+
+### Requirement: Entidades solicitadas de forma explicita al detector
+La redaccion SHALL solicitar al detector de PII unicamente las entidades de la politica vigente (email, telefono, tarjeta, direccion IP e IBAN), sin delegar en su conjunto por defecto, que incluye entidades retiradas a proposito por generar falsos positivos masivos sobre contenido tecnico.
+
+#### Scenario: Contenido tecnico que el conjunto por defecto marcaria
+- **WHEN** se redacta un texto que contiene una ruta de fichero o un nombre de modulo que el conjunto de entidades por defecto del detector marcaria como nombre de persona o como URL
+- **THEN** el sistema SHALL no sustituir nada en ese texto, porque esas entidades no forman parte de la politica vigente
+
 ### Requirement: Red de seguridad de redaccion en el proxy
 El sistema SHALL aplicar la redaccion de PII, en modo de sustitucion por marcador, a las llamadas de todos los deployments del proxy de forma automatica, incluidos los que se anadan en el futuro, como red de seguridad independiente de la redaccion que aplica el agente.
 

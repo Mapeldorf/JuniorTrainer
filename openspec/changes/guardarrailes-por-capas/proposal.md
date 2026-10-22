@@ -21,6 +21,8 @@ La tesis del refactor: **el guardarrail es una propiedad del campo de texto, no 
 
 - La redaccion de PII se aplica **al montar el prompt**, y **solo sobre los campos escritos por una persona**: la respuesta del alumno en el evaluador y en el revisor. El codigo de apoyo, los resumenes de web y los fragmentos de repositorio no se redactan nunca: no los escribe ningun usuario del sistema, redactarlos no protege a nadie y corrompe contenido tecnico.
 - Como la redaccion ocurre antes de que el prompt salga del proceso, **todos** los destinatarios posteriores reciben el texto ya limpio: el detector de inyeccion, el proveedor, el proveedor de respaldo y las trazas.
+- La redaccion pide al detector **la lista explicita de entidades** (email, telefono, tarjeta, IP e IBAN). Sin lista explicita el detector devuelve ademas `PERSON` y `URL` sobre contenido tecnico -- comprobado: `src/app/core/role.guard.ts` dispara ambas-- que es exactamente lo que `quitar-url-person-presidio` elimino.
+- **Alcance ampliado sobre el hueco del telefono nacional.** Sondeando el detector se comprobo que `PHONE_NUMBER` **no reconoce un numero de telefono espanol escrito sin prefijo internacional**: `600123456` no se detecta, `+34 600 123 456` si. Es un hueco anterior a este change -- hoy la capacidad afirma redactar el telefono y un movil espanol escrito como se escribe nunca se redacta--, y afecta al campo mas sensible del sistema, el texto libre del alumno. La redaccion del agente lo cubre con una comprobacion determinista propia, en la linea del pre-filtro que ya tiene el validador.
 
 **Capa del proxy (`infra/litellm/config.yaml`)**
 

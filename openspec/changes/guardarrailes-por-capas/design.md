@@ -102,6 +102,22 @@ Un bloqueo es un fallo de la llamada, asi que sigue el comportamiento ya especif
 
 La consecuencia es que un falso positivo sobre una respuesta legitima impide corregir a ese alumno. Es el riesgo principal del cambio y se trata en la seccion siguiente.
 
+### Decision 10: la redaccion pide entidades explicitas y completa lo que el detector no cubre
+
+Dos detalles que solo aparecieron al sondear el detector antes de programar contra el, y que condicionan la implementacion:
+
+**Entidades explicitas.** La llamada al detector enumera las cinco entidades de la politica vigente. Con el conjunto por defecto, `src/app/core/role.guard.ts` dispara `PERSON` y `URL` -- comprobado--, que son precisamente las dos entidades que `quitar-url-person-presidio` retiro. Con la lista explicita, ese mismo texto no dispara nada. Delegar en el conjunto por defecto reintroduciria el fallo que dos changes anteriores se dedicaron a quitar.
+
+**Telefono nacional.** `PHONE_NUMBER` no reconoce un numero espanol sin prefijo internacional: `600123456` no se detecta, `+34 600 123 456` si. La causa es que la imagen por defecto del analizador solo trae reconocedores en ingles (una llamada con `language: es` responde `500 No matching recognizers were found`), asi que el reconocedor de telefono asume regiones estadounidenses. Para las otras cuatro entidades es inocuo, porque son expresion regular y digito de control y no dependen del idioma.
+
+La redaccion del agente anade por tanto una comprobacion determinista del telefono espanol, en la linea del pre-filtro que el validador ya tiene para el DNI -- que existe por el mismo motivo: cubrir de forma no probabilistica lo que el detector no conoce. Es alcance anadido sobre la propuesta inicial, aprobado expresamente, y cierra un hueco **anterior** a este change: hoy la capacidad afirma redactar el telefono y un movil espanol escrito como se escribe no se redacta nunca.
+
+**IBAN en prosa.** Al verificar la implementacion aparecio un segundo caso de la misma forma: el reconocedor de IBAN detecta `ES91...1332` suelto, al final de una frase o seguido de un signo de puntuacion, pero NO cuando le sigue mas texto (`... desde 2019`). A diferencia del telefono, el IBAN si figura en la politica de entidades vigente, asi que cubrirlo no es alcance anadido: es lo que hace que el requisito ya existente se cumpla de verdad. Se usa el mismo patron que el pre-filtro del validador ya aplica en produccion.
+
+**Alternativas descartadas:** (a) configurar el analizador con la region espanola, que exige anadir modelos de idioma a la imagen y convierte una deteccion determinista en una probabilistica dependiente del idioma; (b) aceptar el hueco y documentarlo, que deja sin cubrir el campo mas sensible del sistema por el coste de una expresion regular.
+
+El patron exige nueve digitos que empiecen por `6`, `7`, `8` o `9` -- los digitos iniciales validos en Espana-- con separadores opcionales y sin digitos pegados a los extremos. Acotarlo asi evita marcar cualquier cifra larga que aparezca en la prosa de un alumno. El codigo de apoyo no se redacta nunca (decision 2), asi que una constante numerica del codigo no se ve afectada.
+
 ## Risks / Trade-offs
 
 **Falso positivo del detector de inyeccion sobre una respuesta legitima de un alumno** → Se mide la tasa de falsos positivos sobre un corpus de respuestas reales ya almacenadas *antes* de activar el bloqueo. Si la tasa no es cero, el cambio se revisa antes de activarlo: volver a modo de observacion en ese deployment es una linea de configuracion. El falso positivo que motivo `fix-falso-positivo-lakera` fue sobre rutas de repositorio, un dominio de entrada distinto al de la prosa de un alumno, pero eso es una hipotesis que hay que comprobar, no un hecho.

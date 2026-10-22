@@ -19,6 +19,7 @@ import logging
 
 from app.llm import build_reviewer_model
 from app.models import ReviewResult
+from app.redaction import redact
 from app.tracing import litellm_trace_metadata
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,13 @@ async def review_justification(
     trace_id: str | None = None,
 ) -> ReviewResult:
     model = build_reviewer_model()
+
+    # Redaccion de datos personales (change `guardarrailes-por-capas`): solo
+    # `student_answer`, el unico campo de esta llamada escrito por una
+    # persona. La `justification` que llega del evaluador la genera un modelo,
+    # no una persona, y el enunciado lo deriva el sistema: redactarlos no
+    # aporta privacidad (ver app/redaction.py).
+    student_answer = await redact(student_answer)
 
     human_prompt = (
         f"### Enunciado\n{statement}\n\n"

@@ -54,15 +54,25 @@ model_list:
       model: huggingface/deepseek-ai/DeepSeek-V4.1-Flash
       api_key: os.environ/HF_TOKEN
 
+  # Los guardarrailes se resuelven POR DEPLOYMENT, y un fallback es un
+  # deployment distinto del de su primario: vincular `presidio-pii` a
+  # `evaluator`/`reviewer` no lo vinculaba aqui, asi que una llamada desviada
+  # al proveedor de respaldo salia SIN redactar (change
+  # `guardarrailes-por-capas`, tarea 2.1). Como el fallback solo entra en
+  # juego cuando el proveedor principal falla, el hueco no era visible en uso
+  # normal. La invariante la comprueba ahora
+  # `infra/litellm/verify_guardrail_coverage.py`, en CI.
   - model_name: evaluator-fallback-hf
     litellm_params:
       model: huggingface/deepseek-ai/DeepSeek-V4.1-Flash
       api_key: os.environ/HF_TOKEN
+      guardrails: ["presidio-pii"]
 
   - model_name: reviewer-fallback-hf
     litellm_params:
       model: huggingface/zai-org/GLM-5.3-Flash
       api_key: os.environ/HF_TOKEN
+      guardrails: ["presidio-pii"]
 
   # Fallback del validador: MISMO modelo open-weight que el primario, pero
   # servido por otro proveedor (Hugging Face), para que el fallback siga

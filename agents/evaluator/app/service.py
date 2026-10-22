@@ -20,6 +20,7 @@ import logging
 
 from app.llm import build_evaluator_model
 from app.models import EvaluationResult
+from app.redaction import redact
 from app.tracing import litellm_trace_metadata
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,16 @@ async def evaluate_answer(
     trace_id: str | None = None,
 ) -> EvaluationResult:
     model = build_evaluator_model()
+
+    # Redaccion de datos personales (change `guardarrailes-por-capas`): se
+    # aplica AQUI y SOLO a `student_answer`, que es el unico campo de esta
+    # llamada que escribe una persona. El enunciado, el codigo de apoyo y la
+    # respuesta esperada los deriva el sistema del repositorio o del catalogo,
+    # asi que redactarlos no aporta privacidad y corrompe contenido tecnico
+    # (ver app/redaction.py). Hacerlo antes de montar el prompt garantiza que
+    # ningun destinatario posterior reciba el dato en claro, incluido el
+    # detector de inyeccion del proxy y el proveedor de respaldo.
+    student_answer = await redact(student_answer)
 
     blocks = [f"### Enunciado\n{statement}"]
     if code:
