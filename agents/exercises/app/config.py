@@ -40,16 +40,16 @@ class Settings(BaseSettings):
     litellm_base_url: str = "http://litellm:4000/v1"
     agent_exercises_litellm_key: str
 
-    # Conexion directa a Postgres: agents_memory (esquema `memory`, memoria
-    # larga de enunciados ya propuestos, tarea 5.4) y agents_exercise_reader
-    # (solo SELECT sobre public.exercise, tarea 5.2) -- dos roles distintos,
-    # ver infra/supabase/migrations/0003_agents_memory.sql y design.md
-    # "Contrato de entrada/salida del agente de ejercicios". El pooler de
-    # Supabase exige el project ref como sufijo del usuario en ambos casos.
+    # Conexion directa a Postgres: agents_exercise_reader (solo SELECT sobre
+    # public.exercise, tarea 5.2), ver infra/supabase/migrations/0003_agents_memory.sql
+    # y design.md "Contrato de entrada/salida del agente de ejercicios". El
+    # pooler de Supabase exige el project ref como sufijo del usuario.
+    # Sin agents_memory_password (change eliminar-memoria-agente-ejercicios):
+    # este agente ya no tiene memoria propia; ese rol sigue en uso por los
+    # agentes web y de codigo, en su propia copia de Settings.
     agents_pg_host: str
     agents_pg_port: int = 5432
     agents_pg_database: str = "postgres"
-    agents_memory_password: str
     agents_exercise_reader_password: str
     supabase_project_ref: str
 

@@ -4,7 +4,8 @@ Progresion por tarea (ver tasks.md del change `generacion-ejercicios-agentes`):
   - 5.1: scaffold -- validaba la entrada y respondia con un eco.
   - 5.2: search_saved_exercises (ver app/tools/saved_exercises.py).
   - 5.3: decision y redaccion real via app/service.py.
-  - 5.4: memoria larga propia (ver app/memory.py).
+  - 5.4 (memoria larga propia, eliminada por el change
+    `eliminar-memoria-agente-ejercicios`: ver app/service.py).
   - 5.5 (este fichero, ahora): `trace_id` de Langfuse (ver
     app/tracing.py), igual que en los otros dos agentes.
 """

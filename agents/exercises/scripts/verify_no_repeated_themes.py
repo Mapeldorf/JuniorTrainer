@@ -1,29 +1,48 @@
-"""Verificacion manual de la tarea 5.4: una segunda generacion del mismo
-tipo no repite el tema de un enunciado ya propuesto (requisito "El agente
-de ejercicios no repite temas ya propuestos").
+"""Verificacion manual del requisito "El agente de ejercicios no repite
+temas ya propuestos" tras el change `eliminar-memoria-agente-ejercicios`.
 
-El mecanismo (historial leido, incluido en el prompt, y escrito tras
-generar) ya esta autoverificado contra Postgres real sin necesitar el
-modelo (ver tasks.md 5.4). Lo que SOLO se puede comprobar con una llamada
-real es que el modelo de verdad evita el tema, no solo que el prompt se lo
-pida -- para eso es este script: lanza dos generaciones seguidas del
-mismo tipo (un tipo nuevo, unico por ejecucion, para no arrastrar
-historial de ejecuciones anteriores) y imprime los enunciados de ambas
-para que los compares a ojo.
+El mecanismo ya no es una memoria propia del agente (eliminada): ahora
+`search_saved_exercises` (ver app/tools/saved_exercises.py) es la UNICA
+fuente de "enunciados a evitar", leyendo directamente `public.exercise`
+(guardados y eliminados). Este script siembra un ejercicio guardado y
+otro eliminado directamente en esa tabla (via la API REST de Supabase
+con la service_role key, igual que lo haria el backend real), lanza una
+generacion real y comprueba que `memory_hit` es `true` y que los
+enunciados generados aparecen impresos para compararlos a ojo contra los
+sembrados (no se puede verificar en codigo que el modelo evita el TEMA,
+solo que el prompt recibio la instruccion).
+
+La siembra y la limpieza usan SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY del
+.env de la raiz del repo (no son credenciales del agente: el agente
+sigue usando solo el rol de solo lectura `agents_exercise_reader`).
 
 Uso (desde agents/exercises/, con AGENT_EXERCISES_LITELLM_KEY/AGENTS_PG_*/
-AGENTS_EXERCISE_READER_PASSWORD/SUPABASE_PROJECT_REF en el .env de la
-raiz del repo, LiteLLM corriendo):
+AGENTS_EXERCISE_READER_PASSWORD/SUPABASE_PROJECT_REF/SUPABASE_URL/
+SUPABASE_SERVICE_ROLE_KEY en el .env de la raiz del repo, LiteLLM corriendo):
     python -m scripts.verify_no_repeated_themes
 """
 
 import asyncio
 import logging
 import uuid
+from pathlib import Path
+
+import httpx
+from dotenv import dotenv_values
 
 from app.service import generate_exercises
 
 logging.basicConfig(level=logging.INFO)
+
+_ENV = dotenv_values(Path(__file__).resolve().parent.parent.parent.parent / ".env")
+_SUPABASE_URL = _ENV["SUPABASE_URL"]
+_SERVICE_ROLE_KEY = _ENV["SUPABASE_SERVICE_ROLE_KEY"]
+_HEADERS = {
+    "apikey": _SERVICE_ROLE_KEY,
+    "Authorization": f"Bearer {_SERVICE_ROLE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation",
+}
 
 _WEB_RESULT = {
     "summary": (
@@ -36,27 +55,73 @@ _WEB_RESULT = {
 }
 
 
+def _seed_exercise(client: httpx.Client, *, statement: str, saved: bool, deleted: bool) -> tuple[str, str]:
+    """Crea una `generation` minima y un `exercise` colgando de ella.
+
+    Reutiliza el primer perfil que encuentra como `created_by` (el valor
+    no importa para este requisito, solo que sea un id valido). Devuelve
+    `(generation_id, exercise_id)` para poder limpiarlos despues.
+    """
+    profile = client.get("/rest/v1/profile?select=id&limit=1").json()
+    if not profile:
+        raise RuntimeError("no hay ningun profile en la base de datos para usar como created_by")
+    created_by = profile[0]["id"]
+
+    generation = client.post(
+        "/rest/v1/generation",
+        json={
+            "technologies": "Python",
+            "kind": "knowledge",
+            "status": "ready",
+            "created_by": created_by,
+        },
+    ).json()[0]
+
+    exercise = client.post(
+        "/rest/v1/exercise",
+        json={
+            "generation_id": generation["id"],
+            "type": "knowledge",
+            "statement": statement,
+            "saved": saved,
+            "deleted_at": "now()" if deleted else None,
+        },
+    ).json()[0]
+
+    return generation["id"], exercise["id"]
+
+
+def _delete_seed(client: httpx.Client, generation_id: str, exercise_id: str) -> None:
+    client.delete(f"/rest/v1/exercise?id=eq.{exercise_id}")
+    client.delete(f"/rest/v1/generation?id=eq.{generation_id}")
+
+
 async def main() -> None:
-    exercise_type = f"debug-verify-{uuid.uuid4().hex[:8]}"
+    marker = uuid.uuid4().hex[:8]
+    saved_statement = f"[verify-{marker}] Explica que hace el decorador @staticmethod en una clase Python."
+    deleted_statement = f"[verify-{marker}] Explica la diferencia entre una tupla y una lista en Python."
 
-    result1 = await generate_exercises(exercise_type, 2, _WEB_RESULT, None)
-    print(f"1a generacion: memory_hit={result1.memory_hit}")
-    for c in result1.candidates:
+    with httpx.Client(base_url=_SUPABASE_URL, headers=_HEADERS, timeout=10.0) as client:
+        gen_id_1, ex_id_1 = _seed_exercise(client, statement=saved_statement, saved=True, deleted=False)
+        gen_id_2, ex_id_2 = _seed_exercise(client, statement=deleted_statement, saved=False, deleted=True)
+        try:
+            result = await generate_exercises("knowledge", 2, _WEB_RESULT, None)
+        finally:
+            _delete_seed(client, gen_id_1, ex_id_1)
+            _delete_seed(client, gen_id_2, ex_id_2)
+
+    print(f"memory_hit={result.memory_hit}")
+    for c in result.candidates:
         print(f"  - {c.statement}")
 
-    result2 = await generate_exercises(exercise_type, 2, _WEB_RESULT, None)
-    print(f"\n2a generacion: memory_hit={result2.memory_hit}")
-    for c in result2.candidates:
-        print(f"  - {c.statement}")
-
-    assert result1.memory_hit is False, "la primera generacion de un tipo nuevo no deberia tener historial"
-    assert result2.memory_hit is True, "la segunda deberia ver el historial de la primera"
+    assert result.memory_hit is True, "deberia haber encontrado el ejercicio guardado y/o el eliminado"
 
     print()
+    print(f"Enunciado guardado sembrado:   {saved_statement!r}")
+    print(f"Enunciado eliminado sembrado:  {deleted_statement!r}")
     print(
-        "OK (mecanico): memory_hit paso de false a true. Revisa a ojo los "
-        "enunciados de arriba: los de la 2a generacion NO deberian tratar "
-        "el mismo tema que los de la 1a (aunque usen otras palabras)."
+        "OK (mecanico): memory_hit=true. Revisa a ojo los enunciados de arriba: "
+        "ninguno deberia tratar el mismo tema que los dos sembrados (aunque usen otras palabras)."
     )
 
 

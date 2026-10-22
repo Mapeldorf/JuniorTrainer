@@ -1,10 +1,11 @@
 """Herramienta `search_saved_exercises` del agente de ejercicios.
 
-Requisito de `specs/agent-memory/spec.md`: un ejercicio no guardado o
-eliminado nunca debe aparecer en el resultado. Conexion directa de solo
-lectura con el rol `agents_exercise_reader` (ver app/db.py y
-`infra/supabase/migrations/0003_agents_memory.sql`), hasta 3 consultas
-por tarea, hasta 10 resultados cada una.
+Requisito de `specs/agent-memory/spec.md`: el agente de ejercicios no
+repite el tema de ninguno de los 200 ejercicios mas recientes de ese tipo
+que estan guardados (`saved = true`) o eliminados (`deleted_at` no nulo).
+Conexion directa de solo lectura con el rol `agents_exercise_reader` (ver
+app/db.py y `infra/supabase/migrations/0003_agents_memory.sql`), hasta 3
+consultas por tarea, hasta 200 resultados cada una.
 
 Decision de diseno (ver design.md "Contrato de entrada/salida del agente
 de ejercicios"): la implementacion inicial hace una unica consulta por
@@ -12,6 +13,14 @@ tarea (filtrada por `exercise_type`), pero el budget se deja en 3 (el
 techo que pide la spec) para que una futura consulta adicional (p. ej.
 una por tecnologia relevante) no tenga que cambiar el contrato de
 `SearchBudget`.
+
+Change `eliminar-memoria-agente-ejercicios` (ver design.md, decisiones
+"Ampliar `search_saved_exercises`..." y "Subir el `limit` de 10 a 200"):
+esta consulta pasa a ser la UNICA fuente de "enunciados a evitar" (se
+elimina la memoria propia sin TTL del agente, antes en app/memory.py),
+por eso ya no se limita a `saved = true and deleted_at is null`: incluye
+tambien los ejercicios eliminados, para no perder esa cobertura al
+quitar la memoria propia.
 """
 
 from dataclasses import dataclass, field
@@ -52,8 +61,7 @@ _QUERY = """
     select statement, code, expected_answer
     from public.exercise
     where type = %(exercise_type)s
-      and saved = true
-      and deleted_at is null
+      and (saved = true or deleted_at is not null)
     order by created_at desc
     limit %(limit)s
 """
@@ -63,9 +71,9 @@ async def search_saved_exercises(
     conn_string: str,
     exercise_type: str,
     budget: SearchBudget,
-    limit: int = 10,
+    limit: int = 200,
 ) -> list[SavedExercise]:
-    """Consulta hasta `limit` ejercicios ya guardados del tipo pedido.
+    """Consulta hasta `limit` ejercicios guardados o eliminados del tipo pedido.
 
     Descuenta una consulta de `budget` ANTES de conectar, mismo criterio
     que `SearchBudget` del agente web: un budget agotado no hace ninguna
