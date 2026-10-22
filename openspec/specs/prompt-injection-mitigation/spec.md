@@ -27,25 +27,32 @@ El agente web SHALL insertar el `title` y el `snippet` de cada resultado de busq
 - **WHEN** el `title` o el `snippet` de un resultado de Tavily contienen una frase que parece una instruccion dirigida al modelo
 - **THEN** el modelo no cambia su comportamiento de resumen por ese texto, y el resultado no refleja haber seguido esa instruccion
 
-### Requirement: Deteccion automatizada de prompt injection en el proxy
-El sistema SHALL ejecutar una comprobacion automatizada de prompt injection (Lakera Guard) sobre el input de toda llamada de los agentes al proxy LiteLLM, antes de invocar al proveedor subyacente, independientemente de si el agente la solicita explicitamente. Para los agentes web, de codigo, de ejercicios, evaluador y revisor, la comprobacion SHALL ser de solo observacion: SHALL registrar el resultado de la deteccion y SHALL NOT bloquear ni rechazar la llamada por ese resultado. Para el agente validador de tecnologias, la comprobacion SHALL bloquear la llamada cuando detecte un intento de prompt injection.
+### Requirement: Bloqueo automatizado de prompt injection donde el autor tiene incentivo adverso
+El sistema SHALL ejecutar una comprobacion automatizada de prompt injection sobre el input de toda llamada de los agentes evaluador, revisor y validador al proxy, tanto hacia su modelo principal como hacia su modelo de respaldo, antes de invocar al proveedor subyacente, y SHALL rechazar la llamada cuando detecte un intento.
 
 #### Scenario: Input sin intento de prompt injection
-- **WHEN** un agente envia una llamada cuyo input no contiene ningun intento de prompt injection
+- **WHEN** el evaluador, el revisor o el validador envia una llamada cuyo input no contiene ningun intento de prompt injection
 - **THEN** la comprobacion lo deja pasar y la llamada al proveedor subyacente se realiza con normalidad
 
-#### Scenario: Input con un intento de prompt injection detectable
-- **WHEN** el input de una llamada de un agente de solo observacion contiene un intento de prompt injection que el detector reconoce
-- **THEN** el sistema registra la deteccion y la llamada al proveedor subyacente se realiza igualmente, sin bloquearla
+#### Scenario: Intento de prompt injection en la respuesta de un alumno
+- **WHEN** el input de una llamada del evaluador o del revisor contiene un intento de prompt injection que el detector reconoce
+- **THEN** la comprobacion SHALL bloquear la llamada, la evaluacion falla y no se persiste ninguna respuesta
 
-#### Scenario: Falso positivo sobre contenido benigno
-- **WHEN** el detector marca como prompt injection contenido que no lo es (p. ej. una ruta o un nombre de fichero que contiene la palabra "role") en una llamada de un agente de solo observacion
-- **THEN** la llamada no se bloquea y la tarea del agente continua con normalidad
-
-#### Scenario: Input con un intento de prompt injection detectable en el validador
+#### Scenario: Intento de prompt injection en el validador
 - **WHEN** el input de una llamada del agente validador contiene un intento de prompt injection que el detector reconoce
 - **THEN** la comprobacion SHALL bloquear la llamada y la generacion queda en estado de error
 
-#### Scenario: Input limpio en el validador
-- **WHEN** el input de una llamada del agente validador no contiene ningun intento de prompt injection
-- **THEN** la comprobacion lo deja pasar y la llamada al proveedor subyacente se realiza con normalidad
+#### Scenario: La comprobacion cubre tambien el modelo de respaldo
+- **WHEN** la llamada de uno de esos agentes se dirige a su modelo de respaldo tras un fallo del principal
+- **THEN** la comprobacion se aplica igualmente antes de invocar al proveedor de respaldo
+
+### Requirement: La ruta de generacion no pasa por la comprobacion automatizada
+El sistema SHALL NOT ejecutar la comprobacion automatizada de prompt injection sobre las llamadas de los agentes web, de codigo y de ejercicios, cuyo contenido de entrada procede de terceros o de un repositorio y no de un autor con incentivo para manipular al modelo.
+
+#### Scenario: Contenido benigno de repositorio
+- **WHEN** el agente de codigo procesa contenido que un detector de prompt injection marcaria como falso positivo (p. ej. una ruta o un nombre de fichero que contiene la palabra "role")
+- **THEN** ese contenido no pasa por la comprobacion automatizada y la tarea del agente continua con normalidad, sin que un falso positivo pueda interrumpirla
+
+#### Scenario: Un intento de inyeccion desde un repositorio o una pagina web
+- **WHEN** el contenido de un repositorio o de un resultado de busqueda contiene un intento de manipular al modelo
+- **THEN** la mitigacion aplicable es la delimitacion de ese contenido como dato y la ausencia de herramientas de escritura en el agente, que acotan el efecto a la calidad del resultado
