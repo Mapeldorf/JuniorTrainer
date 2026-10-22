@@ -282,7 +282,7 @@ describe('EjerciciosComponent', () => {
     });
   });
 
-  it('onFilterTypeChange y onSearchTextChange llaman a listSaved desde la pagina 1 con los filtros', () => {
+  it('onFilterTypeChange llama a listSaved desde la pagina 1 con los filtros', () => {
     const listSaved = vi.fn().mockReturnValue(of(pageResponse([])));
     const fixture = createComponent({ listSaved });
     const component = fixture.componentInstance;
@@ -295,8 +295,27 @@ describe('EjerciciosComponent', () => {
       page: 1,
       page_size: 10,
     });
+  });
+
+  it('onSearchTextChange solo actualiza el texto, sin llamar a listSaved', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([])));
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+    listSaved.mockClear();
 
     component.onSearchTextChange('rebase');
+    expect(listSaved).not.toHaveBeenCalled();
+  });
+
+  it('buscarPorTexto llama a listSaved desde la pagina 1 con el texto escrito', () => {
+    const listSaved = vi.fn().mockReturnValue(of(pageResponse([])));
+    const fixture = createComponent({ listSaved });
+    const component = fixture.componentInstance;
+    component.onFilterTypeChange('knowledge');
+    listSaved.mockClear();
+
+    component.onSearchTextChange('rebase');
+    component.buscarPorTexto();
     expect(listSaved).toHaveBeenCalledWith({
       type: 'knowledge',
       q: 'rebase',
