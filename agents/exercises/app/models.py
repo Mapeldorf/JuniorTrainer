@@ -1,4 +1,4 @@
-"""Dataclasses compartidas por `app/service.py`, `app/memory.py` y
+"""Dataclasses compartidas por `app/service.py` y
 `app/tools/saved_exercises.py` -- en un modulo hoja aparte para evitar
 import circular, mismo motivo que `app/models.py` del agente de codigo.
 
@@ -34,8 +34,8 @@ class CandidateExercise:
 @dataclass
 class ExerciseGenerationResult:
     candidates: list[CandidateExercise] = field(default_factory=list)
-    # Informativo/trazabilidad (ver design.md): True si se uso algun
-    # enunciado previo (guardado y/o propuesto antes) al redactar los
-    # candidatos. A diferencia de web/codigo, nunca salta el trabajo
-    # entero -- cada generacion redacta candidatos nuevos siempre.
+    # Informativo/trazabilidad (ver design.md): True si habia algun
+    # ejercicio guardado o eliminado de ese tipo (search_saved_exercises)
+    # al redactar los candidatos. A diferencia de web/codigo, nunca salta
+    # el trabajo entero -- cada generacion redacta candidatos nuevos siempre.
     memory_hit: bool = False
