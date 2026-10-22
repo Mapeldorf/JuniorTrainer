@@ -33,7 +33,7 @@ Lo que se ha construido, en cifras:
 | Servicios en ejecución | **12** contenedores |
 | Capacidades especificadas formalmente | **26** |
 | Cambios propuestos, implementados y archivados | **51** |
-| Commits | **251** |
+| Commits | **270** |
 | Controles de seguridad implementados | **25** |
 
 Tres decisiones articulan el sistema y se defienden a lo largo del documento:
@@ -819,8 +819,18 @@ El trabajo a ejecutar, en orden:
 1. **Unidad de coste.** Medir tokens de entrada y salida por cada una de las
    cuatro operaciones del sistema: generación con repositorio, generación sin
    repositorio, evaluación de una respuesta y validación de una tecnología.
-   Langfuse ya registra coste, tokens y modelo por llamada, así que la medición es
-   una consulta, no una instrumentación nueva.
+   **Y aquí hay una corrección respecto al plan inicial.** Se daba por hecho que
+   Langfuse registraba coste, tokens y modelo por llamada, de modo que la medición
+   sería una consulta y no una instrumentación. **No por su API:** las
+   observaciones que devuelve `GET /api/public/v2/observations` traen
+   `inputPrice`, `outputPrice`, `totalPrice` y `modelId` a nulo, y ningún campo de
+   tokens. Es coherente con que los modelos se sirvan vía OpenRouter con nombres
+   que no están en su tabla de precios. La interfaz de Langfuse puede mostrarlos,
+   pero el dato para construir estas tablas hay que sacarlo de otro sitio: del
+   propio consumo que LiteLLM acumula por *virtual key* en su Postgres, que es
+   quien de verdad lleva la contabilidad (§3.4), o instrumentando el recuento en
+   el agente. Averiguarlo antes de escribir la sección evita construirla sobre un
+   supuesto falso.
 2. **Tabla de coste por operación** al precio vigente de cada modelo, desglosada
    por llamada para que se vea qué etapa domina el coste.
 3. **Tres niveles de uso** con supuestos explícitos: *piloto* (1 tech lead, 5
@@ -1514,6 +1524,14 @@ lo que no cambió:
 |---|---|
 | `backend` | Instala dependencias y comprueba que `app.main` importa, con variables de entorno de relleno |
 | `frontend` | `npm ci`, `ng build` y `ng test --no-watch` (29 ficheros de especificación) |
+| `litellm-guardrails` | Comprobación estática de `infra/litellm/config.yaml`: que todo deployment de respaldo lleva al menos los guardarraíles de su primario y que existe una redacción de PII activa de forma global, más sus propios casos sintéticos |
+
+El tercero es nuevo (change `guardarrailes-por-capas`) y es el **primer control de
+`infra/` que entra en el CI**: hasta entonces ningún cambio en `infra/` ni en
+`agents/` disparaba nada. No necesita red, modelo ni credenciales, así que corre en
+cada *pull request* que toque ese directorio. Nació, además, reproduciendo un fallo
+real: ejecutado contra la configuración sin arreglar, nombraba los dos deployments
+de respaldo que se habían quedado sin guardarraíles.
 
 **Lo que falta, y es el criterio explícito que separa un proyecto evaluable de uno
 consumible por terceros.** El CI actual verifica que el backend arranca; no verifica
@@ -2596,8 +2614,9 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 16 oct | `ocultar-generaciones-error`, `presidio-solo-evaluador-revisor`, `validacion-tecnologias-agente-juez` |
 | 17 oct | `catalogo-tecnologias`, `detalle-ejercicio-guardado`, `eliminar-generaciones-por-revisar`, `generacion-tecnologias`, `paginacion-ejercicios-guardados` |
 | 20 oct | `busqueda-manual-bloques`, `eliminar-memoria-corta-agente-web`, `long-polling-generaciones-pendientes`, `reintento-sesion-caducada-frontend`, `validador-contexto-generacion`, `validador-duplicados-tecnologias` |
+| 22 oct | `guardarrailes-por-capas` |
 
-Dos lecturas de esta tabla. La primera: **doce de los 51 cambios son de seguridad**
+Dos lecturas de esta tabla. La primera: **trece de los 51 cambios son de seguridad**
 (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y están
 concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
@@ -2605,6 +2624,14 @@ decisión anterior (`fix-falso-positivo-lakera`,
 `fix-agent-model-env-collision`, `quitar-url-person-presidio`,
 `presidio-solo-evaluador-revisor`), y los cuatro están en §7. El historial no se ha
 limpiado.
+
+Y una tercera, que el último cambio añade: `guardarrailes-por-capas` no corrige un
+valor ni un parámetro, sino **el sitio donde se tomaban las decisiones**. Eliminó
+dos de los cuatro guardarraíles del proxy y un mecanismo —la exclusión del
+guardarraíl global— que este mismo documento había descrito, apenas un día antes,
+como la sutileza más fina del sistema. Esa es la forma que tiene un proyecto de
+madurar: no añadiendo controles, sino descubriendo que uno de ellos existía solo
+para compensar a otro.
 
 ## Anexo D — Migraciones de base de datos
 
