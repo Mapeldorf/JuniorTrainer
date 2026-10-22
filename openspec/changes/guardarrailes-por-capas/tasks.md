@@ -23,12 +23,12 @@
 
 ## 4. Admision del validador
 
-- [ ] 4.1 Consultar a Presidio en `agents/validator/app/input.py` y rechazar la peticion si detecta PII, antes de invocar al modelo, manteniendo el pre-filtro de regex existente. Verificar: test que confirma rechazo con un numero de tarjeta y con una IP (los dos vectores que atraviesan el regex) y aceptacion con tecnologias reales.
-- [ ] 4.2 Ampliar `agents/validator/scripts/verify_validator.py` con el rechazo en admision por PII. Verificar: el script pasa con el stack levantado.
+- [x] 4.1 Consultar a Presidio en `agents/validator/app/input.py` y rechazar la peticion si detecta PII, antes de invocar al modelo, manteniendo el pre-filtro de regex existente. Verificar: test que confirma rechazo con un numero de tarjeta y con una IP (los dos vectores que atraviesan el regex) y aceptacion con tecnologias reales.
+- [x] 4.2 Ampliar `agents/validator/scripts/verify_validator.py` con el rechazo en admision por PII. Verificar: el script pasa con el stack levantado.
 
 ## 5. Simplificacion del proxy
 
-- [ ] 5.1 En `infra/litellm/config.yaml`: pasar `presidio-pii` a `default_on: true`, eliminar el guardarrail global `lakera-guard` y el de bloqueo `presidio-pii-block`, dejar `lakera-guard-block` vinculado solo al deployment `validator` y a `validator-fallback-hf`, y corregir su comentario, que afirma una doble llamada a Lakera que el opt-out ya habia eliminado. Verificar: `verify_guardrail_coverage.py` pasa por completo, y `docker compose up litellm` arranca sin error de configuracion.
+- [x] 5.1 En `infra/litellm/config.yaml`: pasar `presidio-pii` a `default_on: true`, eliminar el guardarrail global `lakera-guard` y el de bloqueo `presidio-pii-block`, dejar `lakera-guard-block` vinculado solo al deployment `validator` y a `validator-fallback-hf`, y corregir su comentario, que afirma una doble llamada a Lakera que el opt-out ya habia eliminado. Verificar: `verify_guardrail_coverage.py` pasa por completo, y `docker compose up litellm` arranca sin error de configuracion.
 - [ ] 5.2 Eliminar `_AGENT_KEY_METADATA` y su reparacion en `_missing_fields` de `infra/litellm/provision_keys.py`. Verificar: re-ejecutar el script sobre las keys existentes no las modifica ni vuelve a aplicar la metadata, y las seis siguen funcionando.
 - [ ] 5.3 Eliminar `agents/validator/scripts/verify_guardrail_optout.py`. Verificar: no queda ninguna referencia a el en el repositorio.
 - [ ] 5.4 Comprobar que la red del proxy no interfiere: con la redaccion del agente operativa, una evaluacion con PII en la respuesta se completa y la red de Presidio del proxy no sustituye nada. Verificar: la traza muestra el texto ya redactado por el agente.

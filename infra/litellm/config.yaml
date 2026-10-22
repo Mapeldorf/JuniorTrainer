@@ -14,24 +14,29 @@ model_list:
       model: os.environ/GENERATOR_MODEL
       api_key: os.environ/GENERATOR_API_KEY
 
-  # Redaccion de PII (change presidio-solo-evaluador-revisor): solo el
-  # evaluador y el revisor reciben texto escrito por el alumno, asi que el
-  # guardrail presidio-pii (default_on: false, mas abajo) se vincula aqui.
-  # LiteLLM resuelve los guardrails a nivel de modelo en el pipeline previo
-  # a la llamada (check_and_merge_model_level_guardrails); como evaluator y
-  # reviewer tienen alias propio, distinto de generator, web/codigo/
-  # ejercicios quedan fuera sin tocar virtual keys ni el codigo de los agentes.
+  # Evaluador y revisor ya no vinculan la redaccion de PII aqui (change
+  # `guardarrailes-por-capas`). La redaccion la hace ahora el propio agente al
+  # montar el prompt, sobre el UNICO campo que escribe una persona -- la
+  # respuesta del alumno--, porque el proxy recibe el prompt como una cadena
+  # plana y no puede distinguir ese campo del codigo de apoyo. De ahi venian
+  # los falsos positivos que `quitar-url-person-presidio` y
+  # `presidio-solo-evaluador-revisor` tuvieron que contener recortando
+  # entidades y agentes.
+  #
+  # `presidio-pii` sigue existiendo mas abajo como RED DE SEGURIDAD, ahora con
+  # default_on: true, de modo que cualquier deployment -- presente o futuro--
+  # nazca con redaccion sin que nadie tenga que acordarse de vincularla. Con la
+  # redaccion del agente operativa, esa red no deberia sustituir nada nunca:
+  # su tasa de activacion es la alarma de que un agente dejo de redactar.
   - model_name: evaluator
     litellm_params:
       model: os.environ/EVALUATOR_MODEL
       api_key: os.environ/EVALUATOR_API_KEY
-      guardrails: ["presidio-pii"]
 
   - model_name: reviewer
     litellm_params:
       model: os.environ/REVIEWER_MODEL
       api_key: os.environ/REVIEWER_API_KEY
-      guardrails: ["presidio-pii"]
 
   # Agente validador de tecnologias (change validacion-tecnologias-agente-juez):
   # el juez que decide si las tecnologias de una generacion son tecnologias
@@ -42,7 +47,7 @@ model_list:
     litellm_params:
       model: os.environ/VALIDATOR_MODEL
       api_key: os.environ/VALIDATOR_API_KEY
-      guardrails: ["presidio-pii-block", "lakera-guard-block"]
+      guardrails: ["lakera-guard-block"]
 
   # Fallback automatico a Hugging Face Inference Providers (propuesta
   # litellm-huggingface-fallback), si el modelo principal falla. Mismos
@@ -54,25 +59,23 @@ model_list:
       model: huggingface/deepseek-ai/DeepSeek-V4.1-Flash
       api_key: os.environ/HF_TOKEN
 
-  # Los guardarrailes se resuelven POR DEPLOYMENT, y un fallback es un
-  # deployment distinto del de su primario: vincular `presidio-pii` a
-  # `evaluator`/`reviewer` no lo vinculaba aqui, asi que una llamada desviada
-  # al proveedor de respaldo salia SIN redactar (change
-  # `guardarrailes-por-capas`, tarea 2.1). Como el fallback solo entra en
-  # juego cuando el proveedor principal falla, el hueco no era visible en uso
-  # normal. La invariante la comprueba ahora
-  # `infra/litellm/verify_guardrail_coverage.py`, en CI.
+  # Estos dos deployments de respaldo NO llevaban guardarrailes mientras sus
+  # primarios si: los guardarrailes se resuelven por deployment, asi que una
+  # llamada desviada al proveedor de respaldo salia sin redactar, y el hueco
+  # no era visible porque el fallback solo entra en juego cuando el principal
+  # falla (change `guardarrailes-por-capas`). Ya no necesitan vinculo
+  # explicito, porque `presidio-pii` es global; la invariante
+  # "todo fallback cubre a su primario" la comprueba en CI
+  # `infra/litellm/verify_guardrail_coverage.py`.
   - model_name: evaluator-fallback-hf
     litellm_params:
       model: huggingface/deepseek-ai/DeepSeek-V4.1-Flash
       api_key: os.environ/HF_TOKEN
-      guardrails: ["presidio-pii"]
 
   - model_name: reviewer-fallback-hf
     litellm_params:
       model: huggingface/zai-org/GLM-5.3-Flash
       api_key: os.environ/HF_TOKEN
-      guardrails: ["presidio-pii"]
 
   # Fallback del validador: MISMO modelo open-weight que el primario, pero
   # servido por otro proveedor (Hugging Face), para que el fallback siga
@@ -82,7 +85,7 @@ model_list:
     litellm_params:
       model: huggingface/zai-org/GLM-5.3-Flash
       api_key: os.environ/HF_TOKEN
-      guardrails: ["presidio-pii-block", "lakera-guard-block"]
+      guardrails: ["lakera-guard-block"]
 
 litellm_settings:
   success_callback: ["langfuse"]
@@ -121,65 +124,48 @@ general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   database_url: os.environ/DATABASE_URL
 
-# Deteccion automatizada de prompt injection (propuesta
-# litellm-lakera-guardrail), complementa la mitigacion por instruccion que
-# ya tienen los agentes (delimitadores + frase defensiva en el prompt).
-# default_on: corre en toda llamada de los 5 agentes sin que ninguno tenga
-# que pedirlo explicitamente -- sin cambios en agents/*/app/llm.py.
-# on_flagged: monitor (change fix-falso-positivo-lakera): la deteccion se
-# registra pero NO bloquea la llamada. En uso real Lakera marco como
-# prompt_attack contenido benigno (p. ej. rutas de repositorio que contienen
-# la palabra "role") y el bloqueo rompia la generacion. Decision del usuario:
-# monitorizar, no bloquear.
+# Dos guardarrailes, no cuatro (change `guardarrailes-por-capas`). El reparto
+# se explica en una frase: AUTOMATICO para el control gratuito y autoalojado
+# (Presidio, como red de seguridad en toda llamada), EXPLICITO para el de pago
+# y externo (Lakera, solo donde de verdad bloquea).
+#
+# Lo que se elimino y por que:
+#   - El `lakera-guard` GLOBAL en modo `monitor`. En modo observacion no
+#     bloqueaba nada y no habia ningun consumidor de la senal, asi que no
+#     actuaba como control; corria sobre los seis agentes, con coste por
+#     llamada y latencia en `pre_call`; y, por ser global, se ejecutaba ANTES
+#     que los guardarrailes de deployment y enmascaraba la PII antes de que el
+#     guardarrail de bloqueo pudiera verla -- de ahi venia el
+#     `opted_out_global_guardrails` de la virtual key del validador, que
+#     tambien desaparece. Tenia ademas una consecuencia de privacidad: Lakera,
+#     un tercero de pago, recibia el texto del alumno SIN redactar.
+#   - `presidio-pii-block`. El rechazo por dato personal del validador se
+#     adelanta a la ADMISION del agente (`agents/validator/app/pii.py`), donde
+#     no cuesta ni un token y se puede probar sin levantar nada.
 guardrails:
-  - guardrail_name: "lakera-guard"
-    litellm_params:
-      guardrail: lakera_v2
-      mode: "pre_call"
-      default_on: true
-      on_flagged: "monitor"
-      api_key: os.environ/LAKERA_API_KEY
-
-  # Redaccion de PII real antes de llegar al proveedor (propuesta
-  # litellm-presidio-pii-masking), distinta del mask_input/mask_output de
-  # Langfuse (que solo oculta la traza, no el contenido real de la llamada).
-  # Autoalojado (presidio-analyzer/presidio-anonymizer en docker-compose.yml,
-  # PRESIDIO_ANALYZER_API_BASE/PRESIDIO_ANONYMIZER_API_BASE), sin API key.
-  # MASK, no BLOCK: el objetivo es redactar, no rechazar una respuesta
-  # legitima de un alumno.
+  # Red de seguridad de redaccion de PII. `default_on: true`: se aplica a
+  # TODOS los deployments, incluidos los que se anadan en el futuro, sin que
+  # nadie tenga que acordarse de vincularla -- fail-safe donde es gratis.
   #
-  # Solo entidades por regex (change quitar-url-person-presidio): URL y PERSON
-  # se quitaron porque sobre contenido de repositorio disparan cientos de
-  # falsos positivos -- "X.service.ts" -> "<URL>rvice.ts", "component.ts" ->
-  # "<PERSON>ponent.ts" -- y el agente de codigo pide al modelo copiar las
-  # rutas del listado tal cual, asi que devolvia rutas enmascaradas que luego
-  # no existian en el repo y la generacion fallaba entera. Las entidades que
-  # quedan (email, telefono, tarjeta, IP, IBAN) son las de riesgo real y no
-  # dependen del idioma ni colisionan con rutas o identificadores de codigo.
+  # Ya NO es el control principal: la redaccion de verdad la hace cada agente
+  # al montar el prompt, sobre el campo que escribio una persona
+  # (`agents/evaluator/app/redaction.py`). Con eso operativo, esta red no
+  # deberia sustituir nada nunca, asi que SU TASA DE ACTIVACION ES LA ALARMA
+  # de que algun agente dejo de redactar un campo.
   #
-  # presidio_filter_scope: "input" (mismo change): sin esto, LiteLLM deja el
-  # filter_scope por defecto en "both", que ademas de redactar el input añade
-  # un callback de salida (apply_to_output=True) y enmascara tambien la
-  # RESPUESTA del modelo -- el texto generado de los ejercicios salia con
-  # "<PERSON>" etc. incrustado. El output masking no aporta proteccion real:
-  # el proveedor ya vio el input (redactado); solo corrompia el contenido que
-  # devolvemos a la app. Acotado a "input", la redaccion del dato del alumno
-  # antes de salir al proveedor se mantiene, y el fail-closed tambien
-  # (pii_entities_config sigue poblado, presidio.py:457).
-  #
-  # default_on: false (change presidio-solo-evaluador-revisor): Presidio ya no
-  # corre en los 5 agentes. Solo el evaluador y el revisor reciben texto del
-  # alumno; el guardrail se vincula a esos dos deployments con
-  # litellm_params.guardrails en model_list (arriba). Web, codigo y ejercicios
-  # (modelo "generator") procesan contenido de terceros/repositorio/derivado:
-  # enmascararlo no aporta privacidad y genera falsos positivos sobre codigo o
-  # rutas que el modelo debe reproducir.
+  # MASK, no BLOCK: el objetivo es redactar, no rechazar la respuesta legitima
+  # de un alumno. Entidades acotadas (change `quitar-url-person-presidio`):
+  # URL y PERSON disparaban cientos de falsos positivos sobre rutas de codigo
+  # (`X.service.ts` -> `<URL>rvice.ts`). `presidio_filter_scope: "input"`
+  # (change `quitar-url-person-presidio`): el valor por defecto "both"
+  # enmascara tambien la RESPUESTA del modelo, lo que corrompia el contenido
+  # generado sin aportar proteccion -- el proveedor ya vio el input redactado.
   - guardrail_name: "presidio-pii"
     litellm_params:
       guardrail: presidio
       mode: "pre_call"
       presidio_filter_scope: "input"
-      default_on: false
+      default_on: true
       pii_entities_config:
         EMAIL_ADDRESS: "MASK"
         PHONE_NUMBER: "MASK"
@@ -187,31 +173,20 @@ guardrails:
         IP_ADDRESS: "MASK"
         IBAN_CODE: "MASK"
 
-  # Redaccion de PII en modo BLOQUEO para el agente validador (change
-  # validacion-tecnologias-agente-juez): a diferencia de presidio-pii (MASK),
-  # si el input del validador contiene un dato personal, la llamada se
-  # rechaza (fail-closed) en vez de enmascararlo y continuar. Se define como
-  # guardrail aparte para no cambiar la accion de evaluator/reviewer. Se
-  # vincula solo a los deployments `validator`/`validator-fallback-hf`.
-  - guardrail_name: "presidio-pii-block"
-    litellm_params:
-      guardrail: presidio
-      mode: "pre_call"
-      presidio_filter_scope: "input"
-      default_on: false
-      pii_entities_config:
-        EMAIL_ADDRESS: "BLOCK"
-        PHONE_NUMBER: "BLOCK"
-        CREDIT_CARD: "BLOCK"
-        IP_ADDRESS: "BLOCK"
-        IBAN_CODE: "BLOCK"
-
-  # Deteccion de prompt injection en modo BLOQUEO para el agente validador
-  # (change validacion-tecnologias-agente-juez): el global `lakera-guard`
-  # sigue en `monitor` (no bloquea) para los demas agentes; aqui se anade una
-  # regla que SI bloquea cuando el detector marca el input del validador. Se
-  # acepta la doble llamada a Lakera (el global tambien corre) porque
-  # bloquear en este gate es requisito.
+  # Deteccion de prompt injection en modo BLOQUEO, vinculada por deployment
+  # (no global) al validador y a su respaldo: es un gate default-deny y su
+  # entrada es texto introducido por el usuario.
+  #
+  # Ya no hay doble llamada a Lakera: el guardarrail global desaparecio, asi
+  # que esta es la unica. Y por eso tampoco hace falta excluir al validador de
+  # nada.
+  #
+  # En la ruta de generacion (`generator` y su respaldo) NO se aplica: ahi las
+  # unicas detecciones observadas fueron falsos positivos sobre rutas de
+  # repositorio que contienen la palabra "role" (change
+  # `fix-falso-positivo-lakera`). La mitigacion de inyeccion de esos agentes
+  # es la delimitacion del contenido como dato en el prompt y el no tener
+  # ninguna herramienta de escritura.
   - guardrail_name: "lakera-guard-block"
     litellm_params:
       guardrail: lakera_v2
