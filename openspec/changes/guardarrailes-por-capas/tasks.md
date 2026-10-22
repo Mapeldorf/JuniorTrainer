@@ -29,9 +29,9 @@
 ## 5. Simplificacion del proxy
 
 - [x] 5.1 En `infra/litellm/config.yaml`: pasar `presidio-pii` a `default_on: true`, eliminar el guardarrail global `lakera-guard` y el de bloqueo `presidio-pii-block`, dejar `lakera-guard-block` vinculado solo al deployment `validator` y a `validator-fallback-hf`, y corregir su comentario, que afirma una doble llamada a Lakera que el opt-out ya habia eliminado. Verificar: `verify_guardrail_coverage.py` pasa por completo, y `docker compose up litellm` arranca sin error de configuracion.
-- [ ] 5.2 Eliminar `_AGENT_KEY_METADATA` y su reparacion en `_missing_fields` de `infra/litellm/provision_keys.py`. Verificar: re-ejecutar el script sobre las keys existentes no las modifica ni vuelve a aplicar la metadata, y las seis siguen funcionando.
-- [ ] 5.3 Eliminar `agents/validator/scripts/verify_guardrail_optout.py`. Verificar: no queda ninguna referencia a el en el repositorio.
-- [ ] 5.4 Comprobar que la red del proxy no interfiere: con la redaccion del agente operativa, una evaluacion con PII en la respuesta se completa y la red de Presidio del proxy no sustituye nada. Verificar: la traza muestra el texto ya redactado por el agente.
+- [x] 5.2 Eliminar `_AGENT_KEY_METADATA` y su reparacion en `_missing_fields` de `infra/litellm/provision_keys.py`. Verificar: re-ejecutar el script sobre las keys existentes no las modifica ni vuelve a aplicar la metadata, y las seis siguen funcionando.
+- [x] 5.3 Eliminar `agents/validator/scripts/verify_guardrail_optout.py`. Verificar: no queda ninguna referencia a el en el repositorio.
+- [x] 5.4 Comprobar que la red del proxy no interfiere: con la redaccion del agente operativa, una evaluacion con PII en la respuesta se completa y la red de Presidio del proxy no sustituye nada. Verificar: la traza muestra el texto ya redactado por el agente.
 - [ ] 5.5 Actualizar en `capstone/juniortrainer-capstone.md` el inventario de controles de 6.2 (de cuatro guardarrailes a dos, sin el apartado del opt-out), el mapeo OWASP de 6.3 en LLM01 y LLM02, el registro de riesgos de 6.4 y el inventario de verificadores de 5.4. Verificar: ninguna seccion menciona el guardarrail global ni `opted_out_global_guardrails`.
 - [ ] 5.6 Actualizar `docs/especificacion-agentes.md` seccion 8 completa y 9.4, y `docs/especificacion-backend.md` 9.5 y 9.6 (ficheros locales, `docs/` esta en `.gitignore`). Verificar: coherencia con la configuracion resultante.
 
