@@ -94,7 +94,11 @@ Motivos: las unicas detecciones observadas ahi fueron falsos positivos sobre rut
 
 `presidio-pii` pasa a `default_on: true`, de modo que cualquier deployment, presente o futuro, nace con redaccion de PII sin que nadie tenga que acordarse de vincularla.
 
-El reparto resultante es explicable en una frase: **automatico para el control gratuito y autoalojado, explicito para el de pago y externo.** Y tiene un efecto util: con la decision 2 operativa, esa red no deberia sustituir nada nunca, asi que su tasa de activacion se convierte en el detector de fallos de la redaccion del agente.
+El reparto resultante es explicable en una frase: **automatico para el control gratuito y autoalojado, explicito para el de pago y externo.**
+
+Se penso que la tasa de activacion de esa red seria el detector de fallos de la redaccion del agente. **No es medible, y se comprobo de las tres formas posibles:** los spans `guardrail` que LiteLLM escribe en Langfuse llegan vacios (solo nombre y nivel); el endpoint v2 de observaciones no devuelve `input`/`output` y el individual esta retirado con 410; y **ni siquiera a nivel `LITELLM_LOG=DEBUG`** -- verificado con el proxy en DEBUG, 593 de 705 lineas de log-- el proxy emite una sola linea al enmascarar: solo registra los BLOQUEOS. Quitar el `mask_input` tampoco cambia nada, comprobado con dos llamadas emparejadas que devuelven lo mismo.
+
+La senal contable es por tanto **la del agente**: `redact_reporting` devuelve los tipos de entidad redactados y el envoltorio registra una linea por redaccion efectiva, con tipos y nunca valores. No mide literalmente lo mismo -- mide "el agente tuvo que redactar" en vez de "al proxy se le escapo algo"--, pero es la senal util: si el agente redacta, el proxy no tiene nada que hacer; y si este contador cae a cero mientras siguen entrando datos personales, el que falla es el agente.
 
 ### Decision 9: un bloqueo del detector en el evaluador falla la evaluacion
 

@@ -40,11 +40,14 @@ caida de un servicio local en una fuga silenciosa.
 
 from __future__ import annotations
 
+import logging
 import re
 
 import httpx
 
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Politica vigente de entidades (change `quitar-url-person-presidio`): las de
 # riesgo real que no colisionan con rutas ni identificadores de codigo. URL y
@@ -95,6 +98,19 @@ class RedactionError(RuntimeError):
     redactar."""
 
 
+def deterministic_hits(text: str) -> list[str]:
+    """Que patrones deterministas encontrarian algo en `text`.
+
+    Se expone aparte de la sustitucion para poder informar de QUE se
+    redacto sin tener que comparar cadenas (ver `redact_reporting`)."""
+    hits = []
+    if _NATIONAL_PHONE_RE.search(text):
+        hits.append("PHONE_NUMBER")
+    if _IBAN_RE.search(text):
+        hits.append("IBAN_CODE")
+    return hits
+
+
 def redact_deterministic(text: str) -> str:
     """Complemento determinista de los reconocedores del detector.
 
@@ -112,9 +128,29 @@ async def redact(text: str) -> str:
     Se aplica UNICAMENTE a campos escritos por una persona. No llamar con el
     enunciado, el codigo de apoyo ni la respuesta esperada: ese contenido lo
     deriva el sistema de otras fuentes y redactarlo lo corrompe sin aportar
-    privacidad a nadie."""
+    privacidad a nadie.
+
+    Registra una linea por redaccion efectiva, con los TIPOS de entidad y
+    nunca sus valores: es la fuente de la metrica de activacion de la
+    redaccion (requisito de observabilidad del change
+    `guardarrailes-por-capas`). La red de seguridad equivalente del proxy no
+    es contable -- LiteLLM no registra nada cuando enmascara--, asi que este
+    contador es el que da la senal: si el agente redacta, el proxy no tiene
+    nada que hacer; si este contador cae a cero y siguen entrando datos
+    personales, el que esta fallando es el agente."""
+    texto, entidades = await redact_reporting(text)
+    if entidades:
+        logger.info("redaccion aplicada: entidades=%s", ",".join(entidades))
+    return texto
+
+
+async def redact_reporting(text: str) -> tuple[str, list[str]]:
+    """Como `redact`, pero devuelve tambien los TIPOS de entidad redactados.
+
+    Es el nucleo: separar el informe del registro permite comprobar el
+    contador sin capturar logs."""
     if not text or not text.strip():
-        return text
+        return text, []
 
     settings = get_settings()
     analyzer = settings.presidio_analyzer_api_base.rstrip("/")
@@ -127,7 +163,7 @@ async def redact(text: str) -> str:
                 json={"text": text, "language": _LANGUAGE, "entities": _ENTITIES},
             )
             analysis.raise_for_status()
-            findings = analysis.json()
+            findings = analysis.json() or []
 
             # Sin hallazgos no hay nada que anonimizar: se ahorra la segunda
             # llamada, que con `analyzer_results` vacio devolveria el mismo
@@ -142,4 +178,6 @@ async def redact(text: str) -> str:
     except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
         raise RedactionError(f"no se pudo redactar el texto: {exc}") from exc
 
-    return redact_deterministic(text)
+    detectadas = sorted({f.get("entity_type") for f in findings if f.get("entity_type")})
+    deterministas = deterministic_hits(text)
+    return redact_deterministic(text), sorted(set(detectadas) | set(deterministas))

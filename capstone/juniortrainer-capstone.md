@@ -1712,13 +1712,28 @@ noviembre de 2026**. La lectura funciona por `GET /api/public/v2/observations`.
 Cualquier cuadro de mando o herramienta que se construya sobre la API de trazas
 tiene que apuntar ya a la v2.
 
-**Y un límite que condiciona dos de las métricas.** Los spans `guardrail` que el
-proxy escribe en Langfuse llegan **vacíos** —solo nombre y nivel—, y el proxy
-registra los *bloqueos* con todo detalle pero **enmascarar es silencioso**: no
-emite ninguna línea. Es decir, la tasa de activación de la red de redacción no es
-hoy medible ni desde las trazas ni desde los registros. Se desbloquea subiendo el
-proxy a nivel de depuración o enganchando sus *callbacks* de observabilidad, o
-emitiendo el contador desde el propio agente.
+**Y un límite que obligó a cambiar la fuente de una métrica.** La tasa de
+activación de la red de redacción del proxy **no es medible**, y se descartó de las
+tres formas posibles: los spans `guardrail` que el proxy escribe en Langfuse llegan
+vacíos —solo nombre y nivel—; el endpoint v2 de observaciones no devuelve
+`input`/`output`; y **ni siquiera a nivel de depuración** el proxy emite una línea
+al enmascarar —verificado con `LITELLM_LOG=DEBUG` activo, 593 de 705 líneas de log,
+cero menciones—. Solo registra los **bloqueos**, con todo detalle. Desactivar el
+enmascarado de trazas tampoco aporta nada: dos llamadas emparejadas, con y sin él,
+devuelven exactamente lo mismo.
+
+La solución fue **cambiar la fuente, no renunciar a la métrica**: el contador vive
+ahora en el agente. `redact_reporting` devuelve los tipos de entidad redactados y
+la redacción registra una línea por cada aplicación efectiva, con los **tipos y
+nunca los valores**. No mide literalmente lo mismo —mide «el agente tuvo que
+redactar» en lugar de «al proxy se le escapó algo»—, pero es la señal útil: si el
+agente redacta, el proxy no tiene nada que hacer; y si ese contador cae a cero
+mientras siguen entrando datos personales, el que falla es el agente.
+
+Es también un ejemplo de algo que conviene retener al instrumentar un sistema con
+piezas de terceros: **la observabilidad que una herramienta no emite no se puede
+construir desde fuera**, y la salida no es insistir, es mover la medición al código
+propio.
 
 **Lo que falta: el cuadro de mando y los SLO.** Los indicadores están disponibles
 en las trazas; lo que no existe es el umbral ni la acción. La tabla a completar con
@@ -1732,7 +1747,7 @@ la línea base:
 | Coste diario por agente | LiteLLM | | |
 | Tasa de rechazo del validador | Trazas del validador | | Una subida puede ser abuso o un falso positivo nuevo |
 | Bloqueos de Lakera | Langfuse | | Ahora bloquea: cada detección es una evaluación que no se completó |
-| **Activación de la red de Presidio del proxy** | Langfuse | **0** | Cualquier activación significa que un agente dejó de redactar un campo |
+| **Redacciones aplicadas por el agente** | Logs de los agentes | — | Tipos de entidad, nunca valores. Si cae a cero con tráfico real, la redacción del agente ha dejado de funcionar |
 | Fallos de parseo de JSON | Logs de los agentes | | Indica degradación del modelo |
 | Tasa de activación del reintento correctivo | Logs de los agentes | | Señal temprana de deriva del modelo |
 

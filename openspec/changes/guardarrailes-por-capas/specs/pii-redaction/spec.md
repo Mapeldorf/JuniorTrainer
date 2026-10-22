@@ -54,16 +54,20 @@ El sistema SHALL aplicar la redaccion de PII, en modo de sustitucion por marcado
 - **WHEN** una llamada llega al proxy con un dato personal que el agente no redacto
 - **THEN** el sistema SHALL sustituirlo por su marcador generico antes de invocar al proveedor subyacente
 
-### Requirement: La activacion de la red de seguridad es una senal de anomalia
-El sistema SHALL registrar como anomalia cada activacion de la red de seguridad de redaccion del proxy: con la redaccion del agente operativa esa red no deberia sustituir nada, asi que una activacion indica que algun agente dejo de redactar un campo escrito por una persona.
+### Requirement: La redaccion aplicada queda registrada como senal contable
+El sistema SHALL registrar cada redaccion efectiva que aplica un agente, indicando los TIPOS de entidad redactados y nunca sus valores, de forma que la actividad de redaccion sea contable sin exponer dato personal alguno.
 
-#### Scenario: La red del proxy sustituye un dato
-- **WHEN** la red de seguridad del proxy sustituye un dato personal por su marcador
-- **THEN** el sistema SHALL registrar esa activacion como anomalia, distinguible de una redaccion normal del agente
+#### Scenario: Se redacta un dato personal
+- **WHEN** la redaccion de un agente sustituye uno o varios datos personales
+- **THEN** el sistema SHALL registrar una entrada con los tipos de entidad redactados, y SHALL NOT incluir en ella el valor de ninguno
 
-#### Scenario: Operacion normal
-- **WHEN** la redaccion del agente funciona correctamente sobre todos los campos escritos por una persona
-- **THEN** la red de seguridad del proxy no sustituye nada y no se registra ninguna anomalia
+#### Scenario: No hay nada que redactar
+- **WHEN** el campo escrito por una persona no contiene ningun dato personal detectable
+- **THEN** el sistema SHALL NOT registrar ninguna entrada de redaccion
+
+#### Scenario: La activacion de la red del proxy no es observable
+- **WHEN** la red de seguridad de redaccion del proxy sustituye un dato que el agente no redacto
+- **THEN** el sistema SHALL seguir sirviendo la llamada con el dato sustituido, aunque esa activacion no sea contable: el proxy no emite registro al enmascarar, de modo que la senal contable es la del agente
 
 ## MODIFIED Requirements
 

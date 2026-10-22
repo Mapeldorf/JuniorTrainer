@@ -33,7 +33,7 @@ import logging
 import os
 
 from app.config import get_settings
-from app.redaction import RedactionError, redact, redact_deterministic
+from app.redaction import RedactionError, redact, redact_deterministic, redact_reporting
 
 logging.basicConfig(level=logging.INFO)
 
@@ -125,7 +125,7 @@ async def check_fail_closed() -> None:
         try:
             resultado = await redact(texto)
         except RedactionError:
-            print("4. fail-closed: OK (se propago RedactionError con el detector caido)")
+            print("6. fail-closed: OK (se propago RedactionError con el detector caido)")
             return
         raise AssertionError(
             "con el detector caido se devolvio texto en vez de fallar: "
@@ -140,10 +140,32 @@ async def check_fail_closed() -> None:
         get_settings.cache_clear()
 
 
+async def check_counter() -> None:
+    """Comprobacion 5: el informe de entidades que alimenta la metrica.
+
+    `redact_reporting` devuelve los TIPOS redactados, nunca los valores. Es
+    la fuente del contador de activacion de la redaccion, que existe porque
+    la red equivalente del proxy no es contable: LiteLLM no registra nada
+    cuando enmascara, ni siquiera a nivel DEBUG (comprobado)."""
+    _, entidades = await redact_reporting(
+        "escribeme a juan@ejemplo.com, al 600123456 o a mi cuenta ES9121000418450200051332 gracias"
+    )
+    for esperada in ("EMAIL_ADDRESS", "PHONE_NUMBER", "IBAN_CODE"):
+        assert esperada in entidades, f"{esperada} no figura en el informe: {entidades}"
+
+    _, vacio = await redact_reporting("el guard esta en src/app/core/role.guard.ts y usa component.ts")
+    assert vacio == [], f"se informo de entidades sobre contenido tecnico: {vacio}"
+
+    _, nada = await redact_reporting("   ")
+    assert nada == [], "un texto en blanco no deberia informar de nada"
+    print("5. contador de activacion: OK (informa tipos, no valores; silencio sin PII)")
+
+
 def main() -> None:
     check_deterministic()
     asyncio.run(check_entities())
     asyncio.run(check_code_content_untouched())
+    asyncio.run(check_counter())
     asyncio.run(check_fail_closed())
     print("\nTodas las comprobaciones han pasado.")
 
