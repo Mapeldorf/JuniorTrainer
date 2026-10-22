@@ -113,21 +113,39 @@ services:
     depends_on:
       - litellm
 
+  # Los tres agentes que reciben texto escrito por una persona (la respuesta
+  # del alumno en evaluador y revisor, los nombres de tecnologia en el
+  # validador) consultan a Presidio directamente, al montar el prompt o al
+  # admitir la peticion (change `guardarrailes-por-capas`): asi el texto sale
+  # ya redactado del proceso del agente y ningun destinatario posterior --
+  # incluido el detector de inyeccion y el proveedor de respaldo -- lo recibe
+  # en claro. Las URLs no son secretos y van aqui, no en .env, igual que ya
+  # ocurre en el servicio litellm.
   agent-evaluator:
     build: ./agents/evaluator
     expose:
       - "8013"
     env_file: .env
+    environment:
+      PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
+      PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     depends_on:
       - litellm
+      - presidio-analyzer
+      - presidio-anonymizer
 
   agent-reviewer:
     build: ./agents/reviewer
     expose:
       - "8014"
     env_file: .env
+    environment:
+      PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
+      PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     depends_on:
       - litellm
+      - presidio-analyzer
+      - presidio-anonymizer
 
   # Agente validador de tecnologias (change validacion-tecnologias-agente-juez):
   # juez que decide si las tecnologias de una generacion son tecnologias de
@@ -137,8 +155,13 @@ services:
     expose:
       - "8015"
     env_file: .env
+    environment:
+      PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
+      PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     depends_on:
       - litellm
+      - presidio-analyzer
+      - presidio-anonymizer
 
 # La base de datos y la autenticacion de la aplicacion viven en Supabase
 # (seccion 11 de la especificacion), no en este docker-compose. La unica

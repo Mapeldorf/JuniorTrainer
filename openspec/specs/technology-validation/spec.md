@@ -54,19 +54,19 @@ El validador SHALL rechazar, antes de invocar al modelo, cualquier entrada que c
 - **THEN** el pre-filtro no rechaza y la validacion continua con el modelo
 
 ### Requirement: Guardarrailes de bloqueo en las llamadas del validador
-El sistema SHALL aplicar a toda llamada del validador al proveedor del modelo, tanto en su modelo principal como en el de respaldo, la deteccion de PII en modo de bloqueo (rechaza la llamada si detecta un dato personal) y la deteccion de prompt injection en modo de bloqueo (rechaza la llamada si detecta un intento), de forma independiente de la decision del modelo.
+El sistema SHALL aplicar a toda llamada del validador al proveedor del modelo, tanto en su modelo principal como en el de respaldo, la deteccion de prompt injection en modo de bloqueo (rechaza la llamada si detecta un intento), de forma independiente de la decision del modelo. El rechazo por dato personal SHALL ocurrir antes, en la admision de la peticion del agente, de modo que una peticion con PII no llegue a generar ninguna llamada al proveedor (ver `pii-redaction`).
 
 #### Scenario: Input con un dato personal
-- **WHEN** el input de una llamada del validador contiene un dato personal detectable por el guardarrail de PII
-- **THEN** la llamada se rechaza y la generacion queda en estado de error
+- **WHEN** la peticion recibida por el validador contiene un dato personal detectable
+- **THEN** la peticion se rechaza en la admision del agente y la generacion queda en estado de error, sin que se realice ninguna llamada al proveedor del modelo
 
 #### Scenario: Input con un intento de prompt injection
 - **WHEN** el input de una llamada del validador contiene un intento de prompt injection detectable por el guardarrail de injection
 - **THEN** la llamada se rechaza y la generacion queda en estado de error
 
 #### Scenario: Input limpio
-- **WHEN** el input de una llamada del validador no contiene PII ni un intento detectable
-- **THEN** los guardarrailes lo dejan pasar y la validacion continua con normalidad
+- **WHEN** la peticion del validador no contiene PII y el input de su llamada no contiene un intento detectable
+- **THEN** la admision no rechaza, el guardarrail de injection lo deja pasar y la validacion continua con normalidad
 
 ### Requirement: Revalidacion de los limites de entrada en el validador
 El validador SHALL revalidar de forma independiente los mismos limites de numero y longitud de tecnologias que aplica el backend, de modo que una peticion fuera de limite se rechace aunque no haya pasado por esa validacion.

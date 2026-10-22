@@ -8,6 +8,7 @@ from a2a.server.events.event_queue_v2 import EventQueue
 from a2a.types import Role
 
 from app.input import parse_context, parse_technologies
+from app.pii import reject_if_pii_detected
 from app.service import validate_technologies
 from app.tracing import record_task, resolve_trace_id
 
@@ -15,6 +16,12 @@ from app.tracing import record_task, resolve_trace_id
 class ValidatorAgentExecutor(AgentExecutor):
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         technologies = parse_technologies(context.message)
+        # Segunda mitad de la admision (change `guardarrailes-por-capas`):
+        # `parse_technologies` ya aplico el pre-filtro de expresiones
+        # regulares, que cubre DNI y NIE; el detector cubre tarjeta e IP, que
+        # el regex no ve. Las dos comprobaciones rechazan antes de que se
+        # construya ninguna llamada al modelo.
+        await reject_if_pii_detected(technologies)
         validation_context = parse_context(context.message)
         trace_id = resolve_trace_id(context.message.metadata)
         result = await validate_technologies(technologies, validation_context, trace_id)

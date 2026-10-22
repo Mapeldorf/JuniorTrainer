@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     litellm_base_url: str = "http://litellm:4000/v1"
     agent_reviewer_litellm_key: str
 
+    # Presidio autoalojado (change guardarrailes-por-capas): este agente
+    # redacta la respuesta del alumno al montar el prompt, no en el proxy,
+    # porque es la unica capa que sabe que campo escribio una persona (ver
+    # app/redaction.py). A diferencia de REVIEWER_MODEL, aqui NO hay colision
+    # de nombres con la configuracion de LiteLLM: el valor es el mismo para
+    # los dos consumidores (la URL del servicio) y significa lo mismo.
+    presidio_analyzer_api_base: str = "http://presidio-analyzer:3000"
+    presidio_anonymizer_api_base: str = "http://presidio-anonymizer:3000"
+
     langfuse_public_key: str
     langfuse_secret_key: str
     langfuse_base_url: str = "https://cloud.langfuse.com"

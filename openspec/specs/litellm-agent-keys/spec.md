@@ -1,34 +1,38 @@
 # litellm-agent-keys Specification
 
 ## Purpose
-Garantiza que cada agente LLM autentica frente al proxy de LiteLLM con una credencial propia, restringida al modelo logico que le corresponde, de forma que el uso y el coste sean atribuibles por agente y cualquiera de las 5 credenciales pueda revocarse sin afectar a los demas agentes.
+Garantiza que cada agente LLM autentica frente al proxy de LiteLLM con una credencial propia, restringida al modelo logico que le corresponde, de forma que el uso y el coste sean atribuibles por agente y cualquiera de las 6 credenciales pueda revocarse sin afectar a los demas agentes.
 
 ## Requirements
 
 ### Requirement: Credencial propia por agente
-El sistema SHALL asignar a cada uno de los 5 agentes (`web`, `code`, `exercises`, `evaluator`, `reviewer`) una virtual key de LiteLLM distinta de las de los demas agentes, y ningun agente SHALL autenticar sus llamadas de negocio al proxy con la `master_key` de administracion.
+El sistema SHALL asignar a cada uno de los 6 agentes (`web`, `code`, `exercises`, `evaluator`, `reviewer`, `validator`) una virtual key de LiteLLM distinta de las de los demas agentes, y ningun agente SHALL autenticar sus llamadas de negocio al proxy con la `master_key` de administracion.
 
 #### Scenario: Cada agente usa su propia key
-- **WHEN** cualquiera de los 5 agentes realiza una llamada al proxy de LiteLLM para su modelo logico
+- **WHEN** cualquiera de los 6 agentes realiza una llamada al proxy de LiteLLM para su modelo logico
 - **THEN** la llamada se autentica con la virtual key propia de ese agente, no con la de ningun otro agente ni con la `master_key`
 
 ### Requirement: Restriccion de modelo por key
-El sistema SHALL restringir cada virtual key, en LiteLLM, a los modelos logicos que el agente correspondiente necesita llamar: la de `web`, `code` y `exercises` solo al modelo `generator`; la de `evaluator` solo a `evaluator`; la de `reviewer` solo a `reviewer`.
+El sistema SHALL restringir cada virtual key, en LiteLLM, al modelo logico que el agente correspondiente necesita llamar y a su deployment de fallback: la de `web`, `code` y `exercises` a `generator`; la de `evaluator` a `evaluator`; la de `reviewer` a `reviewer`; la de `validator` a `validator`.
 
 #### Scenario: Una key solo puede llamar a su modelo permitido
 - **WHEN** se usa la virtual key de un agente para llamar al modelo logico que tiene asignado
 - **THEN** LiteLLM atiende la peticion con normalidad
+
+#### Scenario: La lista de modelos permitidos incluye el deployment de fallback
+- **WHEN** se aprovisiona o se actualiza la virtual key de un agente
+- **THEN** su lista de modelos permitidos incluye tambien el deployment de fallback de su modelo logico, como exige el requisito "El fallback respeta la restriccion de modelo por virtual key" de `specs/agent-resilience/spec.md`
 
 #### Scenario: Una key no puede llamar a un modelo que no le corresponde
 - **WHEN** se usa la virtual key de un agente para llamar a un modelo logico distinto del que tiene asignado (p. ej. la key de `evaluator` contra el modelo `generator`)
 - **THEN** LiteLLM SHALL rechazar la peticion sin invocar al proveedor subyacente
 
 ### Requirement: Revocacion independiente por agente
-El sistema SHALL permitir revocar o rotar la virtual key de un agente sin afectar a la disponibilidad de las virtual keys de los otros 4 agentes.
+El sistema SHALL permitir revocar o rotar la virtual key de un agente sin afectar a la disponibilidad de las virtual keys de los otros 5 agentes.
 
 #### Scenario: Revocar la key de un agente no afecta a los demas
 - **WHEN** se revoca la virtual key de un agente en LiteLLM
-- **THEN** los otros 4 agentes SHALL seguir pudiendo llamar a sus respectivos modelos con normalidad
+- **THEN** los otros 5 agentes SHALL seguir pudiendo llamar a sus respectivos modelos con normalidad
 - **AND** el agente cuya key se revoco SHALL recibir un error de autenticacion del proxy en su siguiente llamada
 
 ### Requirement: Uso atribuible por agente
@@ -39,7 +43,7 @@ El sistema SHALL registrar en LiteLLM el consumo (numero de llamadas, tokens, co
 - **THEN** la respuesta refleja unicamente las llamadas hechas con esa key, no las de las demas virtual keys ni las de la `master_key`
 
 ### Requirement: Techo de gasto por key
-El sistema SHALL asignar a cada una de las 5 virtual keys un `max_budget` de 5 USD con reseteo cada 30 dias (`budget_duration`), y SHALL bloquear cualquier llamada que supere ese presupuesto hasta que el periodo se reinicie o el presupuesto se amplie manualmente.
+El sistema SHALL asignar a cada una de las 6 virtual keys un `max_budget` de 5 USD con reseteo cada 30 dias (`budget_duration`), y SHALL bloquear cualquier llamada que supere ese presupuesto hasta que el periodo se reinicie o el presupuesto se amplie manualmente.
 
 #### Scenario: Llamada dentro de presupuesto
 - **WHEN** una key con gasto acumulado por debajo de su `max_budget` llama a su modelo permitido
@@ -68,19 +72,19 @@ El sistema SHALL detectar, al re-ejecutar el aprovisionamiento, si una key ya ex
 - **THEN** el script la deja intacta, sin sobrescribir un budget que pudiera haberse ajustado manualmente despues de crearla
 
 ### Requirement: Resolucion de modelo logico aislada de la configuracion de LiteLLM
-El sistema SHALL resolver, en cada uno de los 5 agentes, el nombre del modelo logico que envia a LiteLLM (`generator`, `evaluator` o `reviewer`, segun corresponda) de forma fija, sin leerlo de ninguna variable de entorno que `infra/litellm/config.yaml` tambien use para resolver el proveedor real detras de ese modelo logico.
+El sistema SHALL resolver, en cada uno de los 6 agentes, el nombre del modelo logico que envia a LiteLLM (`generator`, `evaluator`, `reviewer` o `validator`, segun corresponda) de forma fija, sin leerlo de ninguna variable de entorno que `infra/litellm/config.yaml` tambien use para resolver el proveedor real detras de ese modelo logico.
 
 #### Scenario: El agente envia el alias logico, no el nombre de proveedor
-- **WHEN** cualquiera de los 5 agentes construye una llamada al proxy de LiteLLM
-- **THEN** el campo `model` de esa llamada es el alias logico fijo del agente (`generator`, `evaluator` o `reviewer`)
-- **AND** ese valor no cambia aunque la variable de entorno que LiteLLM usa para resolver el proveedor real (`GENERATOR_MODEL`/`EVALUATOR_MODEL`/`REVIEWER_MODEL`) este presente en el entorno del agente
+- **WHEN** cualquiera de los 6 agentes construye una llamada al proxy de LiteLLM
+- **THEN** el campo `model` de esa llamada es el alias logico fijo del agente (`generator`, `evaluator`, `reviewer` o `validator`)
+- **AND** ese valor no cambia aunque la variable de entorno que LiteLLM usa para resolver el proveedor real (`GENERATOR_MODEL`/`EVALUATOR_MODEL`/`REVIEWER_MODEL`/`VALIDATOR_MODEL`) este presente en el entorno del agente
 
 #### Scenario: La llamada respeta la restriccion de modelo de la virtual key
 - **WHEN** un agente con una virtual key restringida a su modelo logico realiza una llamada real a LiteLLM
 - **THEN** LiteLLM la atiende con normalidad (no la rechaza con `403 key_model_access_denied`)
 
 ### Requirement: Limite de ritmo por key
-El sistema SHALL asignar a cada una de las 5 virtual keys un limite de 60 peticiones por minuto (`rpm_limit`), y SHALL rechazar cualquier peticion que supere ese ritmo sin invocar al proveedor subyacente.
+El sistema SHALL asignar a cada una de las 6 virtual keys un limite de 60 peticiones por minuto (`rpm_limit`), y SHALL rechazar cualquier peticion que supere ese ritmo sin invocar al proveedor subyacente.
 
 #### Scenario: Peticiones dentro del limite
 - **WHEN** una key realiza peticiones por debajo de su `rpm_limit` en la ventana de un minuto

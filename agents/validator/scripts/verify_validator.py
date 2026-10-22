@@ -43,6 +43,7 @@ from a2a.helpers.proto_helpers import new_data_message
 
 import app.service as service_module
 from app.input import InvalidValidatorInput, find_pii_like, parse_context
+from app.pii import reject_if_pii_detected
 from app.models import DuplicateTechnology
 from app.service import ValidatorError, _parse_result, validate_technologies
 
@@ -239,8 +240,34 @@ async def check_generation_skips_duplicate_check() -> None:
         raise AssertionError("duplicate_technologies deberia quedar vacio en contexto generation")
 
 
+async def check_admission_pii_detection() -> None:
+    """Rechazo por PII en la admision (change `guardarrailes-por-capas`).
+
+    Complementa al pre-filtro de regex, no lo repite: los dos vectores de
+    aqui -- una tarjeta y una IP-- ATRAVIESAN el regex (lo comprueba la
+    primera assert), y es el detector el que los para. Al reves, el DNI lo
+    para el regex y el detector no lo conoce. Requiere los servicios de
+    Presidio levantados."""
+    tarjeta, ip = "4111 1111 1111 1111", "192.168.1.1"
+
+    assert find_pii_like([tarjeta]) == [], "el regex ya para la tarjeta: este caso ya no prueba el detector"
+    assert find_pii_like([ip]) == [], "el regex ya para la IP: este caso ya no prueba el detector"
+
+    for valor in (tarjeta, ip):
+        try:
+            await reject_if_pii_detected(["React", valor])
+        except InvalidValidatorInput:
+            continue
+        raise AssertionError(f"la admision no rechazo {valor!r}, que el detector si reconoce")
+
+    # Tecnologias reales no deben rechazarse.
+    await reject_if_pii_detected(["React", "FastAPI", "PostgreSQL"])
+    print("admision con detector de PII: OK (tarjeta e IP rechazadas, tecnologias reales admitidas)")
+
+
 def main() -> None:
     check_prefilter()
+    asyncio.run(check_admission_pii_detection())
     check_parse_result_duplicates()
     check_parse_context()
     asyncio.run(check_catalog_queried_only_in_catalog_entry())

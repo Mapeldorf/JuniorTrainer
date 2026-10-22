@@ -43,18 +43,16 @@ _AGENT_MODELS: dict[str, list[str]] = {
     "agent-validator": ["validator", "validator-fallback-hf"],
 }
 
-# Alias -> metadata de la key. `opted_out_global_guardrails` (change
-# validacion-tecnologias-agente-juez): el guardarrail GLOBAL `lakera-guard`
-# (default_on: true) enmascara automaticamente la PII que detecta
-# (`[MASKED <TIPO>]`) antes de que `presidio-pii-block` pueda verla y
-# bloquearla, asi que el juez nunca rechazaria esos datos. Optar al
-# validador por salir de ESE guardarrail global deja que sus guardarrailes de
-# deployment (`presidio-pii-block`, `lakera-guard-block`) actuen y bloqueen.
-# Solo afecta a guardarrailes con default_on: true; los de deployment no se
-# tocan.
-_AGENT_KEY_METADATA: dict[str, dict] = {
-    "agent-validator": {"opted_out_global_guardrails": ["lakera-guard"]},
-}
+# Sin metadata por key (change `guardarrailes-por-capas`). Hubo una:
+# `opted_out_global_guardrails` excluia a la key del validador del
+# guardarrail GLOBAL `lakera-guard`, porque ese guardarrail enmascaraba la
+# PII antes de que el de bloqueo pudiera verla y rechazarla. Al dejar de
+# haber guardarrailes globales -- la deteccion de inyeccion se vincula ahora
+# por deployment-- no hay nada de lo que excluirse, y el mecanismo entero
+# desaparece con su requisito y su verificacion.
+#
+# Una key existente puede conservar esa metadata de antes: es inerte, porque
+# ya no existe el guardarrail global al que se referia.
 
 # Techo de gasto por key (propuesta litellm-key-budgets): mismo importe y
 # periodo para las 5, ver design.md para la justificacion.
@@ -99,15 +97,12 @@ def _generate_key(client: httpx.Client, alias: str, models: list[str]) -> str:
         "budget_duration": _BUDGET_DURATION,
         "rpm_limit": _RPM_LIMIT,
     }
-    metadata = _AGENT_KEY_METADATA.get(alias)
-    if metadata:
-        body["metadata"] = metadata
     response = client.post("/key/generate", json=body)
     response.raise_for_status()
     return response.json()["key"]
 
 
-def _missing_fields(existing: dict, desired_models: list[str], alias: str) -> dict:
+def _missing_fields(existing: dict, desired_models: list[str]) -> dict:
     missing: dict = {}
     if existing.get("max_budget") is None:
         missing["max_budget"] = _MAX_BUDGET_USD
@@ -119,13 +114,6 @@ def _missing_fields(existing: dict, desired_models: list[str], alias: str) -> di
     # fallback de litellm-huggingface-fallback en una key ya existente).
     if set(existing.get("models") or []) != set(desired_models):
         missing["models"] = desired_models
-    # Metadata esperada (p. ej. el opt-out del guardarrail global del
-    # validador): si falta o no coincide, se reaplica.
-    desired_metadata = _AGENT_KEY_METADATA.get(alias)
-    if desired_metadata:
-        existing_metadata = existing.get("metadata") or {}
-        if any(existing_metadata.get(k) != v for k, v in desired_metadata.items()):
-            missing["metadata"] = desired_metadata
     return missing
 
 
@@ -154,7 +142,7 @@ def main() -> int:
                 key = _generate_key(client, alias, models)
                 print(f"{env_var}={key}")
                 continue
-            missing = _missing_fields(existing, models, alias)
+            missing = _missing_fields(existing, models)
             if missing:
                 _apply_missing_fields(client, existing["token"], missing)
                 print(f"{env_var}: ya existia (alias {alias!r}), actualizada con {sorted(missing)}")
