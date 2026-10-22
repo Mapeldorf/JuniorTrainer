@@ -906,7 +906,7 @@ Tres observaciones sobre este mapeo, que es donde se decide casi todo:
 |---|---|---|---|---|---|
 | **Web** | Documentalista | `generator` | Tavily | Caché por tecnologías | **Depende**: sin repo, error; con repo, degrada |
 | **Código** | Lector de repositorios | `generator` | GitHub App de solo lectura | Caché por repo+commit+tecnologías | Error de la generación |
-| **Ejercicios** | Redactor | `generator` | Lectura de ejercicios guardados | Historial de enunciados | Error de la generación |
+| **Ejercicios** | Redactor | `generator` | Lectura de ejercicios guardados | Sin estado | Error de la generación |
 | **Evaluador** | Corrector | `evaluator` | — | Sin estado | Error de la evaluación (502) |
 | **Revisor** | Segunda opinión | `reviewer` | — | Sin estado | Error de la evaluación (502) |
 | **Validador** | Portero | `validator` | Catálogo (solo `SELECT`) | Sin estado | **Fail-closed**: rechaza |
@@ -1277,32 +1277,34 @@ porque cada una tiene una política de fallo distinta.
 | Capa | Dónde vive | Qué guarda | Persistencia |
 |---|---|---|---|
 | **0 — Proceso** | RAM | Configuración, clientes de Supabase y Langfuse, token de instalación de GitHub | Hasta el reinicio |
-| **1 — Memoria de agentes** | Esquema `memory` de Supabase | Investigación web, análisis de repositorio, historial de enunciados | Persistente |
+| **1 — Memoria de agentes** | Esquema `memory` de Supabase | Investigación web y análisis de repositorio | Persistente |
 | **2 — Memoria de lectura** | `public.exercise` | Ejercicios guardados, para no repetir temas | Persistente |
 | **3 — Estado y control** | `public.*` y `litellm-db` | Estado de negocio; claves, presupuestos y consumo | Persistente |
 
-Las **tres memorias de contenido** de la capa 1 se implementan con el almacén de
+Las **dos memorias de contenido** de la capa 1 se implementan con el almacén de
 largo plazo de LangGraph (`AsyncPostgresStore`), cada una con su espacio de nombres:
 
 | Agente | Clave | TTL | Qué guarda |
 |---|---|---|---|
 | Web | Tecnologías normalizadas (ordenadas, en minúsculas) | 30 días, se renueva al leer | Resumen + fuentes |
 | Código | `sha256("owner/repo@commit\|tecnologías")` | 30 días, se renueva al leer | Resumen + tecnologías + fragmentos |
-| Ejercicios | Tipo de ejercicio | **Sin caducidad** | Últimos 20 enunciados propuestos |
 
-Tres detalles de diseño que explican por qué funciona:
+Fueron tres. El agente de ejercicios tenía una tercera, un historial de los
+últimos 20 enunciados propuestos, que el change
+`eliminar-memoria-agente-ejercicios` eliminó: para no repetir temas le basta con
+leer los ejercicios ya guardados de `public.exercise` (la capa 2), que es la
+fuente de verdad de lo que el tech lead aprobó, mientras el historial acumulaba
+también lo que se descartó. Dos memorias y una lectura explican el sistema mejor
+que tres memorias.
+
+Dos detalles de diseño que explican por qué funciona:
 
 - **La clave del web normaliza.** `["React", "FastAPI"]` y `["fastapi", " React"]`
   comparten entrada de caché. Sin normalización, el acierto sería anecdótico.
 - **La clave del código incluye el commit exacto.** El mismo repositorio en otro
   commit no comparte caché, porque el código ha cambiado. Es lo que hace que la
   caché sea correcta y no solo rápida.
-- **El historial de enunciados no caduca.** Es lo contrario de una caché: su
-  propósito es acumular, no acelerar. Y se guarda **solo tras una generación
-  correcta**, así que los candidatos descartados por incumplir un límite nunca
-  contaminan la lista.
-
-**La política ante fallos es la misma para las tres: una memoria caída no bloquea la
+**La política ante fallos es la misma para las dos: una memoria caída no bloquea la
 generación.** Un error al leer o escribir se registra como advertencia y la tarea
 continúa. La memoria es una optimización, y tratarla como un requisito convertiría
 una indisponibilidad de Supabase en una caída total del producto.
@@ -1415,11 +1417,13 @@ Se escribió antes de que existiera el validador, y el change que lo introdujo
 `infra/litellm/provision_keys.py` aprovisiona **seis** claves.
 
 La auditoría destapó además un hueco más serio que el recuento: la metadata
-`opted_out_global_guardrails` de la clave del validador —el mecanismo que evita
-que un guardarraíl desactive a otro, descrito en §6.2— **no estaba especificada
+`opted_out_global_guardrails` de la clave del validador **no estaba especificada
 en ninguna capacidad**. Existía solo en el código. Un control de seguridad sin
 requisito formal es un control que nadie va a echar de menos si una refactorización
-lo elimina.
+lo elimina — y el epílogo lo demuestra: al especificarlo quedó a la vista que ese
+mecanismo solo existía para deshacer un valor por defecto, y el change
+`guardarrailes-por-capas` lo eliminó entero, con su requisito y su verificación
+(§6.2).
 
 Las dos cosas están corregidas: la capacidad refleja ya los seis agentes y recoge
 la exclusión del guardarraíl global como requisito con sus tres escenarios, y las
@@ -1519,7 +1523,7 @@ que funcione. Los agentes no entran en el CI en absoluto. El plan:
 |---|---|---|
 | 1 | Lint y comprobación de tipos en backend y en los seis agentes (`ruff`, `mypy`) | Sí |
 | 2 | Tests de backend: unitarios de los *schemas*, de la orquestación con agentes simulados, y de contrato de los endpoints | Sí |
-| 3 | Los 18 verificadores `verify_*.py` existentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados | Sí |
+| 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados | Sí |
 | 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en staging | Sí, por umbral |
 | 5 | Construcción y publicación de las imágenes de los doce servicios con etiqueta por commit | — |
 | 6 | Despliegue automático a staging y comprobación de salud posterior | — |
@@ -1558,7 +1562,7 @@ que responda a la pregunta**. El LLM como juez es el último recurso, reservado 
 bueno—, y nunca para lo que una comprobación de código resuelve mejor. Que un
 enunciado tenga 50 palabras o menos **no** es trabajo de un juez: es un `len(split())`.
 
-Los 18 verificadores existentes merecen una nota, porque son el nivel 2 ya escrito:
+Los 19 verificadores existentes merecen una nota, porque son el nivel 2 ya escrito:
 
 | Verificador | Qué comprueba |
 |---|---|
@@ -1571,8 +1575,15 @@ Los 18 verificadores existentes merecen una nota, porque son el nivel 2 ya escri
 | `verify_saved_exercises` | La lectura de ejercicios guardados |
 | `verify_justification_limit` (evaluador y revisor) | El límite de 50 palabras de la justificación |
 | `verify_validator` | El gate del validador: pre-filtro, esquema, contextos y duplicados |
-| `verify_guardrail_optout` | Que la exclusión del guardarraíl global deja a `presidio-pii-block` bloquear una tarjeta o una IP |
+| `verify_redaction` (evaluador y revisor) | Que se redacta la respuesta del alumno y **no** el código de apoyo, que el complemento determinista cubre el teléfono nacional y el IBAN en prosa, y que la redacción es *fail-closed* |
 | `verify_trace_id` (cinco agentes) | Que la traza se encadena bajo el mismo `trace_id` |
+
+A estos se suma el único que **ya corre en integración continua**:
+`infra/litellm/verify_guardrail_coverage.py`, que comprueba de forma estática
+sobre `config.yaml` que todo deployment de respaldo lleva al menos los
+guardarraíles de su primario y que existe una redacción de PII activa de forma
+global. No necesita red, modelo ni credenciales, y es la cuña con la que `infra/`
+entra por fin en el CI.
 
 Son comprobaciones de extremo a extremo bien escogidas, y su único problema es que
 hay que acordarse de ejecutarlas. Convertirlas en pruebas automatizadas es el punto
@@ -1597,7 +1608,7 @@ juicio de nadie:
 | **Precisión del gate del validador** | Falsos positivos y falsos negativos sobre un set de tecnologías válidas, inválidas y adversarias | Un falso positivo bloquea trabajo legítimo; un falso negativo abre la puerta |
 | **Detección de duplicados** | Precisión y cobertura sobre variantes conocidas («Angular» / «Angular Framework») | Tiene política *default-deny* invertida (§3.6): aquí el falso positivo es el error caro |
 | **No repetición de temas** | Solapamiento semántico entre generaciones consecutivas con las mismas tecnologías | Es el propósito de la memoria del agente de ejercicios (§4.8) |
-| **Falsos positivos de guardarraíl** | % de contenido benigno de repositorio marcado por Lakera o Presidio | Métrica con historia real en este proyecto (§6.5): es la que justificó pasar Lakera a modo monitor |
+| **Falsos positivos de guardarraíl** | % de contenido benigno marcado por Lakera, y % de contenido técnico alterado por Presidio | Métrica con historia real en este proyecto (§6.5): justificó primero pasar Lakera a monitor y después retirarlo de la ruta de generación |
 | **Latencia y coste** | p50, p95 y p99 por operación, desde las trazas | p95 de la evaluación contra el presupuesto de 45 s |
 
 Dos de estas métricas son, en mi opinión, las que más dicen del sistema y las menos
@@ -1705,14 +1716,16 @@ la línea base:
 | Tasa de uso de fallback | Langfuse | | Indica degradación del proveedor primario |
 | Coste diario por agente | LiteLLM | | |
 | Tasa de rechazo del validador | Trazas del validador | | Una subida puede ser abuso o un falso positivo nuevo |
-| Detecciones de Lakera | Langfuse | | Al estar en modo monitor, es la **única** señal de inyección |
+| Bloqueos de Lakera | Langfuse | | Ahora bloquea: cada detección es una evaluación que no se completó |
+| **Activación de la red de Presidio del proxy** | Langfuse | **0** | Cualquier activación significa que un agente dejó de redactar un campo |
 | Fallos de parseo de JSON | Logs de los agentes | | Indica degradación del modelo |
 | Tasa de activación del reintento correctivo | Logs de los agentes | | Señal temprana de deriva del modelo |
 
 Dos indicadores de esta lista son especialmente importantes por razones de diseño.
-**Las detecciones de Lakera** son la única señal de intento de inyección que el
-sistema produce, precisamente porque el guardarraíl está en modo monitor y no
-bloquea (§6.5): si nadie mira ese número, el control no existe. Y **la tasa de
+**La activación de la red de Presidio del proxy** debe ser cero: la redacción de
+verdad la hace el agente (§6.2), así que si la red del proxy sustituye algo es que
+un agente dejó de redactar un campo. Es el caso poco frecuente de un control
+redundante que se convierte en el detector de fallos del control principal. Y **la tasa de
 activación del reintento correctivo** es un detector de deriva: si un modelo
 empieza a incumplir los límites más a menudo, el sistema sigue funcionando
 correctamente —el código lo rescata— y el síntoma solo es visible en esa métrica.
@@ -1844,23 +1857,42 @@ un sistema con LLM de la de cualquier otra aplicación web.
 **Mitigación de inyección de prompts, en dos capas.** La primera es **por
 instrucción**: delimitadores explícitos alrededor de todo contenido no confiable y
 una frase defensiva adaptada a cada agente (§3.6). La segunda es **automatizada**:
-el guardarraíl `lakera-guard`, global, en fase `pre_call`. Su modo real es
-`monitor`, y la razón —y lo que eso implica para el riesgo residual— está en §6.5.
+la detección de Lakera en fase `pre_call`, **en modo bloqueo y vinculada solo a los
+deployments que la necesitan**: el validador y su respaldo. No se aplica a la ruta
+de generación, donde las únicas detecciones observadas fueron falsos positivos
+sobre rutas de repositorio. Fue global y de solo observación hasta el change
+`guardarrailes-por-capas`; el por qué del cambio está en §6.5.
 Lo que sí se puede afirmar: **el radio de daño de una inyección que burle ambas
 capas queda acotado a la calidad del resultado**, nunca a ejecución de código ni a
 acceso no autorizado, porque ningún agente tiene herramientas de escritura. El
 agente de código solo lee; el de ejercicios solo hace `SELECT`; el evaluador y el
 revisor no tienen herramientas.
 
-**Redacción de datos personales, con la acción elegida por contexto.** Presidio
+**Redacción de datos personales, con la acción derivada de la capa.** Presidio
 corre autoalojado —el dato que se quiere proteger no sale de la infraestructura
-para ser detectado— y se aplica de forma distinta según quién reciba el texto:
+para ser detectado— y, desde el change `guardarrailes-por-capas`, **la decisión se
+toma en la capa que sabe qué campo escribió una persona**, no en el proxy, que
+recibe el prompt como una cadena plana:
 
-| Dónde | Acción | Por qué |
-|---|---|---|
-| Evaluador y revisor | `MASK` | Son los únicos que reciben texto escrito por el alumno. El objetivo es redactar, no rechazar una respuesta legítima |
-| Validador | `BLOCK` | Es un gate restrictivo: ante un dato personal se rechaza, no se enmascara y continúa |
-| Web, código y ejercicios | **No se aplica** | Procesan contenido de terceros, de repositorio o derivado. Enmascararlo no aporta privacidad y rompe el contenido (§6.6) |
+| Capa | Dónde | Sobre qué | Acción |
+|---|---|---|---|
+| **Admisión** (`input.py`) | Validador | Los nombres de tecnología | **Rechaza**: un nombre con un dato personal dentro no es una tecnología |
+| **Composición** (`service.py`) | Evaluador y revisor | **Solo** la respuesta del alumno | **Redacta**: es contenido legítimo que hay que procesar |
+| **Proxy** (`config.yaml`) | Todos los deployments | El prompt completo | **Red de seguridad** en `MASK`, automática; no debería activarse nunca |
+
+La acción no es una política que haya que elegir y configurar por agente: es
+consecuencia de la capa. En la admisión solo se puede rechazar, porque todavía no
+hay prompt que transformar; en la composición solo se puede transformar, porque ya
+se decidió admitir. Y como la redacción ocurre antes de que el prompt salga del
+proceso del agente, **todo destinatario posterior recibe el texto ya limpio**: el
+detector de inyección, el proveedor, el proveedor de respaldo y las trazas.
+
+Dos consecuencias que merecen subrayarse. El **código de apoyo no se redacta
+nunca**, porque no lo escribe ningún usuario del sistema: eso elimina la causa raíz
+de los falsos positivos que dos changes anteriores tuvieron que contener recortando
+entidades. Y la **tasa de activación de la red del proxy se convierte en la alarma**
+del control principal: si salta, significa que algún agente dejó de redactar un
+campo.
 
 Está acotado a cinco entidades (`EMAIL_ADDRESS`, `PHONE_NUMBER`, `CREDIT_CARD`,
 `IP_ADDRESS`, `IBAN_CODE`) y a `filter_scope: input`. Las dos decisiones tienen
@@ -1873,38 +1905,38 @@ tipo de documento**. Cubrirlo de forma determinista, antes del modelo y antes de
 guardarraíl, cierra un hueco que ninguna de las otras capas cubre. Y, por ser
 determinista, no tiene falsos negativos por aleatoriedad.
 
-**El opt-out del guardarraíl global: la sutileza más fina del sistema.** El
-guardarraíl global `lakera-guard` no solo detecta inyección: **también enmascara la
-PII que detecta**. Si corriera en el validador, enmascararía el dato personal
-*antes* de que `presidio-pii-block` pudiera verlo, y el validador **nunca
-rechazaría ese dato**. Un control de seguridad desactivando a otro por el orden en
+**El opt-out del guardarraíl global: la sutileza que acabó con el guardarraíl
+global.** Hubo un mecanismo que merece contarse porque explica por qué la
+arquitectura es la que es. El guardarraíl global de inyección no solo detectaba:
+**también enmascaraba la PII que encontraba**. Al ser global se ejecutaba *antes*
+que los de deployment, así que enmascaraba el dato personal antes de que el
+guardarraíl de bloqueo del validador pudiera verlo, y el validador **nunca habría
+rechazado ese dato**. Un control de seguridad desactivando a otro por el orden en
 que se ejecutan.
 
-La solución es una exclusión explícita en la metadata de la virtual key del
-validador:
+La solución fue una exclusión explícita en la metadata de la virtual key del
+validador, `opted_out_global_guardrails: ["lakera-guard"]`, que
+`provision_keys.py` aplicaba al crear la clave y reparaba en re-ejecuciones.
+Funcionaba, se especificó y se verificó contra el stack real.
 
-```
-opted_out_global_guardrails: ["lakera-guard"]
-```
+Y era un síntoma, no una funcionalidad. Existía **únicamente para deshacer un valor
+por defecto**, y mientras existiera había una propiedad de seguridad del sistema
+que dependía del orden de ejecución interno de una librería de terceros: algo que
+no controlamos, que no cubría ningún test y que una actualización podía cambiar sin
+avisar. El change `guardarrailes-por-capas` eliminó el guardarraíl global y, con
+él, la exclusión, su requisito y su verificación. Sin global, no hay nada de lo que
+excluirse.
 
-`provision_keys.py` la aplica al crear la clave y la **repara** en re-ejecuciones si
-faltara. Solo afecta a guardarraíles globales; los vinculados al *deployment*
-—los dos de bloqueo del validador— siguen corriendo.
+El reparto que queda se explica en una frase: **automático para el control gratuito
+y autoalojado —Presidio, como red en toda llamada—, explícito para el de pago y
+externo —Lakera, solo donde de verdad bloquea—.** Cuatro definiciones de guardarraíl
+pasaron a dos, y cuatro combinaciones distintas por deployment a una regla uniforme
+más una excepción.
 
-```mermaid
-flowchart TB
-    IN["Entrada del validador"] --> OPT["opt-out del global lakera-guard<br/>(no enmascara la PII)"]
-    OPT --> PII["presidio-pii-block (BLOCK)"]
-    OPT --> LAK["lakera-guard-block (BLOCK)"]
-    PII -->|"PII detectada"| B["Llamada rechazada"]
-    LAK -->|"inyección detectada"| B
-    PII -->|"limpio"| OK["Continúa al modelo"]
-    LAK -->|"limpio"| OK
-```
-
-Es el tipo de interacción entre controles que no aparece en ninguna lista de buenas
-prácticas y que solo se descubre razonando sobre el orden de ejecución concreto de
-la implementación que se está usando.
+Que un control pueda desactivar a otro por el orden de ejecución no aparece en
+ninguna lista de buenas prácticas: se descubre razonando sobre la implementación
+concreta que se está usando. Y la lección de fondo, más general, es que un control
+cuya corrección depende de desactivar otro control está mal colocado.
 
 ### 6.3 Mapeo OWASP Top 10 para aplicaciones LLM
 
@@ -1914,7 +1946,7 @@ la implementación que se está usando.
 
 | Riesgo OWASP | Controles aplicables | Estado preliminar |
 |---|---|---|
-| **LLM01** Inyección de prompts | Delimitadores y frase defensiva en los 7 prompts; Lakera en `monitor` (global) y `block` (validador); ausencia de herramientas de escritura en todos los agentes | **Mitigado parcialmente.** Con Lakera en monitor, la detección registra pero no bloquea: la protección efectiva es por instrucción y por limitación de capacidades, no por detección |
+| **LLM01** Inyección de prompts | Delimitadores y frase defensiva en los 7 prompts; Lakera en `block` sobre el validador y su respaldo; ausencia de herramientas de escritura en todos los agentes | **Mitigado, con un residual declarado.** Ya hay bloqueo efectivo, pero solo en el gate de entrada. En la ruta de generación no hay detección automatizada, y en el evaluador y el revisor su activación está pendiente de medir la tasa de falsos positivos sobre respuestas reales (§6.5) |
 | **LLM02** Fuga de información sensible | Presidio en MASK y BLOCK; `mask_input` en trazas; roles de BD de mínimo privilegio; GitHub App de solo lectura sin persistencia | **Mitigado.** Residual: el código propietario del repositorio **sí** llega al proveedor del modelo por diseño, y eso es inherente a la función |
 | **LLM03** Cadena de suministro | Dependencias fijadas en `requirements.txt`; modelos open-weight con fallback a otro proveedor | **Parcial.** Sin análisis automatizado de vulnerabilidades de dependencias en CI |
 | **LLM04** Envenenamiento de datos | El sistema no entrena ni ajusta modelos. La memoria de los agentes sí es un vector: contenido manipulado que entre en la caché persiste 30 días | **A analizar.** Es el riesgo menos obvio y conviene no despacharlo con un «no aplica» |
@@ -1935,7 +1967,7 @@ El registro de riesgos a desarrollar, con los diez que son propios de este siste
 
 | # | Riesgo | Control actual | Residual preliminar |
 |---|---|---|---|
-| 1 | **Un alumno manipula su propia corrección** por inyección en el texto de su respuesta | Delimitadores + frase defensiva; Lakera en monitor; el revisor no puede cambiar el veredicto | **El riesgo más propio del dominio**: es el único actor con incentivo directo. A cuantificar en el red teaming (§6.5) |
+| 1 | **Un alumno manipula su propia corrección** por inyección en el texto de su respuesta | Delimitadores + frase defensiva; el revisor no puede cambiar el veredicto; bloqueo de Lakera en evaluador y revisor **pendiente de medir** su tasa de falsos positivos | **El riesgo más propio del dominio**: es el único actor con incentivo directo, y hoy su única defensa activa es la instrucción. A cuantificar en el red teaming (§6.5) |
 | 2 | Inyección desde el contenido de un repositorio hacia el agente de código | Delimitadores; validación de rutas contra el árbol real; agente sin capacidad de escritura | Acotado a calidad del resultado |
 | 3 | **Fuga de código propietario al proveedor del modelo** | Modelos open-weight autoalojables; sin persistencia en disco; auditoría de accesos | **Aceptado por diseño**, con mitigación disponible (mover la inferencia) si un cliente lo exige |
 | 4 | Fuga de datos personales del alumno al proveedor o a las trazas | Presidio en MASK; `mask_input`; pre-filtro del validador | Residual: PII que Presidio no reconoce y que no es DNI |
@@ -1943,7 +1975,7 @@ El registro de riesgos a desarrollar, con los diez que son propios de este siste
 | 6 | Un alumno accede a asignaciones de otro | Filtrado explícito en el código + RLS como segunda capa | Bajo |
 | 7 | **Todos los servicios comparten el mismo `.env`** | Ninguno hoy | **Riesgo asumido en desarrollo que un despliegue real debe cerrar** (§5.1) |
 | 8 | Degradación silenciosa de calidad del fallback | Fallback a modelo equivalente, y al mismo modelo en el validador | A medir: la comparativa primario/fallback es parte de §5.7 |
-| 9 | **Falso positivo de guardarraíl que rompe el servicio** | Lakera pasado a monitor; Presidio acotado a 5 entidades y a entrada | **Ya ocurrido dos veces** (§7). Mitigado reduciendo el alcance de los controles, lo que traslada riesgo a LLM01 |
+| 9 | **Falso positivo de guardarraíl que rompe el servicio** | Lakera retirado de la ruta de generación; Presidio acotado a 5 entidades, a la entrada y **solo a los campos que escribe una persona** | **Ya ocurrido dos veces** (§7). La redacción por campo elimina la causa raíz en lugar de recortar el alcance; para Lakera el riesgo se traslada a LLM01 y está declarado |
 | 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Aprobación humana de ejercicios; doble pasada en la evaluación | Es el riesgo de producto más serio: un junior no tiene criterio para detectar que la corrección es errónea |
 
 El riesgo 10 merece una nota, porque es el que no se resuelve con un control
@@ -1966,7 +1998,8 @@ contenido completamente benigno: rutas de repositorio que contienen la palabra
 bloqueo, la generación se rompía. La decisión fue **pasar a `monitor`**: registrar y
 no bloquear. Es una decisión defendible —un control que rompe el producto no se
 puede mantener— y tiene una consecuencia que hay que declarar: **la detección
-automatizada de inyección no protege hoy, solo observa**. La protección efectiva
+automatizada de inyección quedó sin bloquear en ningún punto del sistema**. La
+protección efectiva
 contra LLM01 es la defensa por instrucción y la ausencia de herramientas peligrosas.
 
 El segundo, con Presidio. Con las entidades `URL` y `PERSON` activas, el detector
@@ -2004,59 +2037,47 @@ abierto al reducir su alcance.
    esta arquitectura: la caché persistente convierte un ataque puntual en uno
    duradero.
 
-   **El objetivo 5 cubre, además, un hueco de verificación que esta auditoría
-   destapó.** La exclusión del guardarraíl global en la clave del validador
-   (§6.2) estaba implementada y razonada, pero el comportamiento que la justifica
-   —que con esa exclusión un dato personal llegue sin enmascarar a
-   `presidio-pii-block` y este lo rechace— no lo comprobaba nada: depende del
-   orden de ejecución interno de LiteLLM, no de código propio, y
-   `verify_validator.py` cubre el pre-filtro, el esquema, los contextos y los
-   duplicados, pero no esto.
+   **El objetivo 5 cubre un hueco de verificación cuya historia merece contarse,
+   porque acabó rediseñando la arquitectura.** La exclusión del guardarraíl global
+   en la clave del validador estaba implementada y razonada, pero el
+   comportamiento que la justificaba —que con esa exclusión un dato personal
+   llegara sin enmascarar al guardarraíl de bloqueo y este lo rechazara— no lo
+   comprobaba nada: dependía del orden de ejecución interno de LiteLLM, no de
+   código propio.
 
-   Se ha escrito la verificación que faltaba,
-   `agents/validator/scripts/verify_guardrail_optout.py`, y su diseño ilustra
-   algo que la tabla de métricas de §5.5 no deja ver: **elegir el vector de
-   prueba es la mitad del trabajo**. El pre-filtro determinista del agente ya
-   rechaza email, teléfono, IBAN y DNI/NIE *antes* de invocar al modelo, así que
-   ninguna de esas entradas llega al proxy y ninguna sirve para probar el
-   guardarraíl. Las dos entidades que Presidio cubre y el pre-filtro no son
+   Se escribió la verificación que faltaba y **pasó**: el proxy rechazaba el
+   vector con `400 - Blocked entity detected: CREDIT_CARD by Guardrail:
+   presidio-pii-block`, y ese mensaje era la evidencia, porque identificar la
+   entidad *por su tipo* solo es posible si se recibió sin enmascarar. El control
+   funcionaba. Y al escribirlo quedó a la vista que no debía existir: el change
+   `guardarrailes-por-capas` eliminó el guardarraíl global, y con él la exclusión,
+   su requisito y esa misma verificación (§6.2).
+
+   **Lo que sobrevive es el método, y es lo más transferible de todo este
+   apartado: elegir el vector de prueba es la mitad del trabajo.** El pre-filtro
+   determinista del validador ya rechaza email, teléfono, IBAN y DNI/NIE *antes*
+   de invocar al modelo, así que ninguna de esas entradas sirve para probar lo que
+   hay detrás. Las dos entidades que el detector cubre y el pre-filtro no son
    `CREDIT_CARD` e `IP_ADDRESS` —comprobado ejecutando `find_pii_like` sobre
-   ambas, no deducido del código—, y son por tanto los únicos vectores que
-   aíslan la capa bajo prueba. El script verifica esa precondición explícitamente,
-   para no volverse vacío en silencio si algún día se añaden esos patrones al
-   pre-filtro.
+   ambas, no deducido del código—, y son por tanto los únicos vectores que aíslan
+   la capa bajo prueba. Esa pareja de vectores es hoy la que usan la comprobación
+   de admisión del validador y los tests de redacción del evaluador y del revisor,
+   y cada una verifica explícitamente la precondición, para no volverse vacía en
+   silencio si algún día se añaden esos patrones al pre-filtro.
 
-   El criterio de éxito merece subrayarse porque es contraintuitivo: la llamada
-   **debe fallar**. Si el modelo responde —con cualquier veredicto, incluido
-   `valid=false`— la PII ha llegado al proveedor y el control no está
-   funcionando. Un rechazo del validador parecería el resultado correcto y es
-   justo el síntoma del fallo.
+   El criterio de éxito también sobrevive, y es contraintuitivo: la llamada **debe
+   fallar**. Si el modelo responde —con cualquier veredicto, incluido
+   `valid=false`— la PII llegó al proveedor y el control no está funcionando. Un
+   rechazo parecería el resultado correcto y es justo el síntoma del fallo.
 
-   **Resultado: las cuatro comprobaciones pasan** contra el stack levantado
-   (LiteLLM, Presidio y su Postgres). El proxy rechaza ambos vectores con un
-   error explícito:
-
-   ```
-   400 - Blocked entity detected: CREDIT_CARD by Guardrail: presidio-pii-block.
-         This entity is not allowed to be used in this request.
-   ```
-
-   Ese mensaje es la evidencia que faltaba. `presidio-pii-block` identifica la
-   entidad **por su tipo**, lo que solo es posible si la recibió sin enmascarar:
-   si `lakera-guard` hubiera actuado antes, habría visto un marcador de
-   enmascarado y no habría detectado ninguna entidad. El control funciona de
-   extremo a extremo y ahora está medido, no solo razonado.
-
-   Queda una limitación que conviene declarar, porque es la diferencia entre un
-   test que confirma un comportamiento y uno que confirma una *causa*: la prueba
-   demuestra que con la exclusión puesta el bloqueo ocurre, pero no que la
-   exclusión sea **necesaria** para que ocurra. Para eso haría falta un control
-   negativo —retirar la metadata de la clave, observar que el modelo responde en
-   lugar de bloquearse, y restaurarla con `provision_keys.py`—, que implica
-   mutar el estado de LiteLLM y se deja como trabajo pendiente. El script
-   distingue además «no concluyente» (stack caído, código de salida 2) de «el
-   control no funciona» (`AssertionError`), para que un stack apagado no se
-   confunda nunca con un control verificado.
+   **Estado honesto a día de hoy.** El bloqueo de inyección está activo en el
+   validador y su respaldo. En el evaluador y el revisor —el único punto con un
+   autor que tiene incentivo adverso— **no está activado todavía**: depende de
+   medir antes la tasa de falsos positivos sobre respuestas reales, y el corpus
+   disponible son 15 respuestas, muestra demasiado pequeña para encender a ciegas
+   un control que, si se equivoca, impide corregir a un alumno. Encenderlo sin esa
+   medición sería repetir exactamente el error que costó el falso positivo de
+   Lakera.
 
 3. **Protocolo.** Por cada objetivo: casos de ataque versionados, criterio
    inequívoco de éxito, ejecución registrada y clasificación del hallazgo por
@@ -2145,6 +2166,13 @@ automatizado se paga en disponibilidad**, y que ese coste hay que medirlo antes 
 poner el control en bloqueo, no después. De ahí que la tasa de falsos positivos de
 guardarraíl sea una de las métricas de §5.5.
 
+Epílogo, porque la historia no acabó en `monitor`: un control en observación que
+nadie lee no es un control, es una factura. El change `guardarrailes-por-capas` lo
+retiró de la ruta de generación —donde el falso positivo ocurrió— y lo dejó
+bloqueando donde el autor del texto tiene incentivo para atacar. **La respuesta a
+un falso positivo no es bajar el control a observación y olvidarlo: es acotar
+dónde se aplica.**
+
 **2. Enmascarar la salida de un modelo no protege a nadie y corrompe el producto.**
 Presidio corría con `filter_scope: both` por defecto y enmascaraba también la
 respuesta del modelo: los ejercicios salían con `<PERSON>` incrustado. El
@@ -2181,6 +2209,12 @@ un dato personal. Dos controles correctos, un resultado incorrecto, por el orden
 ejecución. **Los controles no se suman: interactúan**, y hay que razonar sobre la
 composición concreta de la implementación que se está usando, no sobre la idea de
 cada control.
+
+Epílogo: la exclusión que resolvía esa interacción se eliminó al rediseñar dónde se
+aplica cada guardarraíl (§6.2). Era un síntoma, no una funcionalidad. **Un control
+cuya corrección depende de desactivar otro control está mal colocado**, y la
+pregunta correcta no era cómo coordinar los dos, sino por qué los dos vivían en la
+misma capa.
 
 **7. Un control pensado para un contexto bloquea el trabajo legítimo en otro.**
 La detección de duplicados del validador —correcta al dar de alta una tecnología—
@@ -2569,7 +2603,7 @@ evaluación de políticas sobre lo que el rol ya puede leer, que en ambos casos 
 | **OpenSpec** | Marco de desarrollo guiado por especificaciones usado en este proyecto |
 | **Change** | Una propuesta de modificación con su diseño, tareas y delta de especificación |
 | **Copia inmutable** | La copia congelada de la composición de un bloque en el momento de asignarlo |
-| **opted_out_global_guardrails** | Metadata de la virtual key del validador que la excluye del guardarraíl global |
+| **opted_out_global_guardrails** | Metadata que excluía a una virtual key de un guardarraíl global. Existió en la clave del validador y desapareció con el guardarraíl global que la hacía necesaria (§6.2) |
 
 ---
 

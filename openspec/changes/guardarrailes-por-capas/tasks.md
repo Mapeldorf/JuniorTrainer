@@ -19,7 +19,7 @@
 - [x] 3.4 Aplicar la redaccion unicamente a `student_answer` al montar el prompt del evaluador, nunca a `statement`, `code` ni `expected_answer` (design.md decision 2). Verificar: test que comprueba que una respuesta con un email sale redactada y que un bloque de codigo de apoyo que contiene `127.0.0.1` sale intacto.
 - [x] 3.5 Replicar 3.2, 3.3 y 3.4 en `agents/reviewer/app/`, aplicando la redaccion solo a `student_answer` (la `justification` recibida la genera un modelo, no una persona). Verificar: los mismos tests, con los mismos vectores, en el revisor.
 - [ ] 3.6 Comprobacion manual de extremo a extremo: responder un ejercicio con un email real en el texto. Verificar: el veredicto se emite con normalidad y ni el proveedor ni la traza reciben el email.
-- [ ] 3.7 Actualizar en `capstone/juniortrainer-capstone.md` la seccion 6.6 (donde se aplica la redaccion, a que campos, y el hueco del telefono nacional que se cierra) y la tabla de controles de 6.2 en lo relativo a Presidio. Verificar: no queda ninguna afirmacion de que la redaccion se aplique al prompt completo en el proxy.
+- [x] 3.7 Actualizar en `capstone/juniortrainer-capstone.md` la seccion 6.6 (donde se aplica la redaccion, a que campos, y el hueco del telefono nacional que se cierra) y la tabla de controles de 6.2 en lo relativo a Presidio. Verificar: no queda ninguna afirmacion de que la redaccion se aplique al prompt completo en el proxy.
 
 ## 4. Admision del validador
 
@@ -32,7 +32,7 @@
 - [x] 5.2 Eliminar `_AGENT_KEY_METADATA` y su reparacion en `_missing_fields` de `infra/litellm/provision_keys.py`. Verificar: re-ejecutar el script sobre las keys existentes no las modifica ni vuelve a aplicar la metadata, y las seis siguen funcionando.
 - [x] 5.3 Eliminar `agents/validator/scripts/verify_guardrail_optout.py`. Verificar: no queda ninguna referencia a el en el repositorio.
 - [x] 5.4 Comprobar que la red del proxy no interfiere: con la redaccion del agente operativa, una evaluacion con PII en la respuesta se completa y la red de Presidio del proxy no sustituye nada. Verificar: la traza muestra el texto ya redactado por el agente.
-- [ ] 5.5 Actualizar en `capstone/juniortrainer-capstone.md` el inventario de controles de 6.2 (de cuatro guardarrailes a dos, sin el apartado del opt-out), el mapeo OWASP de 6.3 en LLM01 y LLM02, el registro de riesgos de 6.4 y el inventario de verificadores de 5.4. Verificar: ninguna seccion menciona el guardarrail global ni `opted_out_global_guardrails`.
+- [x] 5.5 Actualizar en `capstone/juniortrainer-capstone.md` el inventario de controles de 6.2 (de cuatro guardarrailes a dos, sin el apartado del opt-out), el mapeo OWASP de 6.3 en LLM01 y LLM02, el registro de riesgos de 6.4 y el inventario de verificadores de 5.4. Verificar: ninguna seccion menciona el guardarrail global ni `opted_out_global_guardrails`.
 - [ ] 5.6 Actualizar `docs/especificacion-agentes.md` seccion 8 completa y 9.4, y `docs/especificacion-backend.md` 9.5 y 9.6 (ficheros locales, `docs/` esta en `.gitignore`). Verificar: coherencia con la configuracion resultante.
 
 ## 6. Deteccion de inyeccion donde bloquea
