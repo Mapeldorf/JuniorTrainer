@@ -320,8 +320,16 @@ def _install_web_tools(svc, case: dict, mode: str, probe: dict, originals: dict)
         real_search = originals["tavily_search"]
 
         async def counting_search(client, query, budget, max_results=5):
+            # Una busqueda que el presupuesto rechaza no llega a hacerse: no se
+            # cuenta (la herramienta real descuenta el presupuesto antes de buscar).
+            try:
+                found = await real_search(client, query, budget, max_results)
+            except svc.SearchBudgetExceeded:
+                raise
+            except Exception:
+                probe["search_calls"] += 1
+                raise
             probe["search_calls"] += 1
-            found = await real_search(client, query, budget, max_results)
             probe["found"][query.removesuffix(" documentacion")] = len(found)
             return found
 
@@ -364,8 +372,14 @@ def _install_code_tools(svc, case: dict, mode: str, probe: dict, originals: dict
             return entries
 
         async def counting_read(owner, repo, commit_sha, path, budget):
+            try:
+                text = await real_read(owner, repo, commit_sha, path, budget)
+            except svc.FileBudgetExceeded:
+                raise
+            except Exception:
+                probe["reads"] += 1
+                raise
             probe["reads"] += 1
-            text = await real_read(owner, repo, commit_sha, path, budget)
             probe["contents"][path] = text
             return text
 
@@ -648,15 +662,35 @@ def _fatal(message: str) -> int:
     return 3
 
 
+def _sample(cases: list, limit: int) -> list:
+    """`limit` casos repartidos por todo el conjunto, en su orden original (el
+    primero siempre entra). Tomar los primeros N sesgaria la muestra: el dataset
+    esta ordenado por ejercicio y por categoria."""
+    if not limit or limit >= len(cases):
+        return cases
+    return [cases[i * len(cases) // limit] for i in range(limit)]
+
+
+def _selected_cases(agent: str, data: dict, mode: str, limit: int) -> list[tuple[str, dict]]:
+    """Casos a ejecutar. En modo real se omiten los que traen un guion o una
+    expectativa simulada (`sim`, `sim_expect`): existen para provocar un fallo
+    concreto de un modelo falso y con un modelo real no significan nada."""
+    chosen = []
+    for set_name in dict.fromkeys(name for name, _ in _cases_for(agent, data)):
+        rows = [c for name, c in _cases_for(agent, data) if name == set_name]
+        if mode == "real":
+            rows = [c for c in rows if "sim" not in c and "sim_expect" not in c]
+        chosen += [(set_name, c) for c in _sample(rows, limit)]
+    return chosen
+
+
 async def _run_all(args, svc, input_mod, error_classes, real_builder, originals) -> list[dict]:
     data = dataset.load_all(dataset.Path(args.datasets_dir))
     if hasattr(svc, "redact"):
         svc.redact = _identity_redact
     group_statements: dict[str, list[str]] = {}
     records = []
-    for set_name, case in _cases_for(args.agent, data):
-        if args.limit_per_set and sum(1 for r in records if r["set"] == set_name) >= args.limit_per_set:
-            continue
+    for set_name, case in _selected_cases(args.agent, data, args.mode, args.limit_per_set):
         record = await _run_case(args.agent, set_name, case, svc, input_mod, error_classes, args.mode,
                                  real_builder, group_statements, originals, args.case_timeout)
         _apply_invariants(args.agent, case, record, args.mode)

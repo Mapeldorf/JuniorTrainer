@@ -13,8 +13,11 @@ python -m evals.run                         # modo simulado, los cuatro agentes
 python -m evals.run --agents evaluator      # solo uno (o varios: --agents web,code)
 python -m evals.run --mode real --limit-per-set 5   # modelos reales vía LiteLLM
 EVALS_REAL_REPO=propietario/repo@commit python -m evals.run --mode real --agents code   # el agente de código necesita un repo real
+python -m evals.run --mode real --case-timeout 60     # límite por caso (180 s por defecto)
 python -m unittest discover -s evals -t . -p "test_*.py"   # tests del propio arnés
 ```
+
+En modo real se imprime una línea por caso con su estado y su duración. `--limit-per-set N` toma N casos **repartidos** por todo el conjunto (no los N primeros) y en modo real omite los casos guionizados (`sim`/`sim_expect`), que solo tienen sentido con un modelo falso.
 
 El informe JSON queda en `evals/results/` (ignorado por git) y se imprime un resumen. Código de salida: `0` bien; `1` modo simulado con una invariante rota; `2` la ejecución falló (dataset inválido, agente que no arranca, LiteLLM caído en modo real).
 

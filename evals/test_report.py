@@ -13,6 +13,8 @@ from evals.agent_runner import (
     _check_contents,
     _check_delimited,
     _delimiter_checks,
+    _sample,
+    _selected_cases,
 )
 
 
@@ -212,6 +214,60 @@ class CodeReportTests(unittest.TestCase):
         self.assertIsNone(m["code"]["path_validity"]["rate"])
         self.assertIn("OMITIDOS: 1", report.render_summary(
             report.build_report("real", {"code": {"cases": [skipped]}}, self.ds([skipped]))))
+
+
+class DisclosureAndGuardrailTests(unittest.TestCase):
+    def test_la_declaracion_de_ausencia_ignora_tildes_y_mayusculas(self):
+        datasets = {"web": [{"id": "w1", "technologies": ["Docker"]}], "adversarial": []}
+        summary = "## Docker\n\nNo se han proporcionado fragmentos de b\u00fasqueda para esta tecnolog\u00eda."
+        record = rec("w1", "web", result={"summary": summary, "sources": [], "memory_hit": False})
+        record["probe"] = {"search_calls": 0, "found": {}}
+        web = report.agent_report("web", [record], datasets, "real")["metrics"]["web"]
+        self.assertEqual(web["no_source_disclosure"]["rate"], 1.0)
+
+    def test_bloqueos_de_guardarrail_en_adversariales(self):
+        datasets = {"validation": [], "adversarial": [{"id": "a1", "target": "validator", "expect_valid": False},
+                                                       {"id": "a2", "target": "validator", "expect_valid": False}]}
+        records = [rec("a1", "adversarial", outcome="guardrail_blocked", calls=1),
+                   rec("a2", "adversarial", result={"valid": False, "duplicates": []})]
+        adv = report.agent_report("validator", records, datasets, "real")["adversarial"]
+        self.assertEqual(adv["blocked_by_guardrail"], ["a1"])
+        self.assertEqual(adv["successful_attacks"]["count"], 0)
+
+
+class AttackDenominatorTests(unittest.TestCase):
+    def test_los_errores_de_infraestructura_no_cuentan_como_ataque_rechazado(self):
+        datasets = {"web": [], "adversarial": [{"id": "a1", "target": "web"}, {"id": "a2", "target": "web"}]}
+        records = [rec("a1", "adversarial", outcome="infra_error", calls=0),
+                   rec("a2", "adversarial", result={"summary": "## React Resumen.", "sources": [], "memory_hit": False})]
+        records[1]["probe"] = {"search_calls": 1, "found": {"React": 1}}
+        attacks = report.agent_report("web", records, datasets, "real")["adversarial"]["successful_attacks"]
+        self.assertEqual((attacks["count"], attacks["of"]), (0, 1))
+
+
+class SamplingTests(unittest.TestCase):
+    def test_reparte_la_muestra_por_todo_el_conjunto(self):
+        self.assertEqual(_sample(list(range(20)), 5), [0, 4, 8, 12, 16])
+
+    def test_sin_limite_o_con_limite_mayor_devuelve_todo(self):
+        self.assertEqual(_sample([1, 2, 3], 0), [1, 2, 3])
+        self.assertEqual(_sample([1, 2, 3], 10), [1, 2, 3])
+
+    def test_en_modo_real_se_omiten_los_casos_guionizados(self):
+        data = {"evaluation": [{"id": "e1"}, {"id": "e2", "sim": {"evaluator": ["x"]}},
+                               {"id": "e3", "sim_expect": {"outcome": "ok", "calls": 1}}],
+                "adversarial": []}
+        simulated = [c["id"] for _, c in _selected_cases("evaluator", data, "simulated", 0)]
+        real = [c["id"] for _, c in _selected_cases("evaluator", data, "real", 0)]
+        self.assertEqual(simulated, ["e1", "e2", "e3"])
+        self.assertEqual(real, ["e1"])
+
+    def test_el_limite_se_aplica_por_conjunto(self):
+        data = {"evaluation": [{"id": f"e{i}"} for i in range(10)],
+                "adversarial": [{"id": f"a{i}", "target": "evaluator"} for i in range(10)]}
+        chosen = _selected_cases("evaluator", data, "simulated", 3)
+        self.assertEqual([c["id"] for s, c in chosen if s == "evaluation"], ["e0", "e3", "e6"])
+        self.assertEqual(len([1 for s, _ in chosen if s == "adversarial"]), 3)
 
 
 class InvariantsAndRenderingTests(unittest.TestCase):
