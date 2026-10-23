@@ -10,12 +10,12 @@ import json
 from pathlib import Path
 
 DATASETS_DIR = Path(__file__).resolve().parent / "datasets"
-SET_NAMES = ("generation", "evaluation", "validation", "adversarial")
+SET_NAMES = ("generation", "evaluation", "validation", "web", "code", "adversarial")
 
 VERDICTS = ("correct", "incomplete", "incorrect")
 EXERCISE_TYPES = ("knowledge", "debug")
 VALIDATION_CONTEXTS = ("catalog_entry", "generation")
-ADVERSARIAL_TARGETS = ("evaluator", "reviewer", "validator")
+ADVERSARIAL_TARGETS = ("evaluator", "reviewer", "validator", "web", "code")
 SIM_OUTCOMES = ("ok", "contract_error")
 
 
@@ -94,6 +94,55 @@ def _validate_technology_case(set_name: str, case: dict) -> None:
         _fail(set_name, case["id"], "expect_prefilter", "un caso rechazado por el pre-filtro no puede esperar valid=true")
 
 
+def _is_source(value) -> bool:
+    return (
+        isinstance(value, dict)
+        and all(isinstance(value.get(k), str) for k in ("title", "url", "snippet"))
+    )
+
+
+def _validate_web_case(set_name: str, case: dict) -> None:
+    _require(set_name, case, "technologies", lambda v: _is_str_list(v) and len(v) > 0, "lista de textos no vacia")
+    _require(
+        set_name, case, "search_results",
+        lambda v: isinstance(v, dict)
+        and all(isinstance(k, str) and isinstance(rows, list) and all(_is_source(r) for r in rows)
+                for k, rows in v.items()),
+        "objeto tecnologia -> lista de {title, url, snippet}",
+    )
+    _optional(
+        set_name, case, "cached",
+        lambda v: v is None or (isinstance(v, dict) and isinstance(v.get("summary"), str)
+                                and isinstance(v.get("sources"), list)),
+        "null o {summary, sources}",
+    )
+
+
+def _validate_code_case(set_name: str, case: dict) -> None:
+    for field in ("owner", "repo", "commit_sha"):
+        _require(set_name, case, field, lambda v: isinstance(v, str) and v.strip(), "texto no vacio")
+    _require(set_name, case, "technologies", lambda v: _is_str_list(v) and len(v) > 0, "lista de textos no vacia")
+    _require(
+        set_name, case, "files",
+        lambda v: isinstance(v, list) and all(
+            isinstance(f, dict) and isinstance(f.get("path"), str) and isinstance(f.get("size_bytes"), int)
+            for f in v),
+        "lista de {path, size_bytes}",
+    )
+    _require(
+        set_name, case, "contents",
+        lambda v: isinstance(v, dict) and all(isinstance(k, str) and isinstance(t, str) for k, t in v.items()),
+        "objeto ruta -> texto",
+    )
+    _optional(
+        set_name, case, "cached",
+        lambda v: v is None or (isinstance(v, dict) and isinstance(v.get("summary"), str)
+                                and isinstance(v.get("technologies"), list)
+                                and isinstance(v.get("fragments"), list)),
+        "null o {summary, technologies, fragments}",
+    )
+
+
 def _validate_generation_case(set_name: str, case: dict) -> None:
     _require(set_name, case, "type", lambda v: v in EXERCISE_TYPES, f"uno de {EXERCISE_TYPES}")
     _require(set_name, case, "count", lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 5, "entero entre 1 y 5")
@@ -112,6 +161,10 @@ def _validate_case(set_name: str, case: dict) -> None:
         _validate_generation_case(set_name, case)
     elif set_name == "evaluation":
         _validate_answer_case(set_name, case)
+    elif set_name == "web":
+        _validate_web_case(set_name, case)
+    elif set_name == "code":
+        _validate_code_case(set_name, case)
     elif set_name == "validation":
         _validate_technology_case(set_name, case)
     else:  # adversarial
@@ -119,6 +172,10 @@ def _validate_case(set_name: str, case: dict) -> None:
         _require(set_name, case, "kind", lambda v: isinstance(v, str) and v, "texto no vacio")
         if case["target"] == "validator":
             _validate_technology_case(set_name, case)
+        elif case["target"] == "web":
+            _validate_web_case(set_name, case)
+        elif case["target"] == "code":
+            _validate_code_case(set_name, case)
         else:
             _validate_answer_case(set_name, case)
     _check_sim(set_name, case)

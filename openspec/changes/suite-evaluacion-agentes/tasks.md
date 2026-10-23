@@ -45,3 +45,12 @@
 ## 8. Integración
 
 - [x] 8.1 Ejecutar la suite completa en modo simulado desde un entorno limpio (sin `.env`, sin red) y verificar código de salida 0 e informe completo
+
+## 9. Agentes web y de código
+
+- [x] 9.1 Ampliar `evals/dataset.py` con los conjuntos `web` y `code` (y objetivos `web`/`code` en el adversarial) y sus tests; verificar que los casos mal formados fallan nombrando conjunto, caso y campo
+- [x] 9.2 Ampliar `evals/model_wrapper.py` para guardar el contenido de cada respuesta y el prompt de usuario de cada llamada, con tests; verificar que se conservan en orden
+- [x] 9.3 Crear `evals/datasets/web.jsonl` y `evals/datasets/code.jsonl` (repos de ejemplo, rutas inventadas, memoria, presupuestos) y los casos adversariales web/code; verificar que cargan
+- [x] 9.4 Ampliar `evals/agent_runner.py` a web y código (sustitutos de Tavily, GitHub y memoria que descuentan presupuesto; modo real con Tavily real y `EVALS_REAL_REPO`; resultado `skipped`); verificar en modo simulado que ambos agentes cumplen sus invariantes
+- [x] 9.5 Ampliar `evals/report.py` con las métricas de web y código (tasa de reintento no disponible para ellos) y sus tests con valores calculados a mano
+- [x] 9.6 Ampliar `evals/run.py`, el job `agent-evals` de CI (seis entornos), el README de `evals/` y §5.3/§5.4/§5.5 del capstone; verificar con una ejecución completa de los seis agentes en modo simulado, con código de salida 0

@@ -50,6 +50,11 @@ class RecordingModel:
         self._inner = inner
         self.calls = 0
         self.first_messages: list[dict] | None = None
+        # Contenido de cada respuesta y prompt de usuario de cada llamada, en
+        # orden: el agente de codigo hace dos llamadas distintas (elegir
+        # ficheros y analizarlos) y sus metricas salen de ambas.
+        self.responses: list[str] = []
+        self.user_prompts: list[str] = []
         self.guardrail_blocked = False
         self.elapsed_seconds = 0.0
 
@@ -57,9 +62,15 @@ class RecordingModel:
         self.calls += 1
         if self.first_messages is None:
             self.first_messages = [dict(m) for m in messages]
+        for message in reversed(messages):
+            if message.get("role") == "user":
+                self.user_prompts.append(str(message.get("content", "")))
+                break
         started = time.perf_counter()
         try:
-            return await self._inner.ainvoke(messages, **kwargs)
+            response = await self._inner.ainvoke(messages, **kwargs)
+            self.responses.append(str(getattr(response, "content", "")))
+            return response
         except Exception as exc:
             if is_guardrail_rejection(exc):
                 self.guardrail_blocked = True

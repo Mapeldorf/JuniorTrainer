@@ -1555,10 +1555,10 @@ dinero y tiempo, y por eso corre contra staging y no en cada commit.
 
 **Lo que ya hay de la suite (punto 4).** El job `agent-evals` de `ci.yml` ejecuta,
 en los *pull requests* que tocan `agents/` o `evals/`, los tests del propio arnés
-y la suite en **modo simulado** sobre cuatro agentes (evaluador, revisor,
-validador y ejercicios): el modelo se sustituye por un doble guionizado, así que
-no hay red, secretos ni coste y se ejercita el código real de parseo, límites y
-reintento. El **modo real** (`python -m evals.run --mode real`) existe pero se
+y la suite en **modo simulado** sobre los seis agentes: el modelo se sustituye
+por un doble guionizado y Tavily, GitHub y la memoria por datos del caso, así que
+no hay red, secretos ni coste y se ejercita el código real de parseo, límites,
+reintento y presupuestos. El **modo real** (`python -m evals.run --mode real`) existe pero se
 lanza a mano y no corre en CI. Lo que sigue pendiente del punto 4 es ejecutarlo
 contra modelos reales, fijar **umbrales** con esa línea base y hacerlo bloqueante.
 
@@ -1620,7 +1620,7 @@ hay que acordarse de ejecutarlas. Convertirlas en pruebas automatizadas es el pu
 ### 5.5 Métricas no subjetivas
 
 > **Arnés implementado; falta la ejecución real.** El dataset (`evals/datasets/`,
-> 95 casos en cuatro conjuntos) y el arnés (`evals/run.py`) calculan las métricas
+> 120 casos en seis conjuntos) y el arnés (`evals/run.py`) calculan las métricas
 > de abajo, y el modo simulado ya corre en CI. Los números de calidad solo salen
 > del modo real, que está pendiente de ejecutar (§5.7). Las etiquetas del
 > dataset las ha redactado el autor y deben revisarse antes de tomar el κ de

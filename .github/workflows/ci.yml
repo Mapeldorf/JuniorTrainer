@@ -113,6 +113,8 @@ jobs:
               - 'agents/reviewer/**'
               - 'agents/validator/**'
               - 'agents/exercises/**'
+              - 'agents/web/**'
+              - 'agents/code/**'
               - 'evals/**'
       - uses: actions/setup-python@v5
         if: steps.changes.outputs.evals == 'true'
@@ -126,7 +128,7 @@ jobs:
       - name: Entornos de los agentes (uno por agente, todos se llaman app)
         if: steps.changes.outputs.evals == 'true'
         run: |
-          for agent in evaluator reviewer validator exercises; do
+          for agent in evaluator reviewer validator exercises web code; do
             python -m venv "agents/$agent/.venv"
             "agents/$agent/.venv/bin/pip" install --quiet -r "agents/$agent/requirements.txt"
           done

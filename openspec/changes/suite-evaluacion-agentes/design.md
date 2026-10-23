@@ -20,7 +20,6 @@ Ver `proposal.md`. Lo que se ha comprobado en el código:
 
 **Non-Goals:**
 - Juzgar calidad pedagógica (juez LLM), medir costes, hacer red teaming o fijar umbrales de bloqueo.
-- Evaluar los agentes web y de código.
 - Sustituir los `verify_*.py` existentes: se conservan; convertirlos en tests es otro trabajo.
 
 ## Decisions
@@ -42,6 +41,14 @@ Ver `proposal.md`. Lo que se ha comprobado en el código:
 **8. CI con un trabajo propio y filtro de rutas.** Un job `agent-evals` en `ci.yml` con `dorny/paths-filter` (`agents/**`, `evals/**`), que instala los `requirements.txt` de los cuatro agentes en entornos separados y ejecuta el modo simulado. Es coherente con el job `litellm-guardrails`, y no necesita secretos.
 
 **9. Resultados en `evals/results/`, ignorados por git.** Salvo un informe de referencia que se guarda a propósito (`evals/baseline/`) cuando se tome la línea base real de §5.7. Evita ruido en los diffs.
+
+**10. Agentes web y de código (añadidos tras aclarar que sus dependencias no suponen coste).**
+- *Simulado:* se sustituyen en `app.service` `AsyncTavilyClient`, `get_settings` y `tavily_search` (web), `list_files` y `read_file` (código) y las funciones de memoria de ambos. Los sustitutos reproducen el contrato de los reales (descuentan el presupuesto con `consume()` antes de actuar), de modo que `SearchBudget` y `FileBudget` se ejercitan de verdad.
+- *Real:* la memoria se anula siempre (ni se lee ni se escribe). Web usa Tavily real. Código necesita un repositorio real, que no puede ir en el dataset porque puede ser privado: se indica por entorno (`EVALS_REAL_REPO`); sin él, sus casos se omiten con el motivo (resultado `skipped`, fuera de todas las métricas).
+- *Observabilidad sin tocar los agentes:* el envoltorio del modelo guarda ahora el contenido de cada respuesta y el prompt de usuario de cada llamada. De ahí salen las rutas elegidas por el modelo (frente al listado real: la validación del agente las filtra y no deja rastro) y la comprobación de delimitadores del segundo prompt del agente de código, que es el que lleva el contenido de los ficheros.
+- *Reintento:* web y código no tienen reintento correctivo, y el de código hace siempre dos llamadas; por eso la tasa de reintento se informa como no disponible para ellos y sus expectativas de llamadas por defecto son 1 y 2.
+- *Fundamentación de fragmentos:* un fragmento está fundamentado si su código aparece literalmente en el fichero que declara y empieza en `start_line`. Es una comprobación de cadena, no semántica.
+- *Declaración de ausencia de fuentes (web):* heurística por palabras clave en la sección de la tecnología dentro del resumen; se declara como tal en el informe.
 
 ## Risks / Trade-offs
 

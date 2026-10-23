@@ -36,6 +36,20 @@ class RecordingModelTests(unittest.TestCase):
         self.assertEqual(model.calls, 2)
         self.assertEqual(model.first_user_message(), "primer prompt")
 
+    def test_guarda_respuestas_y_prompts_de_cada_llamada_en_orden(self):
+        model = RecordingModel(ScriptedModel(["r1", "r2"]))
+        run(model.ainvoke([{"role": "system", "content": "S"}, {"role": "user", "content": "p1"}]))
+        run(model.ainvoke([{"role": "user", "content": "p2"}]))
+        self.assertEqual(model.responses, ["r1", "r2"])
+        self.assertEqual(model.user_prompts, ["p1", "p2"])
+
+    def test_una_respuesta_fallida_no_se_guarda(self):
+        model = RecordingModel(ScriptedModel([]))
+        with self.assertRaises(ScriptExhausted):
+            run(model.ainvoke([{"role": "user", "content": "p"}]))
+        self.assertEqual(model.responses, [])
+        self.assertEqual(model.user_prompts, ["p"])
+
     def test_una_sola_llamada_no_es_reintento(self):
         model = RecordingModel(ScriptedModel(["a"]))
         run(model.ainvoke([{"role": "user", "content": "x"}]))

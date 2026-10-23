@@ -29,7 +29,7 @@ from evals import dataset, report
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
-AGENTS = ("evaluator", "reviewer", "validator", "exercises")
+AGENTS = ("evaluator", "reviewer", "validator", "exercises", "web", "code")
 _MARKER = "EVALS_JSON:"
 _TIMEOUT_SECONDS = 900
 

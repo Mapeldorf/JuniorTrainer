@@ -37,6 +37,20 @@ _GEN_CASE = {
     "topics": ["a", "b"],
 }
 _ADV_CASE = {**_EVAL_CASE, "id": "ad-x", "target": "evaluator", "kind": "inyeccion"}
+_WEB_CASE = {
+    "id": "we-x",
+    "technologies": ["React"],
+    "search_results": {"React": [{"title": "t", "url": "https://x", "snippet": "s"}]},
+}
+_CODE_CASE = {
+    "id": "co-x",
+    "owner": "o",
+    "repo": "r",
+    "commit_sha": "abc",
+    "technologies": ["React"],
+    "files": [{"path": "src/App.jsx", "size_bytes": 10}],
+    "contents": {"src/App.jsx": "export default 1;"},
+}
 
 
 def _write(directory: Path, name: str, cases: list[dict]) -> None:
@@ -54,6 +68,8 @@ def _write_all(directory: Path, **overrides) -> None:
         "evaluation": labels,
         "validation": [_VAL_CASE],
         "generation": [_GEN_CASE],
+        "web": [_WEB_CASE],
+        "code": [_CODE_CASE],
         "adversarial": [_ADV_CASE],
     }
     sets.update(overrides)
@@ -118,6 +134,30 @@ class LoadTests(unittest.TestCase):
         broken = {k: v for k, v in _GEN_CASE.items() if k != "topics"}
         _write_all(self.dir, generation=[broken])
         with self.assertRaisesRegex(dataset.DatasetError, r"campo 'topics'"):
+            dataset.load_all(self.dir)
+
+
+    def test_caso_web_con_resultados_mal_formados(self):
+        _write_all(self.dir, web=[{**_WEB_CASE, "search_results": {"React": [{"title": "t"}]}}])
+        with self.assertRaisesRegex(dataset.DatasetError, r"web/we-x: campo 'search_results'"):
+            dataset.load_all(self.dir)
+
+    def test_caso_code_sin_commit(self):
+        broken = {k: v for k, v in _CODE_CASE.items() if k != "commit_sha"}
+        _write_all(self.dir, code=[broken])
+        with self.assertRaisesRegex(dataset.DatasetError, r"code/co-x: campo 'commit_sha': falta"):
+            dataset.load_all(self.dir)
+
+    def test_adversarial_de_web_y_code(self):
+        web = {**_WEB_CASE, "id": "ad-w", "target": "web", "kind": "inyeccion"}
+        code = {**_CODE_CASE, "id": "ad-c", "target": "code", "kind": "inyeccion"}
+        _write_all(self.dir, adversarial=[_ADV_CASE, web, code])
+        self.assertEqual(len(dataset.load_all(self.dir)["adversarial"]), 3)
+
+    def test_adversarial_de_web_valida_como_web(self):
+        bad = {**_WEB_CASE, "id": "ad-w", "target": "web", "kind": "x", "search_results": []}
+        _write_all(self.dir, adversarial=[bad])
+        with self.assertRaisesRegex(dataset.DatasetError, r"adversarial/ad-w: campo 'search_results'"):
             dataset.load_all(self.dir)
 
 
