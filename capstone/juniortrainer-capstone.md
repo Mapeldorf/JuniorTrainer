@@ -1580,7 +1580,7 @@ flowchart TB
 |---|---|---|---|---|
 | 1 — Unitarios y de contrato | Total | Nulo | Cada PR | Parcial: 29 specs de frontend, nada en backend |
 | 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 19 scripts, hoy **manuales** |
-| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`): modo simulado en CI, modo real manual y aún sin ejecutar |
+| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`): modo simulado en CI y modo real manual, ejecutado de forma exploratoria (5 casos por conjunto) |
 | 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
 | 5 — Señales de producción | — | Nulo | Continuo | Instrumentado (§5.8), sin umbrales |
 
@@ -1619,10 +1619,12 @@ hay que acordarse de ejecutarlas. Convertirlas en pruebas automatizadas es el pu
 
 ### 5.5 Métricas no subjetivas
 
-> **Arnés implementado; falta la ejecución real.** El dataset (`evals/datasets/`,
+> **Arnés implementado; ejecución real solo exploratoria.** El dataset (`evals/datasets/`,
 > 120 casos en seis conjuntos) y el arnés (`evals/run.py`) calculan las métricas
 > de abajo, y el modo simulado ya corre en CI. Los números de calidad solo salen
-> del modo real, que está pendiente de ejecutar (§5.7). Las etiquetas del
+> del modo real, que se ha ejecutado una vez con muestras de 5 casos por conjunto
+> (suficiente para validar el arnés, no para extraer conclusiones); la ejecución
+> completa y su análisis siguen pendientes (§5.7). Las etiquetas del
 > dataset las ha redactado el autor y deben revisarse antes de tomar el κ de
 > Cohen como referencia.
 

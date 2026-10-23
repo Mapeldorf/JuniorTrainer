@@ -277,6 +277,14 @@ class SamplingTests(unittest.TestCase):
         self.assertEqual(simulated, ["e1", "e2", "e3"])
         self.assertEqual(real, ["e1"])
 
+    def test_en_modo_real_web_y_codigo_no_ejecutan_adversariales(self):
+        data = {"web": [{"id": "w1"}], "code": [{"id": "c1"}],
+                "adversarial": [{"id": "a1", "target": "web"}, {"id": "a2", "target": "code"}]}
+        for agent, own in (("web", "w1"), ("code", "c1")):
+            self.assertEqual([c["id"] for _, c in _selected_cases(agent, data, "real", 0)], [own])
+            adversarial = [c["id"] for s, c in _selected_cases(agent, data, "simulated", 0) if s == "adversarial"]
+            self.assertEqual(len(adversarial), 1)
+
     def test_el_limite_se_aplica_por_conjunto(self):
         data = {"evaluation": [{"id": f"e{i}"} for i in range(10)],
                 "adversarial": [{"id": f"a{i}", "target": "evaluator"} for i in range(10)]}

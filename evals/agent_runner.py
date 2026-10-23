@@ -693,6 +693,12 @@ def _selected_cases(agent: str, data: dict, mode: str, limit: int) -> list[tuple
         rows = [c for name, c in _cases_for(agent, data) if name == set_name]
         if mode == "real":
             rows = [c for c in rows if "sim" not in c and "sim_expect" not in c]
+            # El contenido no confiable de los adversariales de web y codigo (un
+            # fragmento de busqueda, un fichero) lo aporta el caso, pero en modo
+            # real esos agentes leen fuentes reales: el caso no inyectaria nada y
+            # daria una falsa sensacion de resistencia.
+            if set_name == "adversarial" and agent in ("web", "code"):
+                rows = []
         chosen += [(set_name, c) for c in _sample(rows, limit)]
     return chosen
 

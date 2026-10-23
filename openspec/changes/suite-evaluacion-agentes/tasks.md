@@ -35,7 +35,7 @@
 ## 6. Modo real
 
 - [x] 6.1 Implementar el modo real (`--mode real`): comprobación previa de LiteLLM y de la credencial del agente, registro de alias de modelo, medición del rechazo por guardarrail frente al fallo de contrato; verificar que sin stack falla antes de evaluar ningún caso con un mensaje claro
-- [ ] 6.2 Ejecutar el modo real contra el stack levantado sobre un subconjunto pequeño por agente y verificar que el informe contiene latencia real, rechazos de guardarrail y ataques exitosos, sin escrituras en la base de datos
+- [x] 6.2 Ejecutar el modo real contra el stack levantado sobre un subconjunto pequeño por agente y verificar que el informe contiene latencia real, rechazos de guardarrail y ataques exitosos, sin escrituras en la base de datos
 
 ## 7. Integración continua
 

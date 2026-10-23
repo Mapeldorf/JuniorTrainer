@@ -74,6 +74,10 @@ El sistema SHALL poder ejecutar la misma evaluacion en modo real, llamando a los
 - **WHEN** se ejecuta el modo real
 - **THEN** los casos que existen para provocar un fallo concreto con un modelo falso (los que traen un guion o una expectativa simulada) no se ejecutan
 
+#### Scenario: Adversariales de web y codigo en modo real
+- **WHEN** se ejecuta el modo real para los agentes web o de codigo
+- **THEN** sus casos adversariales no se ejecutan, porque el contenido no confiable lo aporta el caso y en ese modo el agente lee fuentes reales
+
 #### Scenario: Stack no disponible
 - **WHEN** se pide el modo real y LiteLLM no responde o falta la credencial del agente
 - **THEN** la ejecucion falla antes de evaluar ningun caso, indicando que falta

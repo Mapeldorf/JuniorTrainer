@@ -17,6 +17,8 @@ python -m evals.run --mode real --case-timeout 60     # límite por caso (180 s 
 python -m unittest discover -s evals -t . -p "test_*.py"   # tests del propio arnés
 ```
 
+En modo real los adversariales de web y código **no se ejecutan**: su contenido no confiable (un fragmento de búsqueda, un fichero) lo aporta el caso, pero en ese modo el agente lee Tavily y GitHub de verdad, así que no se inyectaría nada y el resultado daría una falsa sensación de resistencia. Sí se ejecutan los del evaluador, el revisor y el validador, cuya entrada la controla el caso.
+
 En modo real se imprime una línea por caso con su estado y su duración. `--limit-per-set N` toma N casos **repartidos** por todo el conjunto (no los N primeros) y en modo real omite los casos guionizados (`sim`/`sim_expect`), que solo tienen sentido con un modelo falso.
 
 El informe JSON queda en `evals/results/` (ignorado por git) y se imprime un resumen. Código de salida: `0` bien; `1` modo simulado con una invariante rota; `2` la ejecución falló (dataset inválido, agente que no arranca, LiteLLM caído en modo real).
