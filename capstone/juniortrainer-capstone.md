@@ -10,7 +10,7 @@
 | **Versión** | 0.1 — borrador |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
 | **Especificación formal** | `openspec/specs/` — 26 capacidades |
-| **Historial de cambios** | `openspec/changes/archive/` — 51 cambios |
+| **Historial de cambios** | `openspec/changes/archive/` — 53 cambios |
 
 ---
 
@@ -32,8 +32,8 @@ Lo que se ha construido, en cifras:
 | Modelos lógicos | **4** roles sobre 2 familias de modelos y 2 proveedores |
 | Servicios en ejecución | **12** contenedores |
 | Capacidades especificadas formalmente | **26** |
-| Cambios propuestos, implementados y archivados | **51** |
-| Commits | **270** |
+| Cambios propuestos, implementados y archivados | **53** |
+| Commits | **276** |
 | Controles de seguridad implementados | **25** |
 
 Tres decisiones articulan el sistema y se defienden a lo largo del documento:
@@ -1335,7 +1335,7 @@ control de versiones:
 openspec/
   specs/      26 capacidades vigentes — la normativa actual del sistema
   changes/
-    archive/  51 cambios implementados y archivados, con fecha
+    archive/  53 cambios implementados y archivados, con fecha
   config.yaml reglas del proceso (idioma, estilo de los artefactos)
 ```
 
@@ -1394,7 +1394,7 @@ en el control de versiones, se revisan en los PR y evolucionan con el proyecto.
 
 #### La evidencia de que el proceso funcionó
 
-No es una afirmación de intenciones: hay 51 cambios archivados y el historial
+No es una afirmación de intenciones: hay 53 cambios archivados y el historial
 muestra el proceso atrapando errores. Tres ejemplos, todos reales:
 
 - **`litellm-huggingface-fallback`.** Al verificar la tarea 4.1 se descubrió que el
@@ -1579,7 +1579,7 @@ flowchart TB
 | Nivel | Determinismo | Coste | Frecuencia | Estado |
 |---|---|---|---|---|
 | 1 — Unitarios y de contrato | Total | Nulo | Cada PR | Parcial: 29 specs de frontend, nada en backend |
-| 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 17 scripts, hoy **manuales** |
+| 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 19 scripts, hoy **manuales** |
 | 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`): modo simulado en CI, modo real manual y aún sin ejecutar |
 | 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
 | 5 — Señales de producción | — | Nulo | Continuo | Instrumentado (§5.8), sin umbrales |
@@ -2613,7 +2613,7 @@ documenta, para cada una, qué es y cómo obtenerla o generarla.
 | Integraciones | `github-repo-access` |
 | Frontend | `frontend-security-headers`, `frontend-ui-theme`, `confirm-dialog` |
 
-### C.2 Los 51 cambios archivados (`openspec/changes/archive/`)
+### C.2 Los 53 cambios archivados (`openspec/changes/archive/`)
 
 Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 `design.md`, `tasks.md` y los deltas de especificación.
@@ -2628,9 +2628,9 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 16 oct | `ocultar-generaciones-error`, `presidio-solo-evaluador-revisor`, `validacion-tecnologias-agente-juez` |
 | 17 oct | `catalogo-tecnologias`, `detalle-ejercicio-guardado`, `eliminar-generaciones-por-revisar`, `generacion-tecnologias`, `paginacion-ejercicios-guardados` |
 | 20 oct | `busqueda-manual-bloques`, `eliminar-memoria-corta-agente-web`, `long-polling-generaciones-pendientes`, `reintento-sesion-caducada-frontend`, `validador-contexto-generacion`, `validador-duplicados-tecnologias` |
-| 22 oct | `guardarrailes-por-capas` |
+| 22 oct | `acortar-requisitos-largos`, `eliminar-memoria-agente-ejercicios`, `guardarrailes-por-capas` |
 
-Dos lecturas de esta tabla. La primera: **trece de los 51 cambios son de seguridad**
+Dos lecturas de esta tabla. La primera: **trece de los 53 cambios son de seguridad**
 (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y están
 concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una

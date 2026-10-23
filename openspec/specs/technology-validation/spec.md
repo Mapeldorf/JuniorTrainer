@@ -6,7 +6,7 @@ Define la validacion de que las tecnologias introducidas en una generacion son t
 ## Requirements
 
 ### Requirement: Validacion de tecnologias como puerta previa a la generacion
-El sistema SHALL validar, antes de invocar a los agentes de entrada (web, codigo y ejercicios), que las tecnologias introducidas son tecnologias relacionadas con la programacion, mediante un agente validador dedicado, y SHALL continuar con la generacion unicamente si el validador da un veredicto afirmativo. En este contexto, el validador SHALL comprobar unicamente que cada entrada es una tecnologia de programacion, y SHALL NOT comparar las entradas contra el catalogo de tecnologias existentes ni rechazarlas por coincidir con una tecnologia ya existente.
+El sistema SHALL validar, antes de invocar a los agentes de entrada (web, codigo y ejercicios), que las tecnologias introducidas son tecnologias relacionadas con la programacion, mediante un agente validador dedicado, y SHALL continuar con la generacion unicamente si el validador da un veredicto afirmativo.
 
 #### Scenario: Tecnologias validas
 - **WHEN** se inicia una generacion cuyas tecnologias son todas tecnologias de programacion reconocibles
@@ -19,6 +19,7 @@ El sistema SHALL validar, antes de invocar a los agentes de entrada (web, codigo
 #### Scenario: Tecnologia ya existente en el catalogo
 - **WHEN** se inicia una generacion con una tecnologia que ya esta en el catalogo con ese mismo nombre, o que el validador consideraria una variante semantica de una tecnologia ya existente
 - **THEN** el validador no la rechaza por ese motivo, y la generacion continua si la entrada es una tecnologia de programacion reconocible
+- **AND** en este contexto el validador comprueba unicamente que cada entrada es una tecnologia de programacion, sin compararla contra el catalogo de tecnologias existentes
 
 ### Requirement: Decision default-deny del validador
 El validador SHALL dar un veredicto afirmativo unicamente cuando todas las entradas sean tecnologias de programacion claramente reconocibles, y SHALL rechazar ante cualquier duda, ambiguedad, desconocimiento o texto que no sea una tecnologia de programacion.
