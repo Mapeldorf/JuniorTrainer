@@ -39,3 +39,6 @@ opencode.json
 
 #docs (temporal)
 docs/
+
+# Informes de la suite de evaluacion (change suite-evaluacion-agentes)
+evals/results/

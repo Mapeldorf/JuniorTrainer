@@ -1535,7 +1535,8 @@ de respaldo que se habían quedado sin guardarraíles.
 
 **Lo que falta, y es el criterio explícito que separa un proyecto evaluable de uno
 consumible por terceros.** El CI actual verifica que el backend arranca; no verifica
-que funcione. Los agentes no entran en el CI en absoluto. El plan:
+que funcione. Los agentes entran en el CI solo a través del job `agent-evals`
+(change `suite-evaluacion-agentes`, descrito abajo). El plan:
 
 | # | Añadir | Bloquea el merge |
 |---|---|---|
@@ -1551,6 +1552,15 @@ La distinción entre 3 y 4 importa: los verificadores comprueban **comportamient
 del código** y pueden correr con modelos simulados en cada PR, rápido y gratis; la
 suite de evaluación comprueba **calidad del sistema con modelos reales**, cuesta
 dinero y tiempo, y por eso corre contra staging y no en cada commit.
+
+**Lo que ya hay de la suite (punto 4).** El job `agent-evals` de `ci.yml` ejecuta,
+en los *pull requests* que tocan `agents/` o `evals/`, los tests del propio arnés
+y la suite en **modo simulado** sobre cuatro agentes (evaluador, revisor,
+validador y ejercicios): el modelo se sustituye por un doble guionizado, así que
+no hay red, secretos ni coste y se ejercita el código real de parseo, límites y
+reintento. El **modo real** (`python -m evals.run --mode real`) existe pero se
+lanza a mano y no corre en CI. Lo que sigue pendiente del punto 4 es ejecutarlo
+contra modelos reales, fijar **umbrales** con esa línea base y hacerlo bloqueante.
 
 ### 5.4 Estrategia de evaluación
 
@@ -1570,7 +1580,7 @@ flowchart TB
 |---|---|---|---|---|
 | 1 — Unitarios y de contrato | Total | Nulo | Cada PR | Parcial: 29 specs de frontend, nada en backend |
 | 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 17 scripts, hoy **manuales** |
-| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Pendiente** |
+| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`): modo simulado en CI, modo real manual y aún sin ejecutar |
 | 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
 | 5 — Señales de producción | — | Nulo | Continuo | Instrumentado (§5.8), sin umbrales |
 
@@ -1609,8 +1619,12 @@ hay que acordarse de ejecutarlas. Convertirlas en pruebas automatizadas es el pu
 
 ### 5.5 Métricas no subjetivas
 
-> **Sección pendiente de implementación.** El conjunto de métricas y el dataset
-> están definidos; falta construir el arnés y ejecutarlo.
+> **Arnés implementado; falta la ejecución real.** El dataset (`evals/datasets/`,
+> 95 casos en cuatro conjuntos) y el arnés (`evals/run.py`) calculan las métricas
+> de abajo, y el modo simulado ya corre en CI. Los números de calidad solo salen
+> del modo real, que está pendiente de ejecutar (§5.7). Las etiquetas del
+> dataset las ha redactado el autor y deben revisarse antes de tomar el κ de
+> Cohen como referencia.
 
 Sobre un **dataset dorado** versionado en el repositorio —entradas de ejemplo con
 su resultado esperado o su propiedad verificable—, estas métricas no requieren

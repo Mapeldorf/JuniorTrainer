@@ -93,3 +93,43 @@ jobs:
       - name: Cobertura de guardarrailes
         if: steps.changes.outputs.litellm == 'true'
         run: python infra/litellm/verify_guardrail_coverage.py
+
+  # Suite de evaluacion de agentes en modo SIMULADO (change
+  # suite-evaluacion-agentes): el modelo de cada agente se sustituye por un doble
+  # guionizado, asi que no necesita red hacia proveedores, LiteLLM, base de datos
+  # ni secretos. Ejecuta el codigo real de parseo, limites y reintento de los
+  # agentes sobre el dataset dorado (evals/datasets). El modo real, que cuesta
+  # dinero, NO corre aqui: se lanza a mano con `python -m evals.run --mode real`.
+  agent-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            evals:
+              - 'agents/evaluator/**'
+              - 'agents/reviewer/**'
+              - 'agents/validator/**'
+              - 'agents/exercises/**'
+              - 'evals/**'
+      - uses: actions/setup-python@v5
+        if: steps.changes.outputs.evals == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: agents/*/requirements.txt
+      - name: Tests del propio arnes
+        if: steps.changes.outputs.evals == 'true'
+        run: python -m unittest discover -s evals -t . -p "test_*.py"
+      - name: Entornos de los agentes (uno por agente, todos se llaman app)
+        if: steps.changes.outputs.evals == 'true'
+        run: |
+          for agent in evaluator reviewer validator exercises; do
+            python -m venv "agents/$agent/.venv"
+            "agents/$agent/.venv/bin/pip" install --quiet -r "agents/$agent/requirements.txt"
+          done
+      - name: Evaluacion en modo simulado
+        if: steps.changes.outputs.evals == 'true'
+        run: python -m evals.run --mode simulated
