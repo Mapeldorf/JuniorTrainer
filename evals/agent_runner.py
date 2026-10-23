@@ -524,7 +524,7 @@ def _code_probe_summary(recorder: RecordingModel | None, probe: dict, result: di
 
 
 async def _run_case(agent: str, set_name: str, case: dict, svc, input_mod, error_classes: tuple, mode: str,
-                    real_builder, group_statements: dict, originals: dict) -> dict:
+                    real_builder, group_statements: dict, originals: dict, case_timeout: float) -> dict:
     record = {"id": case["id"], "set": set_name, "agent": agent, "outcome": "ok", "error": None,
               "error_kind": None, "result": None, "calls": 0, "checks": None, "duration_ms": 0.0}
 
@@ -541,11 +541,16 @@ async def _run_case(agent: str, set_name: str, case: dict, svc, input_mod, error
 
     started = time.perf_counter()
     try:
-        result = await _call_agent(agent, svc, input_mod, case, group_statements, mode, probe, originals)
+        result = await asyncio.wait_for(
+            _call_agent(agent, svc, input_mod, case, group_statements, mode, probe, originals),
+            timeout=case_timeout,
+        )
         if result.get("prefilter_rejected"):
             record["outcome"] = "prefilter_rejected"
         else:
             record["result"] = result
+    except asyncio.TimeoutError:
+        record.update(outcome="infra_error", error=f"el caso supero el limite de {case_timeout:g}s sin terminar")
     except ScriptExhausted as exc:
         record.update(outcome="script_error", error=str(exc))
     except error_classes as exc:
@@ -653,9 +658,14 @@ async def _run_all(args, svc, input_mod, error_classes, real_builder, originals)
         if args.limit_per_set and sum(1 for r in records if r["set"] == set_name) >= args.limit_per_set:
             continue
         record = await _run_case(args.agent, set_name, case, svc, input_mod, error_classes, args.mode,
-                                 real_builder, group_statements, originals)
+                                 real_builder, group_statements, originals, args.case_timeout)
         _apply_invariants(args.agent, case, record, args.mode)
         records.append(record)
+        if args.progress:
+            detail = f" - {record['error'][:100]}" if record["error"] else ""
+            print(f"  [{args.agent}] {set_name}/{case['id']}: {record['outcome']} "
+                  f"({record['duration_ms'] / 1000:.1f}s, {record['calls']} llamadas){detail}",
+                  file=sys.stderr, flush=True)
     return records
 
 
@@ -665,6 +675,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", choices=("simulated", "real"), default="simulated")
     parser.add_argument("--datasets-dir", default=str(dataset.DATASETS_DIR))
     parser.add_argument("--limit-per-set", type=int, default=0, help="maximo de casos por conjunto (0 = todos)")
+    parser.add_argument("--case-timeout", type=float, default=180.0,
+                        help="segundos maximos por caso; al superarlo el caso cuenta como error de infraestructura")
+    parser.add_argument("--progress", action="store_true", help="una linea por caso en la salida de error")
     args = parser.parse_args(argv)
 
     try:

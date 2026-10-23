@@ -46,16 +46,23 @@ def agent_python(agent: str, overrides: dict[str, str]) -> str:
     return sys.executable
 
 
-def run_agent(agent: str, mode: str, python: str, datasets_dir: Path, limit_per_set: int) -> dict:
+def run_agent(agent: str, mode: str, python: str, datasets_dir: Path, limit_per_set: int,
+              case_timeout: float = 180.0) -> dict:
     cmd = [python, "-m", "evals.agent_runner", "--agent", agent, "--mode", mode,
-           "--datasets-dir", str(datasets_dir)]
+           "--datasets-dir", str(datasets_dir), "--case-timeout", str(case_timeout)]
+    # En modo real cada llamada tarda segundos y cuesta dinero: se deja pasar la
+    # salida de error del agente para ver el avance caso a caso.
+    live = mode == "real"
+    if live:
+        cmd.append("--progress")
     if limit_per_set:
         cmd += ["--limit-per-set", str(limit_per_set)]
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(REPO_ROOT), env.get("PYTHONPATH", "")]))
     env["PYTHONIOENCODING"] = "utf-8"
     try:
-        proc = subprocess.run(cmd, cwd=AGENTS_DIR / agent, env=env, capture_output=True,
+        proc = subprocess.run(cmd, cwd=AGENTS_DIR / agent, env=env, stdout=subprocess.PIPE,
+                              stderr=None if live else subprocess.PIPE,
                               text=True, encoding="utf-8", timeout=_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         return {"not_executed": f"supera el limite de {_TIMEOUT_SECONDS}s"}
@@ -64,7 +71,7 @@ def run_agent(agent: str, mode: str, python: str, datasets_dir: Path, limit_per_
         if line.startswith(_MARKER):
             payload = json.loads(line[len(_MARKER):])
     if payload is None:
-        tail = (proc.stderr.strip().splitlines() or ["sin salida"])[-1]
+        tail = ((proc.stderr or "").strip().splitlines() or ["ver la salida de error de arriba"])[-1]
         return {"not_executed": f"el proceso termino con codigo {proc.returncode} sin resultados ({tail})"}
     if "fatal" in payload:
         return {"not_executed": payload["fatal"]}
@@ -79,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--results-dir", default=str(RESULTS_DIR))
     parser.add_argument("--python", action="append", default=[], metavar="AGENTE=RUTA",
                         help="interprete a usar para un agente (repetible)")
+    parser.add_argument("--case-timeout", type=float, default=180.0,
+                        help="segundos maximos por caso (por defecto 180)")
     parser.add_argument("--limit-per-set", type=int, default=0,
                         help="maximo de casos por conjunto y agente (0 = todos); util en modo real para acotar el coste")
     args = parser.parse_args(argv)
@@ -98,9 +107,9 @@ def main(argv: list[str] | None = None) -> int:
 
     runs = {}
     for agent in agents:
-        print(f"-> {agent} ({args.mode})...", file=sys.stderr)
+        print(f"-> {agent} ({args.mode})...", file=sys.stderr, flush=True)
         runs[agent] = run_agent(agent, args.mode, agent_python(agent, overrides),
-                                Path(args.datasets_dir), args.limit_per_set)
+                                Path(args.datasets_dir), args.limit_per_set, args.case_timeout)
 
     result = report.build_report(args.mode, runs, data)
     results_dir = Path(args.results_dir)
