@@ -245,6 +245,21 @@ class AttackDenominatorTests(unittest.TestCase):
         self.assertEqual((attacks["count"], attacks["of"]), (0, 1))
 
 
+class RealTechnologiesTests(unittest.TestCase):
+    def test_por_defecto_las_del_caso_y_por_entorno_las_del_repositorio_real(self):
+        import os
+        from unittest import mock
+
+        from evals.agent_runner import REAL_TECHNOLOGIES_ENV, _real_technologies
+
+        case = {"technologies": ["React"]}
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(REAL_TECHNOLOGIES_ENV, None)
+            self.assertEqual(_real_technologies(case), ["React"])
+        with mock.patch.dict(os.environ, {REAL_TECHNOLOGIES_ENV: " Angular , TypeScript ,"}):
+            self.assertEqual(_real_technologies(case), ["Angular", "TypeScript"])
+
+
 class SamplingTests(unittest.TestCase):
     def test_reparte_la_muestra_por_todo_el_conjunto(self):
         self.assertEqual(_sample(list(range(20)), 5), [0, 4, 8, 12, 16])

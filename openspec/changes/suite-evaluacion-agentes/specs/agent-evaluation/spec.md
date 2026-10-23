@@ -90,6 +90,10 @@ El sistema SHALL poder ejecutar la misma evaluacion en modo real, llamando a los
 - **WHEN** se evalua el agente de codigo en modo real y el repositorio real esta configurado por entorno (propietario, repositorio y commit)
 - **THEN** el agente lee ese repositorio con su credencial real y los casos del conjunto se ejecutan contra el
 
+#### Scenario: Tecnologias del repositorio real
+- **WHEN** se evalua el agente de codigo en modo real y se configuran por entorno las tecnologias del repositorio
+- **THEN** el agente analiza el repositorio con esas tecnologias en lugar de las del caso
+
 #### Scenario: Codigo real sin repositorio configurado
 - **WHEN** se evalua el agente de codigo en modo real sin repositorio configurado
 - **THEN** sus casos se informan como omitidos con el motivo, no entran en ninguna metrica y la ejecucion no falla por ello

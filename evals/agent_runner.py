@@ -37,6 +37,11 @@ AGENTS = ("evaluator", "reviewer", "validator", "exercises", "web", "code")
 # modo real: `propietario/repo@commit`. No va en el dataset porque puede ser
 # privado.
 REAL_REPO_ENV = "EVALS_REAL_REPO"
+# Tecnologias de interes (separadas por comas) con las que se analiza ese
+# repositorio real. Las de los casos son las de los repositorios de ejemplo del
+# dataset (React, FastAPI...) y un repositorio real puede no usarlas: el modelo
+# elegiria cero ficheros y la tarea fallaria sin que el agente tenga la culpa.
+REAL_TECHNOLOGIES_ENV = "EVALS_REAL_TECHNOLOGIES"
 
 # (funcion `build_*_model`, clase de error del contrato o None, campo de
 # `Settings` con la virtual key del agente).
@@ -293,6 +298,12 @@ def _real_repo() -> tuple[str, str, str] | None:
     return (owner, repo, sha) if owner and repo and sha else None
 
 
+def _real_technologies(case: dict) -> list[str]:
+    raw = os.environ.get(REAL_TECHNOLOGIES_ENV, "")
+    chosen = [t.strip() for t in raw.split(",") if t.strip()]
+    return chosen or case["technologies"]
+
+
 def _install_web_tools(svc, case: dict, mode: str, probe: dict, originals: dict) -> None:
     async def cached(technologies):
         return case.get("cached")
@@ -465,9 +476,11 @@ async def _call_agent(agent: str, svc, input_mod, case: dict, group_statements: 
     if agent == "code":
         _install_code_tools(svc, case, mode, probe, originals)
         owner, repo, sha = (case["owner"], case["repo"], case["commit_sha"])
+        technologies = case["technologies"]
         if mode == "real":
             owner, repo, sha = _real_repo()
-        result = await svc.analyze_repo(owner, repo, sha, case["technologies"])
+            technologies = _real_technologies(case)
+        result = await svc.analyze_repo(owner, repo, sha, technologies)
         return {
             "summary": result.summary,
             "technologies": list(result.technologies),
