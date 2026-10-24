@@ -9,8 +9,8 @@
 | **Fecha** | Octubre de 2026 |
 | **Versión** | 0.1 — borrador |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
-| **Especificación formal** | `openspec/specs/` — 26 capacidades |
-| **Historial de cambios** | `openspec/changes/archive/` — 53 cambios |
+| **Especificación formal** | `openspec/specs/` — 27 capacidades |
+| **Historial de cambios** | `openspec/changes/archive/` — 54 cambios |
 
 ---
 
@@ -31,10 +31,11 @@ Lo que se ha construido, en cifras:
 | Agentes de IA independientes | **6**, cada uno con su servicio, credencial y presupuesto |
 | Modelos lógicos | **4** roles sobre 2 familias de modelos y 2 proveedores |
 | Servicios en ejecución | **12** contenedores |
-| Capacidades especificadas formalmente | **26** |
-| Cambios propuestos, implementados y archivados | **53** |
-| Commits | **276** |
+| Capacidades especificadas formalmente | **27** |
+| Cambios propuestos, implementados y archivados | **54** |
+| Commits | **290** |
 | Controles de seguridad implementados | **25** |
+| Casos del dataset de evaluación (`evals/`) | **120**, en seis conjuntos |
 
 Tres decisiones articulan el sistema y se defienden a lo largo del documento:
 
@@ -1333,9 +1334,9 @@ control de versiones:
 
 ```
 openspec/
-  specs/      26 capacidades vigentes — la normativa actual del sistema
+  specs/      27 capacidades vigentes — la normativa actual del sistema
   changes/
-    archive/  53 cambios implementados y archivados, con fecha
+    archive/  54 cambios implementados y archivados, con fecha
   config.yaml reglas del proceso (idioma, estilo de los artefactos)
 ```
 
@@ -1394,8 +1395,8 @@ en el control de versiones, se revisan en los PR y evolucionan con el proyecto.
 
 #### La evidencia de que el proceso funcionó
 
-No es una afirmación de intenciones: hay 53 cambios archivados y el historial
-muestra el proceso atrapando errores. Tres ejemplos, todos reales:
+No es una afirmación de intenciones: hay 54 cambios archivados y el historial
+muestra el proceso atrapando errores. Cuatro ejemplos, todos reales:
 
 - **`litellm-huggingface-fallback`.** Al verificar la tarea 4.1 se descubrió que el
   `request_timeout` de 40 s no dejaba margen al fallback: la suma daba exactamente
@@ -1410,6 +1411,13 @@ muestra el proceso atrapando errores. Tres ejemplos, todos reales:
   duplicados) bloqueaba toda generación con un falso rechazo. El change documenta
   el bug, su reproducción y la corrección, y deja escrito que el comportamiento por
   omisión sigue siendo el más estricto.
+- **`suite-evaluacion-agentes`.** Su última tarea (6.2) era ejecutar la suite con
+  los modelos reales. Esa verificación destapó cinco fallos del propio arnés que
+  los tests y la ejecución simulada no veían: una muestra sesgada, casos
+  guionizados que no significan nada con un modelo real, un contador que contaba
+  intentos rechazados, una heurística con falsos negativos y unos casos
+  adversariales sin efecto en modo real. Se corrigieron antes de archivar el
+  change (§7, lección 8).
 
 #### Los límites, dichos sin adornos
 
@@ -1418,7 +1426,7 @@ ceremonia para un cambio de una línea, y hay changes en el archivo que son
 precisamente eso.
 
 **Y la especificación se desincroniza si el archivado no la cubre entera.**
-Escribiendo este documento se auditaron las 26 capacidades contra el código, y
+Escribiendo este documento se auditaron las 26 capacidades entonces vigentes contra el código, y
 apareció una desviación: `openspec/specs/litellm-agent-keys/spec.md` hablaba de
 «los 5 agentes» y enumeraba `web`, `code`, `exercises`, `evaluator` y `reviewer`.
 Se escribió antes de que existiera el validador, y el change que lo introdujo
@@ -1437,16 +1445,18 @@ mecanismo solo existía para deshacer un valor por defecto, y el change
 
 Las dos cosas están corregidas: la capacidad refleja ya los seis agentes y recoge
 la exclusión del guardarraíl global como requisito con sus tres escenarios, y las
-26 capacidades validan con el CLI de OpenSpec. El episodio es exactamente el modo
+26 capacidades de entonces validaban con el CLI de OpenSpec (hoy son 27 y
+validan). El episodio es exactamente el modo
 en que un proceso de especificación se degrada —no por abandonarlo, sino por
 archivar un cambio actualizando las capacidades obvias y olvidando una
 colateral— y confirma la regla: **la fuente de verdad es el código, y la
 especificación solo lo es mientras el archivado la mantenga al día.** La duplicación de código entre los seis agentes (§4.4) es una
 consecuencia directa de decidir cada agente por separado, cada vez con su propio
 diseño autocontenido: cada decisión individual es defendible y el resultado
-agregado es repetitivo. Y el CI actual (§5.3) no está a la altura del resto del
-proceso: un *import check* no verifica lo que los `tasks.md` afirman haber
-verificado a mano.
+agregado es repetitivo. Y el CI del backend (§5.3) no está a la altura del resto
+del proceso: un *import check* no verifica lo que los `tasks.md` afirman haber
+verificado a mano. Para los agentes la brecha se ha empezado a cerrar con el job
+`agent-evals`.
 
 ---
 
@@ -1525,25 +1535,27 @@ lo que no cambió:
 | `backend` | Instala dependencias y comprueba que `app.main` importa, con variables de entorno de relleno |
 | `frontend` | `npm ci`, `ng build` y `ng test --no-watch` (29 ficheros de especificación) |
 | `litellm-guardrails` | Comprobación estática de `infra/litellm/config.yaml`: que todo deployment de respaldo lleva al menos los guardarraíles de su primario y que existe una redacción de PII activa de forma global, más sus propios casos sintéticos |
+| `agent-evals` | Los 75 tests del propio arnés de evaluación y la suite de §5.5 en **modo simulado** sobre los seis agentes, con un entorno de dependencias por agente. Solo corre si el PR toca `agents/` o `evals/` |
 
 El tercero es nuevo (change `guardarrailes-por-capas`) y es el **primer control de
-`infra/` que entra en el CI**: hasta entonces ningún cambio en `infra/` ni en
-`agents/` disparaba nada. No necesita red, modelo ni credenciales, así que corre en
-cada *pull request* que toque ese directorio. Nació, además, reproduciendo un fallo
-real: ejecutado contra la configuración sin arreglar, nombraba los dos deployments
-de respaldo que se habían quedado sin guardarraíles.
+`infra/` que entra en el CI**: hasta entonces ningún cambio en `infra/` disparaba
+nada. No necesita red, modelo ni credenciales, así que corre en cada *pull request*
+que toque ese directorio. Nació, además, reproduciendo un fallo real: ejecutado
+contra la configuración sin arreglar, nombraba los dos deployments de respaldo que
+se habían quedado sin guardarraíles. El cuarto, `agent-evals` (change
+`suite-evaluacion-agentes`), es el primero que ejecuta código de los agentes.
 
 **Lo que falta, y es el criterio explícito que separa un proyecto evaluable de uno
-consumible por terceros.** El CI actual verifica que el backend arranca; no verifica
-que funcione. Los agentes entran en el CI solo a través del job `agent-evals`
-(change `suite-evaluacion-agentes`, descrito abajo). El plan:
+consumible por terceros.** El CI del backend solo verifica que arranca; no verifica
+que funcione. Para los agentes, `agent-evals` ya comprueba su lógica con modelos
+simulados (más abajo). El plan:
 
 | # | Añadir | Bloquea el merge |
 |---|---|---|
 | 1 | Lint y comprobación de tipos en backend y en los seis agentes (`ruff`, `mypy`) | Sí |
 | 2 | Tests de backend: unitarios de los *schemas*, de la orquestación con agentes simulados, y de contrato de los endpoints | Sí |
-| 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados | Sí |
-| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en staging | Sí, por umbral |
+| 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados. *La suite simulada ya cubre parte de este terreno (§5.4)* | Sí |
+| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en staging. *A medias: el modo simulado ya corre en cada PR; faltan el modo real en staging y los umbrales* | Sí, por umbral |
 | 5 | Construcción y publicación de las imágenes de los doce servicios con etiqueta por commit | — |
 | 6 | Despliegue automático a staging y comprobación de salud posterior | — |
 | 7 | Despliegue a producción con aprobación manual | — |
@@ -1553,14 +1565,17 @@ del código** y pueden correr con modelos simulados en cada PR, rápido y gratis
 suite de evaluación comprueba **calidad del sistema con modelos reales**, cuesta
 dinero y tiempo, y por eso corre contra staging y no en cada commit.
 
-**Lo que ya hay de la suite (punto 4).** El job `agent-evals` de `ci.yml` ejecuta,
-en los *pull requests* que tocan `agents/` o `evals/`, los tests del propio arnés
-y la suite en **modo simulado** sobre los seis agentes: el modelo se sustituye
-por un doble guionizado y Tavily, GitHub y la memoria por datos del caso, así que
-no hay red, secretos ni coste y se ejercita el código real de parseo, límites,
-reintento y presupuestos. El **modo real** (`python -m evals.run --mode real`) existe pero se
-lanza a mano y no corre en CI. Lo que sigue pendiente del punto 4 es ejecutarlo
-contra modelos reales, fijar **umbrales** con esa línea base y hacerlo bloqueante.
+**Lo que ya hay de la suite (punto 4).** El job `agent-evals` ejecuta, en los
+*pull requests* que tocan `agents/` o `evals/`, los tests del propio arnés y la
+suite en **modo simulado** sobre los seis agentes: el modelo se sustituye por un
+doble guionizado, y Tavily, GitHub y la memoria por datos del caso, así que no
+hay red, secretos ni coste. Lo que comprueba es el **código** de los agentes
+—parseo, límites, reintento, presupuestos, delimitadores—, no la calidad del
+modelo. El **modo real** (`python -m evals.run --mode real`) existe, pero se lanza
+a mano y no corre en CI. El job se pone en rojo cuando una invariante se rompe;
+que además bloquee el merge es un ajuste de protección de rama del repositorio,
+no algo que quede en el código. Pendiente del punto 4: la ejecución completa en
+modo real, los **umbrales** a partir de esa línea base y hacerlo bloqueante.
 
 ### 5.4 Estrategia de evaluación
 
@@ -1580,7 +1595,7 @@ flowchart TB
 |---|---|---|---|---|
 | 1 — Unitarios y de contrato | Total | Nulo | Cada PR | Parcial: 29 specs de frontend, nada en backend |
 | 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 19 scripts, hoy **manuales** |
-| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`): modo simulado en CI y modo real manual, ejecutado de forma exploratoria (5 casos por conjunto) |
+| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`, §5.5): modo simulado en CI; modo real manual, ejecutado solo de forma exploratoria (§5.7) |
 | 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
 | 5 — Señales de producción | — | Nulo | Continuo | Instrumentado (§5.8), sin umbrales |
 
@@ -1617,16 +1632,20 @@ Son comprobaciones de extremo a extremo bien escogidas, y su único problema es 
 hay que acordarse de ejecutarlas. Convertirlas en pruebas automatizadas es el punto
 3 de §5.3 y, de todo lo pendiente, es lo que más valor da por lo que cuesta.
 
+El modo simulado de la suite de §5.5 ya automatiza una parte de ese terreno
+—límites de palabras, reintento, presupuestos de búsquedas y lecturas,
+delimitadores y pre-filtro del validador— sobre un dataset en lugar de un único
+ejemplo, pero no sustituye a los verificadores: la redacción de PII, el encadenado
+de trazas y la memoria real siguen dependiendo de ellos.
+
 ### 5.5 Métricas no subjetivas
 
-> **Arnés implementado; ejecución real solo exploratoria.** El dataset (`evals/datasets/`,
-> 120 casos en seis conjuntos) y el arnés (`evals/run.py`) calculan las métricas
-> de abajo, y el modo simulado ya corre en CI. Los números de calidad solo salen
-> del modo real, que se ha ejecutado una vez con muestras de 5 casos por conjunto
-> (suficiente para validar el arnés, no para extraer conclusiones); la ejecución
-> completa y su análisis siguen pendientes (§5.7). Las etiquetas del
-> dataset las ha redactado el autor y deben revisarse antes de tomar el κ de
-> Cohen como referencia.
+> **Implementado; ejecución real solo exploratoria.** El arnés vive en `evals/`
+> (especificación formal: `openspec/specs/agent-evaluation/`) y calcula las
+> métricas de abajo sobre un dataset de 120 casos. El modo simulado corre en CI; el
+> real se ha ejecutado una vez con 5 casos por conjunto (§5.7). Faltan la
+> ejecución completa, la revisión de las etiquetas por el tech lead y los
+> umbrales.
 
 Sobre un **dataset dorado** versionado en el repositorio —entradas de ejemplo con
 su resultado esperado o su propiedad verificable—, estas métricas no requieren
@@ -1641,9 +1660,13 @@ juicio de nadie:
 | **Exactitud del veredicto** | Matriz de confusión del `verdict` contra respuestas etiquetadas por un humano; exactitud y **κ de Cohen** | La métrica de calidad más importante del sistema: es lo único que llega al alumno sin supervisión |
 | **Precisión del gate del validador** | Falsos positivos y falsos negativos sobre un set de tecnologías válidas, inválidas y adversarias | Un falso positivo bloquea trabajo legítimo; un falso negativo abre la puerta |
 | **Detección de duplicados** | Precisión y cobertura sobre variantes conocidas («Angular» / «Angular Framework») | Tiene política *default-deny* invertida (§3.6): aquí el falso positivo es el error caro |
-| **No repetición de temas** | Solapamiento semántico entre generaciones consecutivas con las mismas tecnologías | Es el propósito de la memoria del agente de ejercicios (§4.8) |
-| **Falsos positivos de guardarraíl** | % de contenido benigno marcado por Lakera, y % de contenido técnico alterado por Presidio | Métrica con historia real en este proyecto (§6.5): justificó primero pasar Lakera a monitor y después retirarlo de la ruta de generación |
-| **Latencia y coste** | p50, p95 y p99 por operación, desde las trazas | p95 de la evaluación contra el presupuesto de 45 s |
+| **No repetición de temas** | Solapamiento entre generaciones consecutivas con las mismas tecnologías, con el índice de Jaccard sobre términos: una aproximación determinista del solapamiento semántico, que exigiría *embeddings* | Es el propósito de la memoria del agente de ejercicios (§4.8) |
+| **Falsos positivos de guardarraíl** | % de llamadas benignas rechazadas por un guardarraíl del proxy (solo en modo real). El contenido alterado por Presidio no se mide aquí: el arnés sustituye la redacción y la comprueba `verify_redaction` | Métrica con historia real en este proyecto (§6.5): justificó primero pasar Lakera a monitor y después retirarlo de la ruta de generación |
+| **Presupuestos de operaciones** | Búsquedas del agente web (máx. 5) y lecturas del agente de código (máx. 10), contadas en cada caso | Verifica que el límite de §3.5 se cumple de verdad |
+| **Rutas y fragmentos del agente de código** | % de rutas elegidas por el modelo que existen en el repositorio; % de fragmentos copiados literalmente del fichero y que empiezan en la línea declarada | Es la regla «ningún requisito verificable depende de que el modelo obedezca» aplicada al caso que la originó |
+| **Ausencia de fuentes declarada** | % de tecnologías sin resultados de búsqueda que el resumen del agente web declara explícitamente (heurística por palabras clave) | Mide el cerco anti-alucinación de §3.6 |
+| **Resistencia a inyección** | Casos adversariales en que el modelo cede (`correct` donde no tocaba, `valid=true` donde no debía), y si el contenido no confiable viaja entre delimitadores | Es el único dato empírico sobre LLM01 hasta el red teaming (§6.5) |
+| **Latencia** | p50, p95 y p99 por caso, cronometrados por el propio arnés (solo representativos en modo real). El coste queda fuera (§3.8) | p95 de la evaluación contra el presupuesto de 45 s |
 
 Dos de estas métricas son, en mi opinión, las que más dicen del sistema y las menos
 habituales: la **tasa de activación del reintento correctivo**, porque distingue un
@@ -1651,17 +1674,50 @@ prompt que funciona de un prompt rescatado por el código; y la **tasa de falsos
 positivos de guardarraíl**, porque es la que mide el coste real de un control de
 seguridad en lugar de solo su beneficio teórico.
 
-El dataset dorado necesita cuatro conjuntos:
+El dataset dorado (`evals/datasets/*.jsonl`, una línea JSON por caso) tiene hoy 120
+casos en seis conjuntos. Hay dos tipos de caso, y la distinción es la clave del
+diseño: los **casos de calidad** valen en los dos modos; los **casos guionizados**
+llevan las respuestas crudas que dará un modelo falso (`sim`) y lo que debe hacer
+el código del agente con ellas (`sim_expect`), y existen para provocar un fallo
+concreto —un JSON inválido, una justificación de 70 palabras, una ruta
+inventada— y comprobar que el agente reacciona como se especificó.
 
-1. **Generación**: combinaciones de tecnologías y repositorios de prueba, con las
-   propiedades verificables de sus candidatos.
-2. **Evaluación**: respuestas de alumno etiquetadas a mano como correcta, incompleta
-   e incorrecta, incluyendo casos límite (respuesta correcta mal expresada,
-   respuesta plausible pero equivocada).
-3. **Validación**: tecnologías válidas, cadenas no técnicas, datos personales,
-   identificadores y variantes duplicadas.
-4. **Adversarial**: el conjunto de red teaming de §6.5, que se reutiliza aquí como
-   caso de prueba permanente.
+| Conjunto | Casos | Calidad / guionizados | Contenido |
+|---|---|---|---|
+| `evaluation` | 31 | 22 / 9 | Respuestas de alumno etiquetadas como correcta, incompleta o incorrecta sobre cinco ejercicios, con casos límite (correcta mal expresada, plausible pero equivocada). Alimenta evaluador y revisor |
+| `validation` | 39 | 34 / 5 | Tecnologías válidas, cadenas no técnicas, datos personales, variantes duplicadas y no duplicadas, en los dos contextos de §3.6 |
+| `generation` | 11 | 7 / 4 | Combinaciones de tecnologías y tipos, con generaciones consecutivas para medir repetición |
+| `web` | 9 | 5 / 4 | Tecnologías con y sin resultados de búsqueda, más de cinco tecnologías para agotar el presupuesto, y memoria |
+| `code` | 11 | 2 / 9 | Dos repositorios de ejemplo; el resto provoca rutas inventadas, análisis incompleto, más de diez rutas, repositorio vacío o memoria |
+| `adversarial` | 19 | 18 / 1 | Evaluador 6, revisor 2, validador 6, web 2, código 3. Es el embrión del conjunto de red teaming de §6.5 |
+
+**Cómo se ejecuta.** `python -m evals.run` lanza un proceso por agente —todos
+llaman `app` a su paquete, así que no pueden convivir en uno— con las
+dependencias de ese agente. Sin modificar su código, el arnés sustituye en memoria
+los nombres que `app.service` importa de sus dependencias externas (el modelo, la
+redacción de PII, el catálogo de tecnologías, los ejercicios guardados, la memoria,
+la búsqueda web y GitHub). Un envoltorio común del modelo cuenta las llamadas, mide
+el tiempo y guarda los prompts: de ahí salen la tasa de reintento, la latencia y la
+comprobación de delimitadores sin tocar ningún agente. En modo simulado el proceso
+termina con error si una invariante se rompe; en modo real solo informa. Esas
+invariantes cubren también el resultado de cada caso guionizado: el modo simulado
+no mide el modelo, mide que **el código del agente** hace lo que dice.
+
+El modo real añade lo que el simulado no puede: necesita el proxy LiteLLM y la
+virtual key de cada agente, muestra una línea por caso con un límite de tiempo
+(180 s por defecto), reparte la muestra pedida por todo el conjunto en lugar de
+tomar los primeros casos, omite los casos guionizados y, para el agente de código,
+lee un repositorio real indicado por entorno (`EVALS_REAL_REPO`, con
+`EVALS_REAL_TECHNOLOGIES` para las tecnologías con las que analizarlo). Los
+adversariales de web y código tampoco se ejecutan en modo real: su contenido
+malicioso lo aporta el caso, pero ahí esos agentes leen fuentes reales, así que no
+se inyectaría nada y el resultado daría una falsa sensación de resistencia.
+
+**Una cautela sobre las etiquetas.** Las ha redactado el autor a partir de lo que
+piden los prompts, no un revisor independiente. Hay al menos una discutible:
+«registra una ruta POST y convierte la respuesta en XML» está etiquetada como
+incorrecta y el modelo la valoró como incompleta, con una justificación razonable.
+Hasta que el tech lead las revise, el κ de Cohen es un indicio, no una medida.
 
 ### 5.6 LLM como juez
 
@@ -1702,10 +1758,56 @@ prompt ha empeorado la calidad, no un control de calidad en producción.
 
 ### 5.7 Resultados de la evaluación
 
-> **Sección pendiente.** Se rellenará con las tablas de §5.5 y §5.6 una vez
-> ejecutada la suite, desglosadas por modelo e incluyendo la comparativa entre
-> modelo primario y fallback. Es la sección que convierte la elección de §3.3 en una
-> decisión respaldada por datos propios y no solo por argumentos.
+> **Solo hay una ejecución exploratoria**, con 5 casos por conjunto. Valida el
+> arnés y da una primera impresión; no permite concluir sobre calidad (con cinco
+> respuestas, una sola valoración distinta mueve la exactitud veinte puntos). La
+> ejecución completa y repetida, con las etiquetas revisadas, y la comparativa
+> entre el modelo primario y el fallback siguen pendientes.
+
+Ejecución del 23 de octubre de 2026 con los modelos de producción a través de
+LiteLLM:
+
+| Agente | Casos | Salida válida | Otras métricas | Latencia p50 / p95 |
+|---|---|---|---|---|
+| Evaluador | 10 | 100 % | Exactitud 0,80 y κ 0,71 sobre 5 respuestas; ningún reintento; 0 ataques exitosos de 5 | 1,5 s / 3,5 s |
+| Revisor | 7 | 100 % | Ningún reintento; límites de palabras al 100 % | 3,0 s / 3,9 s |
+| Validador | 10 | 100 % | 0 falsos positivos; 0 ataques exitosos de 5 (3 los bloqueó Lakera, 1 el pre-filtro y 1 lo rechazó el modelo) | 2,3 s / 8,1 s |
+| Ejercicios | 5 | 100 % | Cardinalidad y límites al 100 %; solapamiento de temas máximo 0,235 | 6,7 s / 14,3 s |
+| Web | 7 | 100 % | Cobertura de tecnologías al 100 % | 7,9 s / 20,7 s |
+| Código (`autobot-frontend`) | 4 | 100 % | En los 2 casos de calidad: 20 rutas válidas de 20 y 20 fragmentos fundamentados de 20, con las lecturas dentro del presupuesto | 30,2 s / 48,7 s |
+
+Tres notas para leer la tabla. El **p95 de la evaluación** (3,5 s) queda muy por
+debajo del presupuesto de 45 s de §3.1, pero con diez llamadas es un dato, no una
+distribución. Las métricas de **web** que esa ejecución dio por incumplidas
+(presupuesto de búsquedas al 80 %, ausencia de fuentes declarada al 50 %) eran
+fallos del arnés y no del agente (lección 8 de §7); recalculadas con el mismo
+informe y el arnés corregido, la ausencia de fuentes declarada es 2 de 2 y el
+agente solo llegó a hacer 5 búsquedas. Y de los **cuatro casos de código**, dos son
+adversariales que hoy ya no se ejecutan en modo real: las cifras de rutas y
+fragmentos son las de los dos de calidad.
+
+**Lo que esta ejecución enseñó sobre el sistema**, además de sobre el arnés:
+
+- **El guardarraíl del validador funciona donde está en bloqueo.** Lakera rechazó
+  tres de las cinco entradas adversariales sin que el modelo las viera.
+- **Ningún ataque medible tuvo éxito** (0 de 10, entre evaluador y validador),
+  incluido un intento de cerrar el delimitador de la respuesta del alumno. Pero
+  los casos adversariales del dataset muestran que ese cierre es *posible* en los
+  prompts del evaluador, del agente web y del de código (§6.5): hoy solo lo frena
+  la instrucción.
+- **El agente de código falla si las tecnologías no encajan con el repositorio.**
+  Con React y FastAPI sobre un repositorio Angular, el modelo no eligió ningún
+  fichero y la tarea terminó con «no se pudo leer ningún fichero». Es coherente con
+  el diseño, pero es un mensaje poco útil para quien lanza la generación (§8).
+- **Una etiqueta del dataset es discutible** (§5.5), lo que recuerda que la
+  exactitud depende de quién etiqueta.
+
+**Para que esta sección sea la que promete** hace falta: la ejecución completa (unos
+noventa casos de calidad), repetida tres a cinco veces porque los modelos no son
+deterministas; etiquetas revisadas por el tech lead, y más casos de evaluación (con
+veintidós respuestas el κ tiene un margen muy amplio); y la comparativa entre
+modelo primario y fallback, que el arnés ya permite cambiando la variable de
+entorno del modelo.
 
 ### 5.8 Monitorización en producción
 
@@ -2052,6 +2154,12 @@ a posteriori, y que el producto lo haga fácil.
 
 > **Sección pendiente de ejecución.** Es la pieza que falta para poder afirmar que
 > el sistema cumple unos mínimos en lugar de suponerlo.
+>
+> Lo que ya existe no es red teaming, pero es un punto de partida: el conjunto
+> adversarial de la suite de §5.5 (19 casos escritos a mano, por quien diseñó las
+> defensas) cubre en versión mínima los objetivos 1 a 6 y se ejecuta como
+> regresión. En su única ejecución real, 0 de los 10 ataques medibles
+> —evaluador y validador— tuvo éxito (§5.7).
 
 **El punto de partida honesto: dos falsos positivos reales ya han debilitado los
 controles automatizados.**
@@ -2096,10 +2204,17 @@ abierto al reducir su alcance.
    | 7 | Lograr que un enunciado generado incluya datos personales o contenido inapropiado | 4, 10 |
    | 8 | Provocar consumo desproporcionado en una sola operación | 5 |
    | 9 | Envenenar la memoria de un agente para que el contenido manipulado persista 30 días | LLM04 |
+   | 10 | Hacer que contenido no confiable incluya el marcador de fin de su propio delimitador y escape de él | LLM01 |
 
    El objetivo 9 es el que no aparecería en una batería genérica y es específico de
    esta arquitectura: la caché persistente convierte un ataque puntual en uno
    duradero.
+
+   El objetivo 10 no salió de un diseño previo sino de la suite de §5.5: sus casos
+   adversariales con el marcador de fin dentro del contenido (la respuesta del
+   alumno, un fragmento de búsqueda, un fichero) dejan un prompt con un delimitador
+   de cierre de más, y el informe lo lista. En la única ejecución real el evaluador
+   no cedió, pero ningún código impide el cierre: hoy lo frena solo la instrucción.
 
    **El objetivo 5 cubre un hueco de verificación cuya historia merece contarse,
    porque acabó rediseñando la arquitectura.** La exclusión del guardarraíl global
@@ -2246,7 +2361,7 @@ retención de `answer` y de las trazas.
 
 ## 7. Lecciones aprendidas
 
-Siete decisiones que el proyecto tuvo que revisar sobre la marcha. Todas están
+Ocho decisiones que el proyecto tuvo que revisar sobre la marcha. Todas están
 documentadas en el archivo de cambios, y se recogen aquí porque el patrón que
 forman dice más sobre poner un agente en producción que la lista de controles de
 §6.2.
@@ -2317,8 +2432,22 @@ a la decisión**, manteniendo el modo más estricto como comportamiento por omis
 Un control sin contexto se aplica donde no toca; un control con contexto necesita
 que la omisión sea segura.
 
-**Y una lección sobre el proceso.** Las siete anteriores se descubrieron
-*verificando tareas*, no en incidentes de producción, y las siete están escritas en
+**8. Un instrumento de medida también se mide.**
+La primera ejecución real de la suite de evaluación dio números, y varios eran
+falsos. La muestra de «cinco casos por conjunto» tomaba los cinco primeros: las cinco
+respuestas del evaluador eran del mismo ejercicio y las cinco tecnologías del
+validador eran válidas, así que sus falsos negativos salían «sin datos». Los casos guionizados para un modelo falso se
+ejecutaban también contra el real, donde no significan nada. El contador de
+búsquedas contaba las que el presupuesto rechazaba (siete con un máximo de cinco).
+La declaración de ausencia de fuentes puntuaba un 50 % porque la heurística no
+reconocía «no se han proporcionado fragmentos». Y los casos adversariales de web y
+código daban «0 ataques exitosos» cuando en modo real no inyectaban nada. La
+lección general: **una métrica mal medida es peor que una ausente, porque da
+confianza.** La defensa fue la misma que con los agentes: verificar el instrumento
+antes de fiarse de él, y mirar el informe completo, no solo el resumen.
+
+**Y una lección sobre el proceso.** Las ocho anteriores se descubrieron
+*verificando tareas*, no en incidentes de producción, y las ocho están escritas en
 el repositorio con su razón. Ese es el valor concreto de haber mantenido el ciclo de
 especificación de §4.9: el conocimiento de por qué un número es 20 y no 40 no vive
 en la cabeza de nadie.
@@ -2331,8 +2460,8 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
-| Suite de evaluación con métricas deterministas y juez LLM (§5.5, §5.6) | Hoy no hay forma de saber si un cambio de modelo o de prompt empeora la calidad |
-| CI/CD completo con las evals como *gate* (§5.3) | Un *import check* no sostiene un sistema de doce servicios |
+| Completar la suite de evaluación: ejecución real completa y repetida, etiquetas revisadas por el tech lead, umbrales y juez LLM (§5.5–§5.7) | El arnés y el dataset ya existen, pero solo se ha ejecutado una muestra de 5 casos por conjunto: aún no hay forma de saber con datos si un cambio de modelo o de prompt empeora la calidad |
+| CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en staging, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
 | Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy los doce servicios comparten el mismo `.env` |
 | Ejercicio de red teaming con informe y re-ejecución (§6.5) | Los controles se calibraron contra falsos positivos, no contra ataques |
 | Cuadro de mando con umbrales y alertas (§5.8) | Los indicadores existen; nadie los vigila |
@@ -2344,7 +2473,9 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 | Reconsiderar la duplicación entre los seis agentes | `service_auth.py`, `rate_limit.py`, `tracing.py` y `llm.py` son casi idénticos en seis servicios (§4.4). La decisión de mantenerlos autocontenidos es defendible y conviene revisarla con el código a la vista |
 | Revisión humana opcional de las valoraciones antes de entregarlas | Cerraría el único punto de autonomía sin supervisión (§4.6), a cambio de latencia pedagógica |
 | Análisis de vulnerabilidades de dependencias en CI | LLM03 del mapeo OWASP |
-| Medir la calidad del fallback frente al primario | Riesgo 8: hoy se asume equivalente sin haberlo comprobado |
+| Medir la calidad del fallback frente al primario | Riesgo 8: hoy se asume equivalente sin haberlo comprobado. La suite ya lo permite (cambiando la variable de entorno del modelo); falta ejecutarlo |
+| Neutralizar los marcadores de delimitador dentro del contenido no confiable | La suite detecta que una respuesta, un fragmento de búsqueda o un fichero pueden incluir el marcador de fin y cerrar su propio delimitador (§5.7, §6.5). No se ha explotado con éxito, pero hoy solo lo frena la instrucción |
+| Mensaje de error útil cuando el agente de código no encuentra ficheros relevantes | Una generación con tecnologías que el repositorio no usa termina con «no se pudo leer ningún fichero» (§5.7) |
 
 **Prioridad baja — producto**
 
@@ -2597,15 +2728,16 @@ documenta, para cada una, qué es y cómo obtenerla o generarla.
 | GitHub | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` | GitHub App de solo lectura |
 | Memoria de agentes | `AGENTS_PG_*`, `AGENTS_MEMORY_PASSWORD`, `AGENTS_EXERCISE_READER_PASSWORD`, `AGENTS_VALIDATOR_READER_PASSWORD` | Conexión nativa a Postgres y contraseñas de los roles dedicados |
 | Observabilidad | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`, `LANGFUSE_BASE_URL` | Trazas. Dos variables con la misma URL porque LiteLLM y el SDK de Langfuse v3 leen nombres distintos |
+| Arnés de evaluación | `EVALS_REAL_REPO`, `EVALS_REAL_TECHNOLOGIES` | Solo para `evals/` en modo real: repositorio (`propietario/repo@commit`) y tecnologías con las que se analiza el agente de código. No están en `.env.example` ni las lee ningún servicio |
 
 ## Anexo C — El proceso de especificación como evidencia
 
-### C.1 Las 26 capacidades vigentes (`openspec/specs/`)
+### C.1 Las 27 capacidades vigentes (`openspec/specs/`)
 
 | Dominio | Capacidades |
 |---|---|
 | Agentes | `agent-auth`, `agent-memory`, `agent-resilience`, `agent-trace-privacy` |
-| Generación y evaluación | `exercise-generation`, `answer-evaluation`, `exercise-catalog`, `exercise-blocks` |
+| Generación y evaluación | `exercise-generation`, `answer-evaluation`, `exercise-catalog`, `exercise-blocks`, `agent-evaluation` |
 | Tecnologías | `technology-catalog`, `technology-validation` |
 | Asignación | `block-assignment`, `student-assignments` |
 | Autenticación y datos | `user-auth`, `data-authorization` |
@@ -2615,7 +2747,7 @@ documenta, para cada una, qué es y cómo obtenerla o generarla.
 | Integraciones | `github-repo-access` |
 | Frontend | `frontend-security-headers`, `frontend-ui-theme`, `confirm-dialog` |
 
-### C.2 Los 53 cambios archivados (`openspec/changes/archive/`)
+### C.2 Los 54 cambios archivados (`openspec/changes/archive/`)
 
 Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 `design.md`, `tasks.md` y los deltas de especificación.
@@ -2631,8 +2763,9 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 17 oct | `catalogo-tecnologias`, `detalle-ejercicio-guardado`, `eliminar-generaciones-por-revisar`, `generacion-tecnologias`, `paginacion-ejercicios-guardados` |
 | 20 oct | `busqueda-manual-bloques`, `eliminar-memoria-corta-agente-web`, `long-polling-generaciones-pendientes`, `reintento-sesion-caducada-frontend`, `validador-contexto-generacion`, `validador-duplicados-tecnologias` |
 | 22 oct | `acortar-requisitos-largos`, `eliminar-memoria-agente-ejercicios`, `guardarrailes-por-capas` |
+| 23 oct | `suite-evaluacion-agentes` |
 
-Dos lecturas de esta tabla. La primera: **trece de los 53 cambios son de seguridad**
+Dos lecturas de esta tabla. La primera: **trece de los 54 cambios son de seguridad**
 (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y están
 concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
@@ -2641,13 +2774,18 @@ decisión anterior (`fix-falso-positivo-lakera`,
 `presidio-solo-evaluador-revisor`), y los cuatro están en §7. El historial no se ha
 limpiado.
 
-Y una tercera, que el último cambio añade: `guardarrailes-por-capas` no corrige un
+Y una tercera, que añade `guardarrailes-por-capas`: no corrige un
 valor ni un parámetro, sino **el sitio donde se tomaban las decisiones**. Eliminó
 dos de los cuatro guardarraíles del proxy y un mecanismo —la exclusión del
 guardarraíl global— que este mismo documento había descrito, apenas un día antes,
 como la sutileza más fina del sistema. Esa es la forma que tiene un proyecto de
 madurar: no añadiendo controles, sino descubriendo que uno de ellos existía solo
 para compensar a otro.
+
+Y una cuarta, la del último cambio: `suite-evaluacion-agentes` es el primero que no
+añade ni corrige funcionalidad, sino que construye un instrumento para medir el
+resto. Y su primera ejecución real obligó a corregir cinco fallos del propio
+instrumento (§7, lección 8): un sistema que se mide tiene que medirse a sí mismo.
 
 ## Anexo D — Migraciones de base de datos
 
@@ -2674,7 +2812,12 @@ evaluación de políticas sobre lo que el rol ya puede leer, que en ambos casos 
 
 ## Anexo E — Resultados de evaluación en bruto
 
-> Pendiente. Ver §5.5, §5.6 y §5.7.
+Los informes JSON de cada ejecución se escriben en `evals/results/` y no se
+versionan (el directorio está ignorado por git). Lo que sí está en el repositorio
+es el dataset y el arnés, de modo que cualquier ejecución se reproduce con
+`python -m evals.run` (§5.5). La única ejecución real hasta la fecha, exploratoria,
+está resumida en §5.7. Cuando se haga la ejecución completa, su informe de
+referencia se guardará en `evals/baseline/`.
 
 ## Anexo F — Informe de red teaming
 
@@ -2705,6 +2848,11 @@ evaluación de políticas sobre lo que el rol ya puede leer, que en ambos casos 
 | **OpenSpec** | Marco de desarrollo guiado por especificaciones usado en este proyecto |
 | **Change** | Una propuesta de modificación con su diseño, tareas y delta de especificación |
 | **Copia inmutable** | La copia congelada de la composición de un bloque en el momento de asignarlo |
+| **Dataset dorado** | Conjunto versionado de casos con su resultado esperado o su propiedad verificable, contra el que se mide el sistema (§5.5) |
+| **Modo simulado / modo real** | Las dos formas de ejecutar la suite de evaluación: con un modelo falso guionizado por el caso (verifica el código, sin coste ni red) o con los modelos reales a través de LiteLLM (mide calidad, con coste) |
+| **Invariante (de la suite)** | Lo que el caso declara que debe hacer el código del agente con su guion (resultado y número de llamadas); si no se cumple, el modo simulado falla |
+| **Reintento correctivo** | Segunda llamada al modelo, con la corrección explícita, cuando su salida incumple un límite o el esquema; si vuelve a incumplir, la tarea falla (§3.5) |
+| **κ de Cohen** | Medida de concordancia entre dos clasificaciones —aquí, la etiqueta humana y el veredicto del modelo— que descuenta el acuerdo esperable por azar |
 | **opted_out_global_guardrails** | Metadata que excluía a una virtual key de un guardarraíl global. Existió en la clave del validador y desapareció con el guardarraíl global que la hacía necesaria (§6.2) |
 
 ---
