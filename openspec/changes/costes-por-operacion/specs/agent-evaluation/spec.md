@@ -56,15 +56,19 @@ El sistema SHALL calcular el coste medio de las cuatro operaciones del sistema (
 - **THEN** la operacion se informa como no calculable e indica el agente que falta
 
 ### Requirement: Escenarios de uso por fases con supuestos explicitos
-El sistema SHALL calcular el coste de una campana de incorporacion para los niveles piloto, equipo y organizacion, en tres fases (generacion inicial, resolucion por los alumnos y regimen a demanda), a partir de un fichero editable de supuestos, y SHALL compararlo con el presupuesto de cada clave de LiteLLM en la ventana de 30 dias mas cargada.
+El sistema SHALL calcular el coste de una campana de incorporacion para los niveles de uso piloto, equipo y organizacion, expresados en numero de equipos (un tech lead y sus alumnos), en tres fases (generacion inicial, resolucion por los alumnos y regimen), a partir de un fichero editable de supuestos, y SHALL compararlo con el presupuesto de cada clave de LiteLLM en la ventana de 30 dias mas cargada.
 
 #### Scenario: Generacion inicial
-- **WHEN** el supuesto es generar 500 ejercicios guardados con 3 candidatos por generacion y una tasa de guardado del 60 %
-- **THEN** el numero de generaciones y su coste se deducen de esos valores y no se escriben a mano
+- **WHEN** el supuesto es generar 500 ejercicios guardados con 3 candidatos por generacion y una tasa de guardado del 90 %
+- **THEN** el numero de generaciones por tech lead (unas 185) y su coste se deducen de esos valores y no se escriben a mano
 
 #### Scenario: Resolucion por los alumnos
-- **WHEN** se indican el numero de alumnos y los ejercicios que resuelve cada uno en la campana
-- **THEN** el numero de evaluaciones es su producto y cada una cuesta lo de evaluador mas revisor
+- **WHEN** se indican los alumnos por equipo y los ejercicios que resuelve cada uno en la campana
+- **THEN** el numero de evaluaciones es su producto por el numero de equipos y cada una cuesta lo de evaluador mas revisor
+
+#### Scenario: Incorporaciones anuales
+- **WHEN** se indican los alumnos que se incorporan cada ano a un equipo
+- **THEN** el regimen incluye las evaluaciones de esos alumnos sobre el catalogo ya existente
 
 #### Scenario: Supuestos editables
 - **WHEN** se cambia un supuesto del fichero
@@ -78,9 +82,24 @@ El sistema SHALL calcular el coste de una campana de incorporacion para los nive
 - **WHEN** se muestra el resultado de un nivel
 - **THEN** aparece el reparto del coste total entre las tres fases y entre generacion y evaluacion
 
-#### Scenario: Supuestos como hipotesis
-- **WHEN** se presentan los resultados
-- **THEN** los supuestos de uso aparecen listados junto a las cifras como hipotesis, no como datos medidos
+### Requirement: Coste de busquedas y lecturas externas
+El sistema SHALL contar las busquedas web y las lecturas de repositorio de cada caso del agente web y del de codigo, SHALL incluir en el coste de generar el precio por busqueda configurado en la tabla de precios, y SHALL informar como incompleto cualquier coste de generacion cuyo precio por busqueda no este configurado.
+
+#### Scenario: Busquedas contadas
+- **WHEN** el agente web realiza busquedas en un caso
+- **THEN** el registro del caso incluye cuantas hizo, sin contar las que el presupuesto rechaza
+
+#### Scenario: Con precio por busqueda
+- **WHEN** la tabla de precios define el precio por busqueda
+- **THEN** el coste de generar incluye las busquedas multiplicadas por ese precio, mostrado como una etapa aparte
+
+#### Scenario: Sin precio por busqueda
+- **WHEN** la tabla de precios no define el precio por busqueda
+- **THEN** el coste de generar se muestra solo con el coste del modelo y marcado como incompleto
+
+#### Scenario: Lecturas de repositorio
+- **WHEN** el agente de codigo lee ficheros del repositorio
+- **THEN** las lecturas se cuentan por caso y no se les asigna precio salvo que la tabla lo defina
 
 ### Requirement: Efecto de la memoria de los agentes
 El sistema SHALL calcular el coste de generar con y sin acierto de memoria de los agentes web y de codigo, y SHALL aplicar una tasa de acierto configurable en los escenarios de uso.
