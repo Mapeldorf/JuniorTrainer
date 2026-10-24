@@ -349,8 +349,13 @@ def invariant_violations(runs: dict[str, dict]) -> list[dict]:
     return out
 
 
-def build_report(mode: str, runs: dict[str, dict], datasets: dict[str, list[dict]], now: datetime | None = None) -> dict:
-    """`runs`: agente -> `{"cases": [...]}` si se ejecuto, o `{"not_executed": motivo}`."""
+def build_report(mode: str, runs: dict[str, dict], datasets: dict[str, list[dict]], now: datetime | None = None,
+                 reasoning: str | None = None) -> dict:
+    """`runs`: agente -> `{"cases": [...]}` si se ejecuto, o `{"not_executed": motivo}`.
+
+    `reasoning`: ajuste de razonamiento usado en modo real (p. ej. `effort=low`), o
+    `None` si no se fijo ninguno (baseline). Se registra para poder atribuir y
+    comparar dos ejecuciones con ajustes distintos."""
     agents = {}
     for agent, run in runs.items():
         if "not_executed" in run:
@@ -360,6 +365,7 @@ def build_report(mode: str, runs: dict[str, dict], datasets: dict[str, list[dict
     violations = invariant_violations(runs)
     return {
         "mode": mode,
+        "reasoning": reasoning,
         "generated_at": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
         "dataset_cases": {name: len(rows) for name, rows in datasets.items()},
         "agents": agents,
@@ -379,6 +385,8 @@ def _fmt(value) -> str:
 
 def render_summary(report: dict) -> str:
     lines = [f"Evaluacion de agentes - modo {report['mode']} - {report['generated_at']}"]
+    if report.get("reasoning"):
+        lines.append(f"(razonamiento fijado: {report['reasoning']})")
     if report["mode"] == "simulated":
         lines.append("(modelo simulado: verifica el codigo de los agentes; latencia y calidad no son representativas)")
     for agent, data in report["agents"].items():

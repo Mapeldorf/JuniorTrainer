@@ -47,7 +47,7 @@ def agent_python(agent: str, overrides: dict[str, str]) -> str:
 
 
 def run_agent(agent: str, mode: str, python: str, datasets_dir: Path, limit_per_set: int,
-              case_timeout: float = 180.0) -> dict:
+              case_timeout: float = 180.0, reasoning: str = "") -> dict:
     cmd = [python, "-m", "evals.agent_runner", "--agent", agent, "--mode", mode,
            "--datasets-dir", str(datasets_dir), "--case-timeout", str(case_timeout)]
     # En modo real cada llamada tarda segundos y cuesta dinero: se deja pasar la
@@ -57,6 +57,8 @@ def run_agent(agent: str, mode: str, python: str, datasets_dir: Path, limit_per_
         cmd.append("--progress")
     if limit_per_set:
         cmd += ["--limit-per-set", str(limit_per_set)]
+    if reasoning:
+        cmd += ["--reasoning", reasoning]
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(REPO_ROOT), env.get("PYTHONPATH", "")]))
     env["PYTHONIOENCODING"] = "utf-8"
@@ -90,12 +92,18 @@ def main(argv: list[str] | None = None) -> int:
                         help="segundos maximos por caso (por defecto 180)")
     parser.add_argument("--limit-per-set", type=int, default=0,
                         help="maximo de casos por conjunto y agente (0 = todos); util en modo real para acotar el coste")
+    parser.add_argument("--reasoning", default="",
+                        help="ajuste de razonamiento, solo modo real: off, effort=<nivel> o max-tokens=<N>")
     args = parser.parse_args(argv)
 
     agents = [a.strip() for a in args.agents.split(",") if a.strip()]
     unknown = [a for a in agents if a not in AGENTS]
     if unknown:
         print(f"agente(s) desconocido(s): {unknown}; validos: {list(AGENTS)}", file=sys.stderr)
+        return 2
+    if args.reasoning and args.mode != "real":
+        print("--reasoning solo tiene efecto en modo real (el doble simulado no llama a ningun proveedor)",
+              file=sys.stderr)
         return 2
     overrides = dict(item.split("=", 1) for item in args.python if "=" in item)
 
@@ -109,9 +117,9 @@ def main(argv: list[str] | None = None) -> int:
     for agent in agents:
         print(f"-> {agent} ({args.mode})...", file=sys.stderr, flush=True)
         runs[agent] = run_agent(agent, args.mode, agent_python(agent, overrides),
-                                Path(args.datasets_dir), args.limit_per_set, args.case_timeout)
+                                Path(args.datasets_dir), args.limit_per_set, args.case_timeout, args.reasoning)
 
-    result = report.build_report(args.mode, runs, data)
+    result = report.build_report(args.mode, runs, data, reasoning=args.reasoning or None)
     results_dir = Path(args.results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

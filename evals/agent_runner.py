@@ -29,7 +29,7 @@ import urllib.request
 from types import SimpleNamespace
 
 from evals import dataset
-from evals.model_wrapper import RecordingModel, ScriptedModel, ScriptExhausted
+from evals.model_wrapper import RecordingModel, ScriptedModel, ScriptExhausted, parse_reasoning
 
 AGENTS = ("evaluator", "reviewer", "validator", "exercises", "web", "code")
 
@@ -404,10 +404,11 @@ class _Session:
     """Un caso = una sesion: crea el modelo (doble o real), lo envuelve y
     guarda el envoltorio para leer luego llamadas, tiempo y prompts."""
 
-    def __init__(self, mode: str, real_builder, script: list[str]) -> None:
+    def __init__(self, mode: str, real_builder, script: list[str], reasoning: dict | None = None) -> None:
         self.mode = mode
         self.real_builder = real_builder
         self.script = script
+        self.reasoning = reasoning
         self.recorder: RecordingModel | None = None
 
     def build_model(self):
@@ -415,7 +416,7 @@ class _Session:
         # ficheros y analizarlos): las dos comparten guion y contadores.
         if self.recorder is None:
             inner = ScriptedModel(self.script) if self.mode == "simulated" else self.real_builder()
-            self.recorder = RecordingModel(inner)
+            self.recorder = RecordingModel(inner, reasoning=self.reasoning)
         return self.recorder
 
 
@@ -551,7 +552,8 @@ def _code_probe_summary(recorder: RecordingModel | None, probe: dict, result: di
 
 
 async def _run_case(agent: str, set_name: str, case: dict, svc, input_mod, error_classes: tuple, mode: str,
-                    real_builder, group_statements: dict, originals: dict, case_timeout: float) -> dict:
+                    real_builder, group_statements: dict, originals: dict, case_timeout: float,
+                    reasoning: dict | None = None) -> dict:
     record = {"id": case["id"], "set": set_name, "agent": agent, "outcome": "ok", "error": None,
               "error_kind": None, "result": None, "calls": 0, "usage": None, "checks": None,
               "duration_ms": 0.0}
@@ -563,7 +565,7 @@ async def _run_case(agent: str, set_name: str, case: dict, svc, input_mod, error
         )
         return record
 
-    session = _Session(mode, real_builder, _script_for(agent, case))
+    session = _Session(mode, real_builder, _script_for(agent, case), reasoning)
     setattr(svc, _AGENT_SPEC[agent][0], session.build_model)
     probe = _new_probe()
 
@@ -707,7 +709,7 @@ def _selected_cases(agent: str, data: dict, mode: str, limit: int) -> list[tuple
     return chosen
 
 
-async def _run_all(args, svc, input_mod, error_classes, real_builder, originals) -> list[dict]:
+async def _run_all(args, svc, input_mod, error_classes, real_builder, originals, reasoning) -> list[dict]:
     data = dataset.load_all(dataset.Path(args.datasets_dir))
     if hasattr(svc, "redact"):
         svc.redact = _identity_redact
@@ -715,7 +717,7 @@ async def _run_all(args, svc, input_mod, error_classes, real_builder, originals)
     records = []
     for set_name, case in _selected_cases(args.agent, data, args.mode, args.limit_per_set):
         record = await _run_case(args.agent, set_name, case, svc, input_mod, error_classes, args.mode,
-                                 real_builder, group_statements, originals, args.case_timeout)
+                                 real_builder, group_statements, originals, args.case_timeout, reasoning)
         _apply_invariants(args.agent, case, record, args.mode)
         records.append(record)
         if args.progress:
@@ -735,7 +737,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--case-timeout", type=float, default=180.0,
                         help="segundos maximos por caso; al superarlo el caso cuenta como error de infraestructura")
     parser.add_argument("--progress", action="store_true", help="una linea por caso en la salida de error")
+    parser.add_argument("--reasoning", default="",
+                        help="ajuste de razonamiento (solo modo real): off, effort=<nivel> o max-tokens=<N>")
     args = parser.parse_args(argv)
+
+    try:
+        reasoning_obj = parse_reasoning(args.reasoning)
+    except ValueError as exc:
+        return _fatal(str(exc))
+    # El ajuste solo tiene efecto en modo real: en simulado el doble ignora la
+    # llamada. Se registra el spec pedido, pero no se aplica fuera de real.
+    reasoning = reasoning_obj if args.mode == "real" else None
 
     try:
         svc = importlib.import_module("app.service")
@@ -759,11 +771,13 @@ def main(argv: list[str] | None = None) -> int:
         _preflight_real(importlib.import_module("app.config"), key_field, args.agent)
 
     try:
-        records = asyncio.run(_run_all(args, svc, input_mod, error_classes, real_builder, originals))
+        records = asyncio.run(_run_all(args, svc, input_mod, error_classes, real_builder, originals, reasoning))
     except dataset.DatasetError as exc:
         return _fatal(f"dataset invalido: {exc}")
 
-    print("EVALS_JSON:" + json.dumps({"agent": args.agent, "mode": args.mode, "cases": records}, ensure_ascii=False))
+    print("EVALS_JSON:" + json.dumps(
+        {"agent": args.agent, "mode": args.mode, "reasoning": args.reasoning or None, "cases": records},
+        ensure_ascii=False))
     return 0
 
 
