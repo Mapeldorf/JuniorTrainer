@@ -565,7 +565,7 @@ consciente, no un descuido.
 | Modelos frontier cerrados | Coste por operación entre uno y dos órdenes de magnitud mayor para una tarea que no necesita ese techo de capacidad, y dependencia de un proveedor único para procesar código propietario de clientes. Son, eso sí, los candidatos naturales para el **juez de evaluación offline** (§5.6), donde el coste es irrelevante porque las ejecuciones son contadas. |
 | Inferencia local (Ollama, vLLM en una máquina del equipo) | Incompatible con el presupuesto de 45 s del camino síncrono en hardware razonable. Sigue siendo el destino natural del sistema si un cliente exige que el código no salga de su red, y es precisamente para eso que todos los modelos elegidos son open-weight. |
 | Un único modelo para los cuatro roles | Más simple de operar, y pierde lo único que hace fiable la evaluación: la independencia entre las dos pasadas. |
-| Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. |
+| Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. **Matiz medido (§3.8):** los modelos elegidos razonan igualmente, y entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, que se facturan como salida. |
 
 ### 3.4 Forma de consumo: LiteLLM como centralita
 
@@ -837,46 +837,140 @@ palabras de §3.5 están en código y no solo en el prompt.
 
 ### 3.8 Costes anticipados por nivel de uso
 
-> **Sección pendiente.** Requiere instrumentar una tanda de ejecuciones para
-> extraer tokens y coste reales de las trazas de Langfuse, que ya los registran
-> por llamada. El método y la estructura están fijados; faltan las cifras.
+> **Medido el 24 de octubre de 2026** con los modelos de producción a través de LiteLLM y con los precios publicados ese día. Las medias salen de pocos casos (entre 2 y 10 por agente, apartado 1) y varios supuestos de uso son hipótesis, marcadas como tales: las cifras son órdenes de magnitud, no un presupuesto. Todas se regeneran con `python -m evals.costs` (al final de la sección).
 
-El trabajo a ejecutar, en orden:
+**Cómo se mide.** Se partía del supuesto de que Langfuse registraba coste, tokens y modelo por llamada. No por su API: las observaciones traen `inputPrice`, `outputPrice`, `totalPrice` y `modelId` a nulo y ningún campo de tokens. La medición sale de otro sitio: cada respuesta de los agentes trae sus tokens (`usage_metadata`, con los de razonamiento aparte) y OpenRouter devuelve además el **coste facturado** de la llamada en `response_metadata.token_usage.cost`, sin construir ninguna contabilidad nueva. El arnés de §5.5 lo captura en modo real, sin tocar los agentes. Donde el proveedor no informa el coste se calcula con el precio de lista (`evals/prices.json`, con fecha y fuente) y se marca. Los precios se leen de la API pública de OpenRouter y, para el respaldo, de la de Hugging Face.
 
-1. **Unidad de coste.** Medir tokens de entrada y salida por cada una de las
-   cuatro operaciones del sistema: generación con repositorio, generación sin
-   repositorio, evaluación de una respuesta y validación de una tecnología.
-   **Y aquí hay una corrección respecto al plan inicial.** Se daba por hecho que
-   Langfuse registraba coste, tokens y modelo por llamada, de modo que la medición
-   sería una consulta y no una instrumentación. **No por su API:** las
-   observaciones que devuelve `GET /api/public/v2/observations` traen
-   `inputPrice`, `outputPrice`, `totalPrice` y `modelId` a nulo, y ningún campo de
-   tokens. Es coherente con que los modelos se sirvan vía OpenRouter con nombres
-   que no están en su tabla de precios. La interfaz de Langfuse puede mostrarlos,
-   pero el dato para construir estas tablas hay que sacarlo de otro sitio: del
-   propio consumo que LiteLLM acumula por *virtual key* en su Postgres, que es
-   quien de verdad lleva la contabilidad (§3.4), o instrumentando el recuento en
-   el agente. Averiguarlo antes de escribir la sección evita construirla sobre un
-   supuesto falso.
-2. **Tabla de coste por operación** al precio vigente de cada modelo, desglosada
-   por llamada para que se vea qué etapa domina el coste.
-3. **Tres niveles de uso** con supuestos explícitos: *piloto* (1 tech lead, 5
-   alumnos), *equipo* (5 tech leads, 50 alumnos) y *organización* (30 tech leads,
-   500 alumnos), cada uno con su estimación de generaciones y evaluaciones al mes.
-4. **Efecto de las cachés**, con dos columnas: coste con acierto de memoria y sin
-   él. La memoria del agente web se indexa por tecnologías normalizadas y la del
-   agente de código por repositorio, commit y tecnologías (§4.8), así que en uso
-   real —un equipo que genera repetidamente sobre el mismo stack y el mismo
-   repositorio— el acierto es la norma y no la excepción. La diferencia es
-   argumento de diseño, no un detalle: hay que cuantificarla.
-5. **Palancas de control ya implementadas**: presupuesto por clave (§3.4: 5 USD/30 días hoy, 50 dimensionado) por
-   virtual key, 60 rpm por clave, rate limit de generación a 5/min por usuario,
-   TTL de 30 días en las memorias y los presupuestos de operaciones de §3.5.
-6. **Comparativa contra un modelo frontier** sobre la misma tabla, para
-   cuantificar la decisión de §3.3 en lugar de solo argumentarla.
-7. **Coste del no-sistema**: horas de tech lead equivalentes a los ejercicios que
-   el sistema produce. Es la cifra que justifica el proyecto, y la única que el
-   negocio compara.
+**1. Qué cuesta cada agente.** Media por llamada completa (el agente de código hace dos llamadas por diseño), solo con casos de calidad que llegaron a llamar al modelo.
+
+| Agente | Casos | Tokens de entrada | Tokens de salida (de razonamiento) | Coste medio por llamada (USD) | Mínimo – máximo |
+|---|---|---|---|---|---|
+| evaluator | 10 | 466 | 100 (36) | 0,000153 | 0,000064 – 0,000316 |
+| reviewer | 10 | 449 | 329 (266) | 0,000526 | 0,000342 – 0,000686 |
+| validator | 8 | 569 | 199 (144) | 0,000135 | 0,000062 – 0,000258 |
+| exercises | 7 | 763 | 2.165 (1.636) | 0,001800 | 0,000425 – 0,003896 |
+| web | 5 | 3.604 | 870 (319) | 0,000785 | 0,000193 – 0,001771 |
+| code | 2 | 19.748 | 4.182 (1.836) | 0,004151 | 0,002207 – 0,006095 |
+
+El agente de ejercicios se midió con una media de 2,7 candidatos por llamada (la entrada no depende del número de candidatos; la salida sí, así que se mide por candidato y se escala a los 5 que pide el sistema). El razonamiento está incluido en los tokens de salida y se factura como salida.
+
+**2. Qué cuesta cada operación.** Las cuatro operaciones del sistema se componen sumando el coste medio de los agentes que intervienen. Es una aproximación: en producción la entrada de un agente depende de la salida del anterior, mientras que la suite usa entradas fijas del dataset.
+
+| Operación | Coste (USD) | Desglose |
+|---|---|---|
+| Validar una tecnología | 0,000135 | validator 0,000135 (100 %) |
+| Evaluar una respuesta | 0,000679 | evaluator 0,000153 (23 %), reviewer 0,000526 (77 %) |
+| Generar sin repositorio | 0,021644 | validator 0,000135 (1 %), web 0,000785 (4 %), exercises 0,003124 (14 %), tavily_marginal 0,017600 (81 %) |
+| Generar con repositorio | 0,025796 | validator 0,000135 (1 %), web 0,000785 (3 %), code 0,004151 (16 %), exercises 0,003124 (12 %), tavily_marginal 0,017600 (68 %) |
+| Generar con acierto de memoria | 0,003259 | validator 0,000135 (4 %), exercises 0,003124 (96 %) |
+
+`tavily_marginal` valora cada búsqueda al precio del crédito adicional (0,008 USD) y por eso domina estas dos filas; no es lo que se paga. Tavily se factura por cuota de plan (apartado 7), de modo que sin esa partida una generación con repositorio cuesta 0,008196 USD en modelos y una sin repositorio 0,004044.
+
+**3. La forma del uso.** El uso no es estacionario, así que un coste mensual de régimen no lo representa. Se modela una **campaña de incorporación** por equipo, con la forma que describe quien encarga el proyecto: un equipo es un tech lead y 2 juniors; el tech lead genera del orden de 500 ejercicios guardados durante el primer mes, los juniors los resuelven en 2 semanas, cada año se incorporan 2 juniors más por equipo (que resuelven el catálogo existente) y después el tech lead solo añade o elimina ejercicios, de forma puntual, según el feedback de los juniors (eliminar un ejercicio no gasta modelo). Los niveles de uso son 1, 5 y 30 equipos, que son los tech leads de los niveles piloto, equipo y organización de este documento.
+
+| Supuesto | Valor | Origen |
+|---|---|---|
+| Juniors por equipo | 2 | usuario |
+| Ejercicios guardados por tech lead | 500 | usuario |
+| Candidatos por generación | 5 | usuario |
+| Candidatos que el tech lead guarda | 90 % | usuario |
+| Ejercicios que resuelve cada junior | 500 | usuario |
+| Juniors que se incorporan al año por equipo | 2 | usuario |
+| Ejercicios nuevos al año por equipo | 50 | hipótesis |
+| Generaciones que usan repositorio | 80 % | hipótesis |
+| Repositorios por proyecto (máximo) | 5 | usuario |
+| Tecnologías por proyecto (máximo) | 15 | usuario |
+| La memoria acierta en régimen | no | hipótesis |
+
+De ahí se deducen las cifras de una generación inicial: 500 ejercicios guardados con 5 candidatos por generación y un 90 % de guardado son **112 generaciones** por tech lead (500 ÷ 4,5 = 111,1, redondeado hacia arriba), 90 de ellas con repositorio. Y cada equipo hace **1.000 evaluaciones** (2 juniors × 500 ejercicios).
+
+**4. Resultados de la campaña.** Coste en modelos, sin Tavily:
+
+| | Piloto | Equipo | Organización |
+|---|---|---|---|
+| Equipos | 1 | 5 | 30 |
+| Por equipo: generación inicial (mes 1) | 0,6882 | 0,6882 | 0,6882 |
+| Por equipo: resolución por los juniors (mes 2) | 0,6790 | 0,6790 | 0,6790 |
+| Por equipo: régimen de un año | 0,8369 | 0,8369 | 0,8369 |
+| **Campaña total (USD)** | **1,37** | **6,84** | **41,01** |
+| Reparto generación / evaluación | 50 % / 50 % | 50 % / 50 % | 50 % / 50 % |
+
+El reparto es del 50 % generación y 50 % evaluación: la hipótesis de partida era que pesaría más la evaluación porque son muchas llamadas pequeñas; una generación es mucho más cara que una evaluación, y los dos efectos se compensan. Un equipo cuesta unos 2,20 USD en inferencia su primer año.
+
+**5. Costes unitarios de la formación.** Es lo que se puede dar con rigor: por **ejercicio guardado**, 0,0014 USD (el coste de generación de un tech lead entre 500); por **evaluación**, 0,000679 USD (evaluador más revisor); y por **junior formado**, **0,68 USD** (sus 500 evaluaciones más la mitad de la generación de su equipo).
+
+**6. Efecto de la memoria.** Con acierto de memoria no se llama al agente web ni al de código: generar cuesta 0,003259 USD en lugar de 0,008196 (con repositorio) o 0,004044 (sin él). En la campaña los fallos no se estiman con una tasa inventada sino con las claves posibles: la clave web es el conjunto de tecnologías y la de código es repositorio + commit + tecnologías, y un proyecto tiene como máximo 5 repositorios y 15 tecnologías. Con una tecnología por generación, los fallos son como mucho 15 de web (de 112 generaciones) y 75 de código (de 90). Es una cota: mezclar tecnologías crea claves nuevas, y por eso el informe muestra la sensibilidad (con el doble de claves, la generación de un equipo sube de 0,6882 a 0,7622 USD; con el cuádruple, a 0,7858). En régimen, con un uso esporádico, la memoria caduca a los 30 días sin lecturas y se supone que cada generación nueva falla.
+
+**7. Tavily y GitHub.** GitHub no tiene coste: las lecturas se cuentan (hasta 10 por generación) y valen cero. Tavily se factura por **plan de la organización**, no por búsqueda. Los planes (página de precios y documentación de Tavily, octubre de 2026) son Researcher, gratuito con 1.000 créditos al mes y sin exceso; Project, 30 USD al mes con 4.000 créditos incluidos y 0,008 USD por crédito adicional; y pago por uso a 0,008 USD por crédito. Se asume 1 crédito por búsqueda (el agente no indica la profundidad y se aplica la básica por defecto): es un parámetro a contrastar con el consumo real del panel de Tavily.
+
+| | Piloto | Equipo | Organización |
+|---|---|---|---|
+| Créditos en el mes 1 | 33 | 165 | 990 |
+| Plan Researcher (gratis, 1.000 créditos) | alcanza | alcanza | alcanza |
+| Plan Project (30 USD/mes, 4.000 créditos) | 30 USD | 30 USD | 30 USD |
+| Pago por uso (USD) | 0,26 | 1,32 | 7,92 |
+| Créditos al año en régimen | 26 | 132 | 792 |
+
+El plan gratuito alcanza en los tres niveles, pero con 30 equipos roza el límite (990 de 1.000) y no admite exceso: un solo crédito de más lo deja sin servicio. El plan Project sobra con holgura incluso a ese tamaño, y es lo que se pasaría a contratar.
+
+**8. Presupuesto por clave.** Las claves de LiteLLM son de la organización, así que el pico de 30 días de cada agente suma todos los equipos (la generación cae en el mes 1 y la resolución en el 2, sin solaparse). Pico de cada clave (USD) y tope que lo cubre con una holgura de 2× (hipótesis), redondeado:
+
+| Clave | Piloto | Equipo | Organización |
+|---|---|---|---|
+| validator | 0,02 | 0,08 | 0,45 |
+| web | 0,01 | 0,06 | 0,35 |
+| code | 0,31 | 1,56 | 9,34 |
+| exercises | 0,35 | 1,75 | 10,50 |
+| evaluator | 0,15 | 0,77 | 4,59 |
+| reviewer | 0,53 | 2,63 | 15,78 |
+| **Tope que cubre el pico (USD / 30 días)** | **5** | **10** | **50** |
+
+Con el tope de 5 USD que se aplica hoy, ninguna clave lo supera en el piloto ni en el nivel de equipo, pero a escala de organización lo superarían code, exercises y reviewer. Por eso §3.4 dimensiona el tope de despliegue en 50 USD. Es una medida de seguridad personal, no un límite del producto: para un cliente se subiría o se quitaría y la inferencia se consumiría por API.
+
+**9. Si el modelo primario falla.** LiteLLM reintenta con el respaldo de Hugging Face (DeepSeek-V4.1-Flash para el generador y el evaluador; GLM-5.3-Flash para el revisor y el validador). Su precio depende del proveedor de inferencia al que enrute Hugging Face, así que se da un rango (proveedor más barato y más caro) con los mismos tokens medidos. **La fracción real de llamadas que cae al respaldo no se mide** (el alias que ve el cliente no distingue qué modelo contestó): son escenarios, no una predicción.
+
+| Operación | Medido (USD) | Con el respaldo (USD) |
+|---|---|---|
+| Validar una tecnología | 0,000135 | 0,000185 – 0,000185 |
+| Evaluar una respuesta | 0,000679 | 0,000385 – 0,000492 |
+| Generar sin repositorio | 0,021644 | 0,021555 – 0,024888 |
+| Generar con repositorio | 0,025796 | 0,028013 – 0,035830 |
+| Generar con acierto de memoria | 0,003259 | 0,002712 – 0,005163 |
+
+| Campaña (USD) | 0 % al respaldo | 5 % al respaldo | 20 % al respaldo | 100 % al respaldo |
+|---|---|---|---|---|
+| Piloto | 1,37 – 1,37 | 1,36 – 1,39 | 1,33 – 1,48 | 1,19 – 1,92 |
+| Equipo | 6,84 – 6,84 | 6,79 – 6,97 | 6,66 – 7,39 | 5,96 – 9,61 |
+| Organización | 41,01 – 41,01 | 40,75 – 41,85 | 39,96 – 44,35 | 35,76 – 57,67 |
+
+El respaldo no dispara el coste: queda en el mismo orden de magnitud que el primario, y en algunas operaciones es más barato. Protege la disponibilidad, no es un riesgo de gasto.
+
+**10. Frente a un modelo de referencia.** Con los mismos tokens, usando Opus 5.5 para el agente web, el de código y el de ejercicios (el trabajo pesado) y Haiku 5.5 para el validador, el evaluador y el revisor (precios de OpenRouter: Opus 5.5 a 4 y 20 USD por millón de tokens de entrada y salida, Haiku 5.5 a 0,10 y 0,50), la campaña cuesta unas **16,2 veces más**: 22,20 USD en el piloto, 111,02 en el nivel de equipo y 666,14 en el de organización, frente a 1,37, 6,84 y 41,01. Es una cota inferior de lo que costaría de verdad: otro modelo gastaría otros tokens (más o menos razonamiento). Cuantifica la decisión de §3.3: los modelos open-weight elegidos cuestan una fracción del precio, y son además los que permiten autoalojar. Que hagan el mismo trabajo con la misma calidad no se ha medido: es la comparativa pendiente de §5.7.
+
+**11. Tres hallazgos de la medición**
+
+- **Casi toda la salida de tres agentes es razonamiento.** Entre el 72 % y el 81 % de los tokens de salida del revisor (81 %), el agente de ejercicios (76 %) y el validador (72 %) son tokens de razonamiento: un borrador interno que el modelo escribe antes de responder y que el proveedor factura como salida. §3.3 descartó los modelos de razonamiento porque ninguna tarea los necesita; los modelos configurados razonan igualmente, como se observa en sus respuestas. Es la palanca de coste y de latencia más clara que ha salido de esta medición, y apagar o limitar el razonamiento es un experimento pendiente que debe medirse con la suite de §5.5 (coste y calidad), no darse por bueno.
+- **El revisor, no el evaluador, es el coste de evaluar.** Pesa el 77 % del coste de una evaluación, porque razona mucho más (266 frente a 36 tokens de razonamiento de media). Como la evaluación es la fase más numerosa, esa diferencia es la que más se nota en la campaña.
+- **El precio de lista no sirve para predecir lo facturado.** La razón entre lo facturado y los tokens medidos al precio de lista va de 0,73 a 1,40 según el agente; lo más probable es que OpenRouter enrute a proveedores con precios distintos al que publica. Por eso las cifras de esta sección usan el coste facturado siempre que el proveedor lo informa.
+
+**12. Lo que no se calcula.** El plan original de esta sección pedía como último punto el coste del no-sistema (las horas de tech lead que equivaldrían a producir los ejercicios a mano), como la cifra que justifica el proyecto. No se calcula, ni tampoco ningún ahorro de inferencia o de especificaciones en tareas reales de los juniors: no es calculable, igual que no lo es el retorno de formar a un empleado, y el uso del tech lead es puntual y condensado en una franja corta, así que un coste por hora no sería representativo. Lo que se da con rigor es el **coste** de la formación (apartado 5); su beneficio se presenta como premisa del proyecto en §1.1.
+
+**13. Límites.**
+
+- Las medias salen de pocas muestras (apartado 1); el informe da mínimo y máximo, y conviene repetir la medición.
+- La composición por agente aproxima la cadena real, y el modelo de referencia es una cota inferior.
+- Los supuestos marcados como hipótesis (ejercicios nuevos al año, proporción con repositorio, holgura del tope, fracciones de respaldo, multiplicadores de claves) son entradas editables en `evals/cost_assumptions.json`, no datos medidos.
+- El coste facturado es el del modelo que respondió, primario o respaldo; el alias no los distingue.
+- Los precios cambian: se guardan con fecha y fuente (24 de octubre de 2026) y se refrescan con un comando.
+
+**Cómo reproducirlo**, desde la raíz del repositorio y con el stack levantado:
+
+```bash
+python -m evals.run --mode real --agents evaluator,reviewer,validator,exercises,web --limit-per-set 10
+EVALS_REAL_REPO=propietario/repo@commit EVALS_REAL_TECHNOLOGIES=Angular,TypeScript python -m evals.run --mode real --agents code --limit-per-set 3
+python -m evals.costs evals/results/<informe-1>.json evals/results/<informe-2>.json   # el último informe manda por agente
+python -m evals.update_prices                                                       # refresca los precios
+```
 
 ---
 
@@ -1811,6 +1905,8 @@ informe y el arnés corregido, la ausencia de fuentes declarada es 2 de 2 y el
 agente solo llegó a hacer 5 búsquedas. Y de los **cuatro casos de código**, dos son
 adversariales que hoy ya no se ejecutan en modo real: las cifras de rutas y
 fragmentos son las de los dos de calidad.
+
+Los tokens y los costes medidos con el mismo arnés (ejecuciones del 24 de octubre, que ya capturan el uso) están en §3.8.
 
 **Lo que esta ejecución enseñó sobre el sistema**, además de sobre el arnés:
 
@@ -2877,6 +2973,8 @@ referencia se guardará en `evals/baseline/`.
 | **Dataset dorado** | Conjunto versionado de casos con su resultado esperado o su propiedad verificable, contra el que se mide el sistema (§5.5) |
 | **Modo simulado / modo real** | Las dos formas de ejecutar la suite de evaluación: con un modelo falso guionizado por el caso (verifica el código, sin coste ni red) o con los modelos reales a través de LiteLLM (mide calidad, con coste) |
 | **Invariante (de la suite)** | Lo que el caso declara que debe hacer el código del agente con su guion (resultado y número de llamadas); si no se cumple, el modo simulado falla |
+| **Token de razonamiento** | Token que un modelo escribe como borrador interno antes de responder; no se muestra pero el proveedor lo factura como salida (§3.8) |
+| **Campaña de incorporación** | Patrón de uso en ráfaga con el que se estiman los costes: generación inicial del tech lead, resolución por los juniors en dos semanas y régimen a demanda (§3.8) |
 | **Reintento correctivo** | Segunda llamada al modelo, con la corrección explícita, cuando su salida incumple un límite o el esquema; si vuelve a incumplir, la tarea falla (§3.5) |
 | **κ de Cohen** | Medida de concordancia entre dos clasificaciones —aquí, la etiqueta humana y el veredicto del modelo— que descuenta el acuerdo esperable por azar |
 | **opted_out_global_guardrails** | Metadata que excluía a una virtual key de un guardarraíl global. Existió en la clave del validador y desapareció con el guardarraíl global que la hacía necesaria (§6.2) |
