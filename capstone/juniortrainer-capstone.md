@@ -2272,13 +2272,13 @@ calidad de un resultado.
 
 | # | Riesgo | Prob. | Impacto | Nivel | Tratamiento y decisión de aceptación |
 |---|---|---|---|---|---|
-| 1 | **Un alumno manipula su propia corrección** por inyección en el texto de su respuesta | Media *(hipótesis)* | Medio | **Medio** | **Mitigar.** Delimitadores + frase defensiva; el revisor no puede cambiar el veredicto; el bloqueo de Lakera en evaluador y revisor está pendiente de subir el umbral y remedir (§6.5). Hoy su única defensa activa es la instrucción. Residual **aceptado de forma temporal** hasta cuantificarlo en el red teaming |
+| 1 | **Un alumno manipula su propia corrección** por inyección en el texto de su respuesta | Media *(hipótesis)* | Medio | **Medio** | **Mitigar activamente.** Delimitadores + frase defensiva y el revisor no puede cambiar el veredicto. La decisión es **reactivar el bloqueo de Lakera en evaluador y revisor**, siguiendo la secuencia de §6.5: subir el umbral de *enforcement* en la plataforma de Lakera, remedir la tasa de falsos positivos sobre el mismo corpus de respuestas reales y solo entonces encenderlo en `config.yaml` (implementación como change propio). Hasta que ese ajuste esté hecho y medido, la defensa activa sigue siendo la instrucción |
 | 2 | Inyección desde el contenido de un repositorio hacia el agente de código | Baja | Bajo | **Bajo** | **Aceptar.** El tech lead elige el repositorio, el agente solo lee y valida rutas contra el árbol real, y no tiene escritura; el daño queda acotado a la calidad del resultado |
-| 3 | **Fuga de código propietario al proveedor del modelo** | Alta *(por diseño)* | Alto | **Alto** | **Aceptar por diseño.** Ocurre en cada generación con repositorio: es inherente a la función. Mitigación disponible si un cliente lo exige: mover la inferencia a modelos open-weight autoalojados (§3.1), sin reescribir nada. Sin persistencia en disco y con auditoría de accesos (§6.2 controles 22, 25) |
+| 3 | **Fuga de código propietario al proveedor del modelo** | Alta *(por diseño)* | Alto | **Alto** | **Aceptar por diseño.** Ocurre en cada generación con repositorio: es inherente a la función. Está **previsto mover la inferencia a modelos open-weight autoalojados** (§3.1), que es posible sin reescribir nada porque todos los modelos lo son; eso elimina la fuga de raíz. Entretanto: sin persistencia en disco y con auditoría de accesos (§6.2 controles 22, 25) |
 | 4 | Fuga de datos personales del alumno al proveedor o a las trazas | Baja | Medio | **Bajo** | **Aceptar.** Presidio en MASK sobre la respuesta, `mask_input` en trazas y pre-filtro de DNI/NIE (§6.2, §6.6). Residual: PII que Presidio no reconoce y que no es DNI/NIE; ampliable añadiendo entidades |
 | 5 | Coste descontrolado por abuso o bucle | Baja | Bajo | **Bajo** | **Aceptar.** Presupuesto y ritmo por clave, rate limiting en dos niveles y presupuestos de operaciones (§6.2 controles 13-16); el daño está acotado por el tope de cada clave |
 | 6 | Un alumno accede a asignaciones de otro | Baja | Medio | **Bajo** | **Aceptar.** Doble capa: filtrado explícito por alumno en el código y RLS en la base de datos (§6.2 controles 3-4) |
-| 7 | **Todos los servicios comparten el mismo `.env`** | Alta *(en desarrollo)* | Alto | **Alto** | **Mitigar en el despliegue; aceptar solo en desarrollo.** No hay control hoy. Un gestor de secretos por servicio es ya un requisito de la plataforma (§5.2) y lo cierra; es una postura de desarrollo que un despliegue real no puede heredar |
+| 7 | **Todos los servicios comparten el mismo `.env`** | Alta *(en desarrollo)* | Alto | **Alto** | **Aceptar solo en desarrollo, de momento.** No hay control hoy. Su cierre —un gestor de secretos por servicio, ya requisito de la plataforma (§5.2)— **merece una especificación propia más adelante**; es una postura de desarrollo que un despliegue real no puede heredar |
 | 8 | Degradación silenciosa de calidad del fallback | Media *(no medida)* | Medio | **Medio** | **Medir.** El fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). La comparativa primario/fallback es parte de §5.7. Residual aceptado de forma interina hasta medirla |
 | 9 | **Falso positivo de guardarraíl que rompe el servicio** | Baja *(tras el arreglo)* | Alto | **Medio** | **Mitigado en origen.** Ya ocurrió dos veces (§7); la redacción por campo elimina la causa raíz en lugar de recortar el alcance, y Lakera salió de la ruta de generación. El residual de reactivar Lakera se traslada a LLM01 (§6.3) y está declarado |
 | 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas en la evaluación (§3.3, §4.6). Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
@@ -2288,12 +2288,14 @@ ninguno se cierra con un control más:
 
 - **Riesgo 3 (fuga de código al proveedor)** no es un fallo a corregir sino una
   propiedad del producto: para generar ejercicios del código de la empresa, ese
-  código tiene que llegar a un modelo. La decisión es aceptarlo, y lo que hace la
-  aceptación defendible es que la salida está preparada —todos los modelos son
-  open-weight y la inferencia es autoalojable— el día que un cliente no lo acepte.
+  código tiene que llegar a un modelo. La decisión es aceptarlo, y lo que la hace
+  defendible es que **está previsto mover la inferencia a infraestructura propia**:
+  como todos los modelos son open-weight, se puede autoalojar sin reescribir nada, y
+  ese paso elimina la fuga de raíz en lugar de solo acotarla.
 - **Riesgo 7 (`.env` compartido)** es alto hoy y bajo por construcción en cuanto se
   despliega con un gestor de secretos. Se acepta **únicamente mientras sea
-  desarrollo**; dejarlo pasar a producción sería convertir una comodidad de
+  desarrollo, y de momento**; su cierre merece una especificación propia más
+  adelante, porque dejarlo pasar a producción sería convertir una comodidad de
   desarrollo en una vulnerabilidad real.
 - **Riesgo 10 (contenido incorrecto enseñado como correcto)** es el riesgo de
   producto más serio, y el que no se resuelve con un control técnico. El sistema
@@ -2308,10 +2310,11 @@ cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
 
 | Riesgo | Decisión |
 |---|---|
-| 3 | Aceptado por diseño, con el autoalojamiento como salida comercial |
-| 7 | Aceptado solo en desarrollo; su cierre es condición del despliegue |
+| 1 | **Mitigar:** reactivar Lakera en evaluador y revisor subiendo el umbral y remidiendo antes de encenderlo (change propio, §6.5) |
+| 3 | Aceptado por diseño; previsto mover la inferencia a infraestructura propia, que lo elimina de raíz |
+| 7 | Aceptado solo en desarrollo, de momento; su cierre merece una especificación propia |
+| 8 | Aceptado de forma interina hasta medir la comparativa primario/fallback, que el arnés ya permite (§5.7) |
 | 10 | Aceptado a condición de la revisión a posteriori de las valoraciones |
-| 1, 8 | Aceptados de forma temporal hasta su medición (red teaming §6.5 y comparativa §5.7) |
 | 2, 4, 5, 6, 9 | Aceptados como residual bajo o medio con los controles actuales |
 
 ### 6.5 Red teaming
