@@ -40,7 +40,14 @@ Es una aproximación: en producción la entrada de un agente depende de la salid
 
 **5. La memoria es una resta.** Con acierto no se llama a web ni a código: el coste es el de la operación sin esos dos agentes. En los escenarios se pondera por una tasa de acierto configurable.
 
-**6. Los supuestos viven en `evals/cost_assumptions.json`.** Niveles de uso, tasa de memoria, proporción con repositorio, minutos por ejercicio y coste por hora, todos con un campo `nota` que los marca como hipótesis. El informe los imprime junto a las cifras. *Por qué un fichero:* el usuario no tiene claros estos valores; así puede ajustarlos y regenerar sin tocar código ni el capítulo.
+**6. El uso se modela como una campaña por fases, no como un régimen mensual.** El patrón descrito por el usuario es una ráfaga: el tech lead genera del orden de 500 ejercicios el primer mes, los juniors los resuelven en 1-2 semanas y después solo hay generación a demanda. Tres fases:
+- *Generación inicial:* generaciones = ejercicios guardados a generar ÷ (ejercicios por generación × tasa de guardado). La tasa de guardado importa porque la generación produce **candidatos** y el tech lead solo guarda parte: 500 ejercicios guardados cuestan más de 500/3 generaciones.
+- *Resolución:* evaluaciones = alumnos × ejercicios resueltos por alumno. Cada una cuesta evaluador + revisor. Una respuesta no se modifica una vez dada (§2.5), así que no hay reintentos del alumno que multipliquen el coste.
+- *Régimen:* generaciones a demanda por trimestre y evaluaciones de los alumnos nuevos.
+
+El informe da el coste de cada fase, el reparto entre generación y evaluación (la hipótesis del usuario es que domina la evaluación; se comprueba, no se asume) y el pico de gasto de cualquier ventana de 30 días, que es contra lo que se compara el presupuesto de 5 USD de cada clave: una campaña de 1-2 semanas concentra el gasto y puede agotar la clave del evaluador aunque el total sea pequeño.
+
+Los supuestos viven en `evals/cost_assumptions.json`. Niveles de uso (alumnos y tech leads por nivel), parámetros de las tres fases, tasa de memoria, proporción con repositorio, minutos por ejercicio y coste por hora, todos con un campo `nota` que los marca como hipótesis. El informe los imprime junto a las cifras. *Por qué un fichero:* el usuario no tiene claros estos valores; así puede ajustarlos y regenerar sin tocar código ni el capítulo.
 
 **7. Modelo de referencia por rol, definido en la tabla de precios.** Opus 5.5 para web, código y ejercicios (el trabajo pesado) y Haiku 5.5 para validador, evaluador y revisor. Se reutilizan los tokens medidos y solo cambian los precios. Es una cota inferior de lo que costaría de verdad: otro modelo gastaría otros tokens (más o menos razonamiento, otra verbosidad). El informe lo dice.
 
@@ -52,7 +59,7 @@ Es una aproximación: en producción la entrada de un agente depende de la salid
 - [El coste facturado incluye llamadas que cayeron al respaldo, de otro precio] → Se declara; el alias no permite distinguirlo.
 - [Los tokens de razonamiento inflan la salida y no estaban en el diseño de §3.3] → Se informan por separado como hallazgo; no se corrigen aquí.
 - [La composición por agente subestima o sobrestima la cadena real] → Se declara en el informe; se puede validar con una generación completa a través del backend (fuera de alcance).
-- [Los supuestos de uso no son datos] → Siempre se imprimen como hipótesis; las cifras mensuales se leen como órdenes de magnitud.
+- [Los supuestos de uso no son datos, y el patrón en ráfaga es difícil de predecir] → Siempre se imprimen como hipótesis; las cifras se leen como órdenes de magnitud y se acompañan de un análisis de sensibilidad sobre los dos parámetros que más pesan (ejercicios por alumno y tasa de guardado).
 - [Los precios cambian] → Fecha y fuente en la tabla, y refresco con un comando.
 
 ## Open Questions

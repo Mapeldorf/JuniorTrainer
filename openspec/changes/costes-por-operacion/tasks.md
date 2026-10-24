@@ -13,9 +13,9 @@
 
 ## 3. Calculador de costes
 
-- [ ] 3.1 Crear `evals/cost_assumptions.json` con niveles de uso, tasa de memoria, proporción con repositorio, minutos por ejercicio y coste por hora, cada uno con su nota de hipótesis; verificar que se carga y que un valor ausente se detecta
+- [ ] 3.1 Crear `evals/cost_assumptions.json` con los niveles de uso, los parámetros de las tres fases de la campaña (ejercicios guardados a generar, ejercicios por generación, tasa de guardado, alumnos, ejercicios por alumno, régimen a demanda), tasa de memoria, proporción con repositorio, minutos por ejercicio y coste por hora, cada uno con su nota de hipótesis; verificar que se carga y que un valor ausente se detecta
 - [ ] 3.2 Crear `evals/costs.py`: coste medio por agente, composición en las cuatro operaciones con desglose por etapa; verificar con tests de valores calculados a mano
-- [ ] 3.3 Añadir escenarios de uso, comparación con el presupuesto de cada clave, efecto de la memoria, comparativa con el modelo de referencia por rol y coste del no-sistema; verificar con tests a mano, incluido el caso de presupuesto superado
+- [ ] 3.3 Añadir los escenarios por fases (con el reparto entre generación y evaluación y la sensibilidad a ejercicios por alumno y tasa de guardado), la comparación del pico de 30 días con el presupuesto de cada clave, el efecto de la memoria, la comparativa con el modelo de referencia por rol y el coste del no-sistema; verificar con tests a mano, incluidos el caso de presupuesto superado y el cálculo de generaciones a partir de ejercicios guardados
 - [ ] 3.4 Salida determinista (JSON y tablas en Markdown) con el número de casos que respalda cada cifra, rechazo de informes simulados y comprobación cruzada entre coste medido y coste calculado; verificar con un test que ejecuta el cálculo dos veces y compara
 
 ## 4. Medición y documentación

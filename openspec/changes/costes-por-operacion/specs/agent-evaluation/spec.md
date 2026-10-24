@@ -55,16 +55,28 @@ El sistema SHALL calcular el coste medio de las cuatro operaciones del sistema (
 - **WHEN** falta la medicion de un agente que interviene en una operacion
 - **THEN** la operacion se informa como no calculable e indica el agente que falta
 
-### Requirement: Escenarios de uso con supuestos explicitos
-El sistema SHALL calcular el coste mensual para los niveles de uso piloto, equipo y organizacion a partir de un fichero editable de supuestos (generaciones por tech lead y mes, evaluaciones por alumno y mes, proporcion con repositorio), y SHALL compararlo con el presupuesto de cada clave de LiteLLM.
+### Requirement: Escenarios de uso por fases con supuestos explicitos
+El sistema SHALL calcular el coste de una campana de incorporacion para los niveles piloto, equipo y organizacion, en tres fases (generacion inicial, resolucion por los alumnos y regimen a demanda), a partir de un fichero editable de supuestos, y SHALL compararlo con el presupuesto de cada clave de LiteLLM en la ventana de 30 dias mas cargada.
+
+#### Scenario: Generacion inicial
+- **WHEN** el supuesto es generar 500 ejercicios guardados con 3 candidatos por generacion y una tasa de guardado del 60 %
+- **THEN** el numero de generaciones y su coste se deducen de esos valores y no se escriben a mano
+
+#### Scenario: Resolucion por los alumnos
+- **WHEN** se indican el numero de alumnos y los ejercicios que resuelve cada uno en la campana
+- **THEN** el numero de evaluaciones es su producto y cada una cuesta lo de evaluador mas revisor
 
 #### Scenario: Supuestos editables
 - **WHEN** se cambia un supuesto del fichero
 - **THEN** el calculo refleja el cambio sin tocar el codigo
 
 #### Scenario: Presupuesto de clave superado
-- **WHEN** el coste mensual estimado de un agente supera su presupuesto de 30 dias
+- **WHEN** el coste estimado de un agente en la ventana de 30 dias mas cargada supera su presupuesto
 - **THEN** el informe lo marca para ese nivel de uso y agente
+
+#### Scenario: Donde se concentra el coste
+- **WHEN** se muestra el resultado de un nivel
+- **THEN** aparece el reparto del coste total entre las tres fases y entre generacion y evaluacion
 
 #### Scenario: Supuestos como hipotesis
 - **WHEN** se presentan los resultados
