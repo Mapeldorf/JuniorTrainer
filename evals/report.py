@@ -76,6 +76,38 @@ def _output_metrics(agent: str, records: list[dict]) -> dict:
     return out
 
 
+def _mean(values: list) -> float | None:
+    present = [v for v in values if v is not None]
+    return sum(present) / len(present) if present else None
+
+
+def _usage_block(agent: str, records: list[dict]) -> dict | None:
+    """Tokens y coste medidos en los casos de calidad que llegaron a llamar al
+    modelo. `None` si ninguno informo uso (modo simulado, o proveedor sin datos)."""
+    used = [r for r in records if r.get("usage")]
+    if not used:
+        return None
+    usages = [r["usage"] for r in used]
+    billed = [u["cost"] for u in usages if u["cost"] is not None]
+    block = {
+        "cases": len(used),
+        "calls": sum(u["calls"] for u in usages),
+        "input_tokens_mean": _mean([u["input_tokens"] for u in usages]),
+        "output_tokens_mean": _mean([u["output_tokens"] for u in usages]),
+        "reasoning_tokens_mean": _mean([u["reasoning_tokens"] for u in usages]),
+        "cost_mean": _mean([u["cost"] for u in usages]),
+        "cost_min": min(billed) if billed else None,
+        "cost_max": max(billed) if billed else None,
+        "cost_total": sum(billed) if billed else None,
+        "cost_complete": all(u["cost_complete"] for u in usages),
+    }
+    if agent == "web":
+        block["searches_mean"] = _mean([r["probe"]["search_calls"] for r in used if r.get("probe")])
+    if agent == "code":
+        block["reads_mean"] = _mean([r["probe"]["reads"] for r in used if r.get("probe")])
+    return block
+
+
 def _exercise_metrics(records: list[dict], cases: dict[str, dict]) -> dict:
     counted = [r for r in records if r["outcome"] in _CONTRACT_OUTCOMES]
     conformant = [
@@ -285,6 +317,7 @@ def agent_report(agent: str, records: list[dict], datasets: dict[str, list[dict]
     elif agent == "code":
         metric_block["code"] = _code_metrics(plain)
 
+    usage = _usage_block(agent, plain)
     benign = [r for r in records if _benign(agent, r, cases[r["id"]])]
     if mode == "real":
         blocked = _count(benign, lambda r: r["outcome"] == "guardrail_blocked")
@@ -299,6 +332,7 @@ def agent_report(agent: str, records: list[dict], datasets: dict[str, list[dict]
         "executed": True,
         "cases": len(records),
         "metrics": metric_block,
+        "usage": usage,
         "adversarial": _adversarial_metrics(agent, records, cases, mode),
         "latency": {**metrics.latency_summary(timed), "samples": len(timed),
                     "representative": mode == "real"},
@@ -388,6 +422,17 @@ def render_summary(report: dict) -> str:
                      + (f", ataques exitosos {adv['successful_attacks']['count']}/{adv['successful_attacks']['of']}" if adv["successful_attacks"] else ""))
         g = m["guardrail_false_positive_rate"]
         lines.append(f"  falsos positivos de guardarrail: {_fmt(g['rate']) if g else 'n/d (solo modo real)'}")
+        usage = data.get("usage")
+        if usage:
+            extra = (f", {usage['searches_mean']:.1f} busquedas" if usage.get("searches_mean") is not None else "") + \
+                    (f", {usage['reads_mean']:.1f} lecturas" if usage.get("reads_mean") is not None else "")
+            cost = "n/d" if usage["cost_mean"] is None else f"{usage['cost_mean']:.6f} USD"
+            lines.append(f"  uso por caso: {_fmt(usage['input_tokens_mean'])} tokens de entrada, "
+                         f"{_fmt(usage['output_tokens_mean'])} de salida "
+                         f"({_fmt(usage['reasoning_tokens_mean'])} de razonamiento), coste medio {cost}{extra} "
+                         f"[{usage['cases']} casos]" + ("" if usage["cost_complete"] else " [coste incompleto]"))
+        else:
+            lines.append("  uso (tokens y coste): n/d")
         lat = data["latency"]
         lines.append(f"  latencia p50/p95/p99 (ms): {_fmt(lat['p50_ms'])}/{_fmt(lat['p95_ms'])}/{_fmt(lat['p99_ms'])}"
                      + ("" if lat["representative"] else "  [no representativa]"))

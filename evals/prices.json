@@ -1,0 +1,117 @@
+{
+  "currency": "USD",
+  "source": "https://openrouter.ai/api/v1/models",
+  "fetched": "2026-10-24",
+  "models": {
+    "deepseek/deepseek-v4.1-flash": {
+      "input_per_m": 0.02,
+      "output_per_m": 1.0
+    },
+    "z-ai/glm-5.3-flashx": {
+      "input_per_m": 0.37,
+      "output_per_m": 1.25
+    },
+    "z-ai/glm-5.3-flash": {
+      "input_per_m": 0.15,
+      "output_per_m": 0.5
+    },
+    "anthropic/claude-opus-5.5": {
+      "input_per_m": 4.0,
+      "output_per_m": 20.0
+    },
+    "anthropic/claude-haiku-5.5": {
+      "input_per_m": 0.1,
+      "output_per_m": 0.5
+    }
+  },
+  "roles": {
+    "production": {
+      "evaluator": "deepseek/deepseek-v4.1-flash",
+      "reviewer": "z-ai/glm-5.3-flashx",
+      "validator": "z-ai/glm-5.3-flash",
+      "exercises": "deepseek/deepseek-v4.1-flash",
+      "web": "deepseek/deepseek-v4.1-flash",
+      "code": "deepseek/deepseek-v4.1-flash"
+    },
+    "reference": {
+      "evaluator": "anthropic/claude-haiku-5.5",
+      "reviewer": "anthropic/claude-haiku-5.5",
+      "validator": "anthropic/claude-haiku-5.5",
+      "exercises": "anthropic/claude-opus-5.5",
+      "web": "anthropic/claude-opus-5.5",
+      "code": "anthropic/claude-opus-5.5"
+    }
+  },
+  "fallback": {
+    "source": "https://router.huggingface.co/v1/models",
+    "fetched": "2026-10-24",
+    "note": "Respaldo de infra/litellm/config.yaml en Hugging Face. El precio depende del proveedor de inferencia al que enrute Hugging Face: se informa el rango. Sin precio para providers que no lo publican.",
+    "models": {
+      "deepseek-ai/DeepSeek-V4.1-Flash": {
+        "providers": {
+          "novita": {
+            "input_per_m": 0.3,
+            "output_per_m": 1.2
+          },
+          "baseten": {
+            "input_per_m": 0.3,
+            "output_per_m": 1.2
+          },
+          "deepinfra": {
+            "input_per_m": 0.2,
+            "output_per_m": 0.6
+          }
+        }
+      },
+      "zai-org/GLM-5.3-Flash": {
+        "providers": {
+          "novita": {
+            "input_per_m": 0.15,
+            "output_per_m": 0.5
+          },
+          "baseten": {
+            "input_per_m": 0.15,
+            "output_per_m": 0.5
+          },
+          "deepinfra": {
+            "input_per_m": 0.15,
+            "output_per_m": 0.5
+          }
+        }
+      }
+    },
+    "roles": {
+      "evaluator": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "reviewer": "zai-org/GLM-5.3-Flash",
+      "validator": "zai-org/GLM-5.3-Flash",
+      "exercises": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "web": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "code": "deepseek-ai/DeepSeek-V4.1-Flash"
+    }
+  },
+  "tavily": {
+    "source": "https://www.tavily.com/pricing y https://docs.tavily.com/documentation/api-credits",
+    "fetched": "2026-10-24",
+    "selected_plan": "project",
+    "credits_per_search": 1,
+    "credits_per_search_note": "Hipotesis: el agente no indica search_depth y se asume el valor por defecto de la API (busqueda basica, 1 credito segun la documentacion). Contrastar con el consumo real del panel de Tavily.",
+    "plans": {
+      "researcher": {
+        "monthly_fee": 0,
+        "included_credits": 1000,
+        "extra_credit_price": null,
+        "note": "Plan gratuito actual; no admite exceso."
+      },
+      "project": {
+        "monthly_fee": 30,
+        "included_credits": 4000,
+        "extra_credit_price": 0.008
+      },
+      "payg": {
+        "monthly_fee": 0,
+        "included_credits": 0,
+        "extra_credit_price": 0.008
+      }
+    }
+  }
+}

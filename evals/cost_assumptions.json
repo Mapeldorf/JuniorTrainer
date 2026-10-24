@@ -1,0 +1,23 @@
+{
+  "_nota": "Supuestos de uso de la campana de incorporacion. Cada valor lleva su origen: 'usuario' si lo ha indicado quien encarga el proyecto, 'capstone' si viene del documento, 'hipotesis' si lo propone el autor y debe validarse. Todos los costes mensuales y de campana salen de estos valores: cambialos y regenera con `python -m evals.costs`.",
+  "assumptions": {
+    "teams_piloto": {"value": 1, "origin": "capstone", "note": "Nivel piloto: 1 tech lead (un equipo)."},
+    "teams_equipo": {"value": 5, "origin": "capstone", "note": "Nivel equipo: 5 tech leads (cinco equipos)."},
+    "teams_organizacion": {"value": 30, "origin": "capstone", "note": "Nivel organizacion: 30 tech leads (treinta equipos)."},
+    "juniors_per_team": {"value": 2, "origin": "usuario", "note": "Un equipo tiene 2 juniors."},
+    "saved_exercises": {"value": 500, "origin": "usuario", "note": "Ejercicios guardados que genera cada tech lead durante el primer mes."},
+    "candidates_per_generation": {"value": 5, "origin": "usuario", "note": "Cada generacion pide siempre 5 candidatos."},
+    "save_rate": {"value": 0.9, "origin": "usuario", "note": "El tech lead guarda el 90 % de los candidatos."},
+    "exercises_per_junior": {"value": 500, "origin": "usuario", "note": "Cada junior resuelve los 500 ejercicios en 2 semanas."},
+    "new_juniors_per_year": {"value": 2, "origin": "usuario", "note": "Cada ano se incorporan 2 juniors mas por equipo; resuelven el catalogo ya existente."},
+    "new_exercises_per_year": {"value": 50, "origin": "hipotesis", "note": "Ejercicios nuevos que el tech lead anade cada ano segun el feedback de los juniors; los resuelven los juniors del equipo. Eliminar ejercicios no gasta modelo."},
+    "with_repo_share": {"value": 0.8, "origin": "hipotesis", "note": "Proporcion de generaciones que usan un repositorio (el resto solo documentacion web)."},
+    "repositories_per_project": {"value": 5, "origin": "usuario", "note": "Maximo de repositorios de un proyecto."},
+    "technologies_per_project": {"value": 15, "origin": "usuario", "note": "Maximo de tecnologias de un proyecto (10-15). Con una tecnologia por generacion, acota las claves de memoria: 15 de web y 5 x 15 = 75 de codigo."},
+    "key_multipliers": {"value": [1, 2, 4], "origin": "hipotesis", "note": "Sensibilidad: el numero de claves de memoria distintas se multiplica por estos factores (el tech lead mezcla tecnologias y cada combinacion es otra clave)."},
+    "fallback_shares": {"value": [0, 0.05, 0.2, 1.0], "origin": "hipotesis", "note": "Sensibilidad: fraccion de las llamadas que cae al modelo de respaldo. La fraccion real no se mide (el alias no distingue el modelo que contesto)."},
+    "key_budget_usd_30d": {"value": 5.0, "origin": "usuario", "note": "Presupuesto que aplica hoy el autor a cada virtual key de LiteLLM por 30 dias: una medida de seguridad personal en desarrollo, no un limite del producto."},
+    "key_cap_margin": {"value": 2, "origin": "hipotesis", "note": "Holgura para dimensionar el tope: veces el pico de 30 dias de la clave mas cargada. Para un cliente el tope se subiria o se quitaria."},
+    "regime_memory_hit": {"value": false, "origin": "hipotesis", "note": "En regimen el uso es esporadico y la memoria caduca a los 30 dias sin lecturas: se supone que cada generacion nueva falla la memoria (cota conservadora)."}
+  }
+}

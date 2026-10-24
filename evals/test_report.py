@@ -235,6 +235,58 @@ class DisclosureAndGuardrailTests(unittest.TestCase):
         self.assertEqual(adv["successful_attacks"]["count"], 0)
 
 
+def usage(input_tokens, output_tokens, cost, reasoning=0, complete=True, calls=1):
+    return {"calls": calls, "input_tokens": input_tokens, "output_tokens": output_tokens,
+            "reasoning_tokens": reasoning, "cost": cost, "prompt_cost": None, "completion_cost": None,
+            "cost_complete": complete}
+
+
+class UsageReportTests(unittest.TestCase):
+    def test_medias_minimo_maximo_y_total(self):
+        records = [rec("e1", result=verdict("correct")), rec("e2", result=verdict("correct"))]
+        records[0]["usage"] = usage(100, 20, 0.0002, reasoning=4)
+        records[1]["usage"] = usage(300, 40, 0.0006, reasoning=8)
+        datasets = {"evaluation": [{"id": "e1", "label": "correct"}, {"id": "e2", "label": "correct"}], "adversarial": []}
+        block = report.agent_report("evaluator", records, datasets, "real")["usage"]
+        self.assertEqual(block["cases"], 2)
+        self.assertEqual(block["input_tokens_mean"], 200)
+        self.assertEqual(block["output_tokens_mean"], 30)
+        self.assertEqual(block["reasoning_tokens_mean"], 6)
+        self.assertAlmostEqual(block["cost_mean"], 0.0004)
+        self.assertEqual((block["cost_min"], block["cost_max"]), (0.0002, 0.0006))
+        self.assertAlmostEqual(block["cost_total"], 0.0008)
+        self.assertTrue(block["cost_complete"])
+
+    def test_simulado_no_disponible(self):
+        records = [rec("e1", result=verdict("correct"))]
+        datasets = {"evaluation": [{"id": "e1", "label": "correct"}], "adversarial": []}
+        self.assertIsNone(report.agent_report("evaluator", records, datasets, "simulated")["usage"])
+
+    def test_los_adversariales_no_entran_en_el_coste_medio(self):
+        records = [rec("e1", result=verdict("correct")), rec("a1", set_name="adversarial", result=verdict("correct"))]
+        records[0]["usage"] = usage(100, 20, 0.0002)
+        records[1]["usage"] = usage(900, 90, 0.0090)
+        datasets = {"evaluation": [{"id": "e1", "label": "correct"}],
+                    "adversarial": [{"id": "a1", "target": "evaluator", "label": "incorrect"}]}
+        block = report.agent_report("evaluator", records, datasets, "real")["usage"]
+        self.assertEqual(block["cases"], 1)
+        self.assertAlmostEqual(block["cost_mean"], 0.0002)
+
+    def test_coste_incompleto_se_propaga(self):
+        records = [rec("e1", result=verdict("correct"))]
+        records[0]["usage"] = usage(100, 20, 0.0002, complete=False)
+        datasets = {"evaluation": [{"id": "e1", "label": "correct"}], "adversarial": []}
+        self.assertFalse(report.agent_report("evaluator", records, datasets, "real")["usage"]["cost_complete"])
+
+    def test_el_resumen_muestra_el_uso(self):
+        records = [rec("e1", result=verdict("correct"))]
+        records[0]["usage"] = usage(100, 20, 0.0002)
+        datasets = {"evaluation": [{"id": "e1", "label": "correct"}], "adversarial": [], "validation": [], "generation": []}
+        text = report.render_summary(report.build_report("real", {"evaluator": {"cases": records}}, datasets))
+        self.assertIn("uso por caso", text)
+        self.assertIn("0.000200 USD", text)
+
+
 class AttackDenominatorTests(unittest.TestCase):
     def test_los_errores_de_infraestructura_no_cuentan_como_ataque_rechazado(self):
         datasets = {"web": [], "adversarial": [{"id": "a1", "target": "web"}, {"id": "a2", "target": "web"}]}
