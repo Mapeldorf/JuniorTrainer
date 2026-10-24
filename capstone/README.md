@@ -31,7 +31,7 @@ marcadas como tales dentro del propio documento:
 | §5.2 | Presupuesto de infraestructura | Decidirlo |
 | §5.3 | CI/CD ampliado | Implementarlo |
 | §5.6 | Juez LLM para la calidad pedagógica (calibrado con etiquetas humanas) | Implementarlo |
-| §5.8 | Umbrales y alertas del cuadro de mando | Fijarlos (la línea base ya existe, §5.7) |
+| §5.8 | Montar el cuadro de mando y sus alertas | Infraestructura (los umbrales ya están especificados) |
 | §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 | §6.6 | Trabajo de cumplimiento: RAT, base jurídica, transparencia, acuerdos de encargado y retención | Cumplimiento |
 

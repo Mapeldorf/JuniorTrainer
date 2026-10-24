@@ -1779,7 +1779,7 @@ flowchart TB
 | 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 19 scripts, hoy **manuales** |
 | 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`, §5.5): modo simulado en CI; modo real ejecutado completo y repetido (§5.7) |
 | 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
-| 5 — Señales de producción | — | Nulo | Continuo | Instrumentado (§5.8), sin umbrales |
+| 5 — Señales de producción | — | Nulo | Continuo | Instrumentado y **con umbrales definidos** (§5.8); el cuadro de mando, por montar |
 
 El principio que ordena la pirámide: **medir con el instrumento más determinista
 que responda a la pregunta**. El LLM como juez es el último recurso, reservado a lo
@@ -2071,30 +2071,52 @@ piezas de terceros: **la observabilidad que una herramienta no emite no se puede
 construir desde fuera**, y la salida no es insistir, es mover la medición al código
 propio.
 
-**Lo que falta: el cuadro de mando y los SLO.** Los indicadores están disponibles
-en las trazas; lo que no existe es el umbral ni la acción. La tabla a completar con
-la línea base:
+**El cuadro de mando y los objetivos de servicio (SLO).** Los indicadores están
+disponibles en las trazas; lo que les faltaba era el umbral y la acción que los
+convierten en señales. La tabla los fija:
 
 | Indicador | Fuente | Umbral | Acción |
 |---|---|---|---|
-| Tasa de error de generación | `generation.status` | | |
-| p95 de latencia de evaluación | Langfuse | | Contra el presupuesto de 45 s |
-| Tasa de uso de fallback | Langfuse | | Indica degradación del proveedor primario |
-| Coste diario por agente | LiteLLM | | |
-| Tasa de rechazo del validador | Trazas del validador | | Una subida puede ser abuso o un falso positivo nuevo |
-| Bloqueos de Lakera | Langfuse | | Ahora bloquea: cada detección es una evaluación que no se completó |
-| **Redacciones aplicadas por el agente** | Logs de los agentes | — | Tipos de entidad, nunca valores. Si cae a cero con tráfico real, la redacción del agente ha dejado de funcionar |
-| Fallos de parseo de JSON | Logs de los agentes | | Indica degradación del modelo |
-| Tasa de activación del reintento correctivo | Logs de los agentes | | Señal temprana de deriva del modelo |
+| Tasa de error de generación | `generation.status` | aviso **> 5 %**, crítico **> 15 %** en 1 h | Distinguir proveedor (¿hubo fallback?) de fallo de agente: cruzar con la tasa de fallback |
+| p95 de latencia de evaluación | Langfuse | aviso **> 10 s**, crítico **> 30 s** (presupuesto duro **45 s**) | Mirar trazas de evaluador y revisor; si es el proveedor, valorar el fallback |
+| Tasa de uso de fallback | Langfuse | aviso **> 2 %**, crítico **> 10 %** en 1 h | El proveedor primario está degradado: revisarlo |
+| Coste diario por agente | LiteLLM | aviso al **50 %** del tope de la clave, crítico al **90 %** | Decidir si es uso legítimo (ampliar el tope) o abuso (investigar) |
+| Tasa de rechazo del validador | Trazas del validador | **> 2× la mediana de 7 días** | Distinguir entradas inválidas de un falso positivo nuevo: leer el `reason` |
+| Bloqueos de Lakera | Langfuse | aviso si **> 20 %** de las validaciones en 1 h | Muestrear; si son benignas es un falso positivo: subir el umbral en su plataforma (§6.5) |
+| Redacciones aplicadas por el agente | Logs de los agentes | — (debe ser **> 0** con tráfico real) | Si cae a **0** con tráfico real, un agente dejó de redactar: revisar su redacción. Tipos de entidad, nunca valores |
+| Fallos de parseo de JSON | Logs de los agentes | aviso **> 1 %**, crítico **> 5 %** en 1 h | Degradación del modelo: revisar el prompt y el esquema |
+| Tasa de activación del reintento correctivo | Logs de los agentes | aviso **> 5 %**, crítico **> 20 %** | Deriva del modelo: comparar con la línea base **0** de §5.7 |
+
+**De dónde sale cada umbral.** No se inventan. El indicador 9 (reintento) parte de la
+**línea base de §5.7** —0 en las tres ejecuciones—, y el 6 de que los falsos positivos
+de guardarraíl fueron **0**: un bloqueo sobre contenido benigno es una anomalía, no
+ruido. La **latencia** (45 s) y el **coste** (porcentaje del tope configurable de la
+clave, 5 USD en desarrollo y 50 en despliegue, §3.4) salen de un **presupuesto de
+diseño**. El indicador 7 no tiene línea base numérica: el arnés de §5.7 **sustituye la
+redacción por la identidad**, así que la comprueba `verify_redaction` y no la suite; su
+umbral es un piso por diseño. Y los indicadores 1, 5 y 8 no tienen línea base de
+producción —el dataset es sintético—, así que se fijan más tarde o con una regla
+**relativa**: el rechazo del validador se compara con su propia mediana de siete días,
+no con un porcentaje sin respaldo.
 
 Dos indicadores de esta lista son especialmente importantes por razones de diseño.
 **La activación de la red de Presidio del proxy** debe ser cero: la redacción de
 verdad la hace el agente (§6.2), así que si la red del proxy sustituye algo es que
 un agente dejó de redactar un campo. Es el caso poco frecuente de un control
-redundante que se convierte en el detector de fallos del control principal. Y **la tasa de
-activación del reintento correctivo** es un detector de deriva: si un modelo
-empieza a incumplir los límites más a menudo, el sistema sigue funcionando
-correctamente —el código lo rescata— y el síntoma solo es visible en esa métrica.
+redundante que se convierte en el detector de fallos del control principal —y como
+su tasa **no es medible** (arriba), el indicador 7 la sustituye: el contador del
+agente es la señal que sí se puede leer—. Y **la tasa de activación del reintento
+correctivo** es un detector de deriva: si un modelo empieza a incumplir los límites
+más a menudo, el sistema sigue funcionando correctamente —el código lo rescata— y el
+síntoma solo es visible en esa métrica.
+
+El criterio general de un umbral lo aprendió ya el proyecto con Lakera (§6.5): se elige
+pensando en el **error barato**. Un umbral demasiado fino produce falsos positivos, y un
+control que salta con contenido benigno acaba apagándose —peor que no tenerlo—.
+
+**Alcance.** Esta sección **especifica** el cuadro de mando —indicador, umbral y
+acción—. Montar las alertas de verdad (un Grafana o similar, con sus canales de aviso)
+es infraestructura y va con §5.3.
 
 ### 5.9 Runbook: qué hacer cuando falla
 
@@ -2791,7 +2813,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 | CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en `develop`, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
 | Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy los doce servicios comparten el mismo `.env` |
 | Cerrar la cobertura del red teaming (§6.5) | El ejercicio ya se ejecutó (informe en `capstone/red-teaming/informe.md`): 0 ataques exitosos. Falta lo que el arnés no mide hoy: la resistencia del **modelo** en web y código —requiere un repositorio de prueba con el fichero envenenado para el de código, y es inviable de controlar en web—, y los objetivos 7 (enunciado con PII o contenido inapropiado) y 9 (envenenar la memoria), que exigen extender el arnés |
-| Cuadro de mando con umbrales y alertas (§5.8) | Los indicadores existen; nadie los vigila |
+| Montar el cuadro de mando y sus alertas (§5.8) | Los umbrales ya están especificados; falta construirlos (un Grafana o similar) y conectarlos a un canal de aviso |
 
 **Prioridad media — calidad del sistema**
 
@@ -3152,7 +3174,7 @@ versionan (el directorio está ignorado por git). Lo que sí está en el reposit
 es el dataset y el arnés, de modo que cualquier ejecución se reproduce con
 `python -m evals.run` (§5.5). Las ejecuciones reales completas y repetidas —tres con
 los modelos primarios y dos con el respaldo— están resumidas en §5.7. Su informe de
-referencia se guardará en `evals/baseline/` cuando se fijen los umbrales (§5.8).
+referencia se guardará en `evals/baseline/`.
 
 ## Anexo F — Informe de red teaming
 
