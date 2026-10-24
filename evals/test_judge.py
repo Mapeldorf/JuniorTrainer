@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 from evals import judge, judge_dataset
 
@@ -28,6 +29,10 @@ class ParseTests(unittest.TestCase):
 
     def test_json_invalido(self):
         self.assertIsNone(judge._parse("Claro, el ejercicio está bien.", "knowledge"))
+
+    def test_quita_vallas_de_codigo(self):
+        fenced = "```json\n" + GOOD + "\n```"
+        self.assertIsNotNone(judge._parse(fenced, "knowledge"))
 
     def test_falta_criterio(self):
         bad = json.dumps({"scores": {"unicidad_de_concepto": 2}, "justification": "x"})
@@ -121,6 +126,29 @@ class DatasetTests(unittest.TestCase):
             path.write_text(json.dumps({"_comment": "x", "c1": {"nivel": 2}}), encoding="utf-8")
             human = judge_dataset.load_human(path)
             self.assertEqual(human, {"c1": {"nivel": 2}})
+
+
+class CallTests(unittest.TestCase):
+    def test_usa_el_alias_logico(self):
+        captured = {}
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps({"choices": [{"message": {"content": "{}"}}]}).encode("utf-8")
+
+        def fake_urlopen(request, timeout=None):
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse()
+
+        with mock.patch("evals.judge.urllib.request.urlopen", fake_urlopen):
+            judge.call_judge("http://x/v1", "k", judge.JUDGE_ALIAS, "s", "u", 10)
+        self.assertEqual(captured["body"]["model"], "judge")
 
 
 class ReportTests(unittest.TestCase):

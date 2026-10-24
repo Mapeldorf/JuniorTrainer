@@ -31,6 +31,11 @@ from evals.metrics import cohen_kappa
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 SCORE_LABELS = ("0", "1", "2")
 
+# Alias logico que viaja en la llamada a LiteLLM (como en los agentes: el
+# proveedor real lo resuelve el proxy). `JUDGE_MODEL` es el modelo real y solo
+# se usa para el informe.
+JUDGE_ALIAS = "judge"
+
 _SYSTEM_PROMPT = (
     "Eres un juez que evalua la calidad pedagogica de un ejercicio de programacion "
     "para desarrolladores junior recien incorporados a un proyecto. Puntua cada "
@@ -63,10 +68,21 @@ def _user_message(case: dict) -> str:
     return "\n".join(parts)
 
 
+def _strip_fences(text: str) -> str:
+    """Quita las vallas de bloque de codigo con las que el modelo envuelve el
+    JSON a veces (```json ... ```), como hacen los parsers de los agentes."""
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("\n", 1)[1] if "\n" in stripped else stripped
+        if stripped.rstrip().endswith("```"):
+            stripped = stripped.rstrip()[:-3]
+    return stripped.strip()
+
+
 def _parse(text: str, exercise_type: str) -> dict | None:
     """Valida el JSON de la rubrica. `None` si no cumple (para reintentar)."""
     try:
-        obj = json.loads(text)
+        obj = json.loads(_strip_fences(text))
     except (json.JSONDecodeError, TypeError):
         return None
     if not isinstance(obj, dict):
@@ -218,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     model, judge_key, base_url = _preflight()
 
     def invoke(system: str, user: str) -> str:
-        return call_judge(base_url, judge_key, model, system, user, args.timeout)
+        return call_judge(base_url, judge_key, JUDGE_ALIAS, system, user, args.timeout)
 
     judged = [judge_case(case, invoke) for case in cases]
     report = build_report(judged, human, model)
