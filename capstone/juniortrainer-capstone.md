@@ -1657,22 +1657,54 @@ el fichero.
 
 ### 5.2 Entornos y topología de despliegue
 
-> **Sección pendiente de decisión.** Requiere elegir plataforma. La topología
-> objetivo y los requisitos sí están determinados y se recogen aquí.
+> **Plataforma decidida.** Un servidor por entorno con **Docker Compose** y un
+> *reverse proxy* que termina el TLS. Queda pendiente el **presupuesto de
+> infraestructura**.
 
-Los requisitos que la plataforma tiene que cumplir, derivados del diseño:
+**Dos entornos, idénticos y separados: `develop` y `production`.** Corren el mismo
+`docker-compose.yml` sobre su propia máquina y su propio estado. `develop` es donde
+se ejecuta el **modo real** de la suite de §5.5 —el *gate* de evaluación— contra
+modelos reales y sin tocar los datos de producción; `production` es el entorno de los
+clientes. Lo que se mide en `develop` no escribe en la base de datos de la
+aplicación: la suite no lee ni escribe en Supabase (§5.5).
 
-| Requisito | Por qué |
+Los requisitos que la plataforma cumple, derivados del diseño:
+
+| Requisito | Cómo se cumple |
 |---|---|
-| Solo `frontend` y `backend` accesibles desde internet | Los seis agentes, LiteLLM y Presidio tienen que seguir siendo inalcanzables desde fuera (§2.1). Si la plataforma expone cada servicio por defecto, hay que trabajar para evitarlo. |
-| Red privada entre servicios con resolución por nombre | El backend llama a los agentes por nombre de servicio. |
-| Gestor de secretos, no ficheros `.env` | Para poder dar a cada servicio solo los secretos que necesita (§5.1). |
-| Postgres persistente para `litellm-db` | Las claves virtuales y el consumo acumulado no pueden perderse en un redespliegue. |
-| Acceso de salida a OpenRouter, Hugging Face, GitHub, Tavily, Lakera y Langfuse | Son dependencias externas del camino crítico. |
-| Al menos un entorno de staging separado | Para que el *gate* de evaluación (§5.3) tenga dónde ejecutarse contra modelos reales sin tocar producción. |
+| Solo `frontend` y `backend` accesibles desde internet | Un *reverse proxy* con TLS publica solo esos dos servicios; los seis agentes, LiteLLM y Presidio quedan con `expose`, inalcanzables desde el host (§2.1). |
+| Red privada entre servicios con resolución por nombre | La red interna de Compose: el backend llama a los agentes por nombre de servicio. |
+| Gestor de secretos, no ficheros `.env` | Un gestor de secretos inyecta en cada servicio solo sus variables, como entorno real, que tiene prioridad sobre el `.env` (§5.1). |
+| Postgres persistente para `litellm-db` | Volumen en disco persistente: las claves virtuales y el consumo acumulado no se pierden en un redespliegue. |
+| Acceso de salida a OpenRouter, Hugging Face, GitHub, Tavily, Lakera, Langfuse y Supabase | Son dependencias externas del camino crítico; el resto de la salida no hace falta. |
+| Un entorno `develop` separado | Es donde corre el *gate* de evaluación (§5.3) contra modelos reales sin tocar producción. |
 
-Lo que queda por decidir: la plataforma concreta, si los seis agentes se despliegan
-como servicios independientes o se agrupan, y el presupuesto de infraestructura.
+**La plataforma: una máquina por entorno.** Un servidor con Docker Compose levanta
+los doce servicios. Es la forma que encaja con el diseño: una red privada con
+resolución por nombre, un único punto de entrada que termina el TLS y un volumen
+persistente para el Postgres de LiteLLM. Un servicio gestionado de contenedores
+repartiría cada servicio en su propia unidad de despliegue y añadiría trabajo —redes,
+identidades, volúmenes— sin resolver nada que el producto necesite; un orquestador
+como Kubernetes está sobredimensionado para doce contenedores de un equipo pequeño.
+
+Un detalle que el despliegue tiene que corregir respecto del `compose` de desarrollo:
+**`litellm:4000` no se publica.** Hoy se expone al host para administración, pero en
+`production` ese puerto —que sirve la UI de administración y da acceso a la gestión de
+claves y presupuestos— tiene que quedar privado, alcanzable solo por VPN o bastión.
+Los seis agentes y Presidio ya van con `expose`, no `ports`.
+
+**Los seis agentes, separados.** No se agrupan. El validador recibe mucho más tráfico
+que el resto y se escala solo (§4.4); y el reparto en servicios es, antes que nada, un
+reparto de permisos (§1.4): la credencial que lee el repositorio privado no debe
+convivir en un proceso con la que corrige a un alumno.
+
+**Segmentación de la red (mejora, no requisito).** Hoy todos los servicios comparten
+una única red de Compose. Para un mínimo privilegio estricto se puede separar por
+planos —los agentes solo hacia LiteLLM, el backend hacia los agentes, los datos
+aislados—; no es imprescindible para el primer despliegue, pero conviene tenerlo
+presente.
+
+**Lo que queda por decidir:** el presupuesto de infraestructura.
 
 ### 5.3 Integración y despliegue continuos
 
@@ -1705,15 +1737,15 @@ simulados (más abajo). El plan:
 | 1 | Lint y comprobación de tipos en backend y en los seis agentes (`ruff`, `mypy`) | Sí |
 | 2 | Tests de backend: unitarios de los *schemas*, de la orquestación con agentes simulados, y de contrato de los endpoints | Sí |
 | 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados. *La suite simulada ya cubre parte de este terreno (§5.4)* | Sí |
-| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en staging. *A medias: el modo simulado ya corre en cada PR; faltan el modo real en staging y los umbrales* | Sí, por umbral |
+| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en `develop`. *A medias: el modo simulado ya corre en cada PR; faltan el modo real en `develop` y los umbrales* | Sí, por umbral |
 | 5 | Construcción y publicación de las imágenes de los doce servicios con etiqueta por commit | — |
-| 6 | Despliegue automático a staging y comprobación de salud posterior | — |
+| 6 | Despliegue automático a `develop` y comprobación de salud posterior | — |
 | 7 | Despliegue a producción con aprobación manual | — |
 
 La distinción entre 3 y 4 importa: los verificadores comprueban **comportamiento
 del código** y pueden correr con modelos simulados en cada PR, rápido y gratis; la
 suite de evaluación comprueba **calidad del sistema con modelos reales**, cuesta
-dinero y tiempo, y por eso corre contra staging y no en cada commit.
+dinero y tiempo, y por eso corre contra `develop` y no en cada commit.
 
 **Lo que ya hay de la suite (punto 4).** El job `agent-evals` ejecuta, en los
 *pull requests* que tocan `agents/` o `evals/`, los tests del propio arnés y la
@@ -2578,6 +2610,11 @@ versionados en `evals/datasets/adversarial.jsonl` (producidos).
 
 ### 6.6 Privacidad y datos personales
 
+> **Sección pendiente de cumplimiento.** El análisis técnico de abajo está hecho y
+> no cambia; lo que falta es el trabajo de cumplimiento, que no es de ingeniería:
+> registro de actividades de tratamiento, base jurídica, información al alumno,
+> acuerdo de encargado de tratamiento con cada proveedor y política de retención.
+
 **Qué datos personales existen en el sistema**, que son pocos y conviene decirlo
 con precisión:
 
@@ -2735,7 +2772,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 | Trabajo | Por qué |
 |---|---|
 | Completar la suite de evaluación: ejecución real completa y repetida, etiquetas revisadas por el tech lead, umbrales y juez LLM (§5.5–§5.7) | El arnés y el dataset ya existen, pero solo se ha ejecutado una muestra de 5 casos por conjunto: aún no hay forma de saber con datos si un cambio de modelo o de prompt empeora la calidad |
-| CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en staging, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
+| CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en `develop`, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
 | Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy los doce servicios comparten el mismo `.env` |
 | Cerrar la cobertura del red teaming (§6.5) | El ejercicio ya se ejecutó (informe en `capstone/red-teaming/informe.md`): 0 ataques exitosos. Falta lo que el arnés no mide hoy: la resistencia del **modelo** en web y código —requiere un repositorio de prueba con el fichero envenenado para el de código, y es inviable de controlar en web—, y los objetivos 7 (enunciado con PII o contenido inapropiado) y 9 (envenenar la memoria), que exigen extender el arnés |
 | Cuadro de mando con umbrales y alertas (§5.8) | Los indicadores existen; nadie los vigila |
