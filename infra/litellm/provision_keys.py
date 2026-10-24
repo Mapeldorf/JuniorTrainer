@@ -45,6 +45,10 @@ _AGENT_MODELS: dict[str, list[str]] = {
     "agent-evaluator": ["evaluator", "evaluator-fallback-hf"],
     "agent-reviewer": ["reviewer", "reviewer-fallback-hf"],
     "agent-validator": ["validator", "validator-fallback-hf"],
+    # Juez offline de contenido (change juez-contenido): su propia virtual key,
+    # restringida al alias `judge`, para no autenticar con la master key. No es
+    # un agente del producto; no tiene deployment de respaldo.
+    "agent-judge": ["judge"],
 }
 
 # Sin metadata por key (change `guardarrailes-por-capas`). Hubo una:
@@ -80,6 +84,7 @@ _AGENT_ENV_VAR: dict[str, str] = {
     "agent-evaluator": "AGENT_EVALUATOR_LITELLM_KEY",
     "agent-reviewer": "AGENT_REVIEWER_LITELLM_KEY",
     "agent-validator": "AGENT_VALIDATOR_LITELLM_KEY",
+    "agent-judge": "AGENT_JUDGE_LITELLM_KEY",
 }
 
 

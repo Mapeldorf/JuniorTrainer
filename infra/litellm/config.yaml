@@ -49,6 +49,17 @@ model_list:
       api_key: os.environ/VALIDATOR_API_KEY
       guardrails: ["lakera-guard-block"]
 
+  # Juez offline de calidad pedagogica (capstone §5.6, change juez-contenido):
+  # un modelo frontier DISTINTO de los cuatro roles de produccion, para evitar
+  # el sesgo de autopreferencia. No recibe trafico de negocio ni tiene fallback;
+  # solo lo llama `evals/judge.py` desde el host, con su propia virtual key
+  # (`AGENT_JUDGE_LITELLM_KEY`, aprovisionada como las de los agentes). La
+  # redaccion global de PII (presidio-pii) le aplica como a cualquier deployment.
+  - model_name: judge
+    litellm_params:
+      model: os.environ/JUDGE_MODEL
+      api_key: os.environ/JUDGE_API_KEY
+
   # Fallback automatico a Hugging Face Inference Providers (propuesta
   # litellm-huggingface-fallback), si el modelo principal falla. Mismos
   # modelos que ya se usan en OpenRouter cuando existen en HF;

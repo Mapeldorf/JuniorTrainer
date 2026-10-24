@@ -118,6 +118,34 @@ Comprobación determinista en ambos modos: el contenido no confiable (respuesta 
 
 Hallazgo informativo: si el contenido no confiable incluye el marcador de fin de delimitador, el prompt contiene uno de más y el contenido sigue "dentro" de su tramo según el arnés; el informe lo lista en `spoofable_markers` (hoy, `ad-eval-cierre-delimitador`, `ad-web-cierre-delimitador` y `ad-code-cierre-delimitador`). En el agente de código la comprobación reproduce el formato numerado de líneas del prompt (`1: ...`), así que si el agente lo cambia la comprobación fallará y habrá que actualizarla.
 
+## Juez de contenido (capstone §5.6)
+
+Instrumento **offline** —no un agente— que puntúa la calidad pedagógica de los
+ejercicios con una rúbrica de cinco criterios, usando un modelo **frontier distinto** de
+los cuatro de producción (alias `judge` de LiteLLM). Se calibra contra puntuaciones
+humanas y **no sustituye** la aprobación del tech lead. No corre en CI (necesita modelo).
+
+```bash
+python -m evals.judge                       # puntua; calibra si hay puntuaciones humanas
+python -m unittest evals.test_judge         # sus tests, sin red
+```
+
+- **Entrada:** `evals/datasets/judge.jsonl` (una línea por ejercicio: `id`, `type`,
+  `statement`, `code`, `expected_answer`).
+- **Rúbrica:** `unicidad_de_concepto`, `autosuficiencia`, `nivel`, `calidad_del_fallo`
+  (solo `debug`; `null` en `knowledge`) y `utilidad_de_la_justificacion`; cada una 0–2 **con
+  una ancla operativa por nivel** (las mismas definiciones en el prompt del juez y en la
+  valoración humana, para que calibración y juez midan lo mismo). Salida JSON validada; si no
+  cumple, un reintento y, si vuelve a fallar, el ejercicio cuenta como **no juzgado** (no como
+  puntuación).
+- **Calibración:** las puntuaciones humanas viven aparte, en `evals/datasets/judge.human.json`,
+  y se rellenan **a ciegas** de las del juez. Se mide el κ de Cohen por criterio; si es
+  bajo, se corrige la rúbrica, no el resultado.
+- **Modelo:** `JUDGE_MODEL` / `JUDGE_API_KEY` en `.env`; el alias `judge` está en
+  `infra/litellm/config.yaml` y debe apuntar a un modelo **distinto** de los de producción.
+- **Informe:** `evals/results/<fecha>-judge.json`, con el modelo, las puntuaciones por
+  ejercicio y la calibración.
+
 ## Punto de acoplamiento con los agentes
 
 El arnés sustituye en `app.service` de cada agente los nombres `build_*_model` y `redact` (evaluador y revisor), `list_catalog_technologies` (validador), `search_saved_exercises` / `exercise_reader_conn_string` (ejercicios), `get_cached_research`, `save_research`, `AsyncTavilyClient`, `get_settings` y `tavily_search` (web) y `get_cached_analysis`, `save_analysis`, `list_files` y `read_file` (código). Si un agente renombra alguno, el arnés falla con un mensaje que nombra el símbolo ausente.
