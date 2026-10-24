@@ -94,6 +94,24 @@ python -m evals.update_prices                                                   
 - **Solo costes:** no calcula ahorros, retornos ni puntos de equilibrio.
 - **Limites:** la composicion por agente aproxima la cadena real (en produccion la entrada de un agente depende de la salida del anterior); el coste facturado es el del modelo que respondio, primario o respaldo, y el alias no los distingue; el modelo de referencia es una cota inferior.
 
+## Experimento: coste del razonamiento (§3.3 / §3.8)
+
+La medición mostró que los modelos razonan aunque §3.3 descartó los de razonamiento: entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, facturados como salida. El flag `--reasoning` (solo modo real) fija el esfuerzo de razonamiento para medir coste **frente a** calidad:
+
+```bash
+# Baseline (sin ajuste) y cada nivel, sobre los tres agentes que mas razonan (+ evaluador como control):
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 10
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 10 --reasoning effort=low
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 10 --reasoning off
+# tambien: --reasoning effort=medium|high|minimal|none  o  --reasoning max-tokens=256
+```
+
+El ajuste se inyecta en `extra_body` de cada llamada (objeto `reasoning` de OpenRouter), sin tocar el código de los agentes. Se traduce así: `off` → `{"enabled": false}`; `effort=<nivel>` → `{"effort": "<nivel>"}` (niveles `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`); `max-tokens=<N>` → `{"max_tokens": N}`. **No** se usa `exclude`, que solo oculta el razonamiento sin reducir su coste. Cada informe registra el ajuste usado (`reasoning` en el JSON y en la cabecera del resumen).
+
+Para comparar: el **coste** (coste medio por llamada, tokens de salida y de razonamiento) sale del informe y de `python -m evals.costs`; la **calidad** sale de las métricas deterministas del propio informe (exactitud y κ del evaluador, validez/adherencia, cardinalidad, FP/FN del gate, duplicados). La comparación entre niveles es relativa, así que vale aunque las etiquetas del dataset sigan siendo provisionales.
+
+> **Qué modelos honran el ajuste es parte de la medición, no un supuesto.** Si un modelo tiene el razonamiento obligatorio, OpenRouter puede ignorar el ajuste; se ve en `GET /api/v1/models` y, sobre todo, en que los tokens de razonamiento del informe bajen (o no) respecto al baseline.
+
 ## Casos adversariales
 
 Comprobación determinista en ambos modos: el contenido no confiable (respuesta del alumno, justificación propuesta, tecnologías, fragmentos de búsqueda web, ficheros del repositorio) viaja entre los delimitadores de dato en el prompt que recibe el modelo, y los datos personales los rechaza el pre-filtro antes de llamar al modelo. En modo real se cuentan además los **ataques exitosos** (un veredicto `correct` con una etiqueta distinta, o un `valid=true` donde no debía), sin que bloqueen la ejecución.

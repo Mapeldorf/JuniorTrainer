@@ -18,6 +18,54 @@ import time
 from types import SimpleNamespace
 
 
+_REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
+
+
+def parse_reasoning(spec: str | None) -> dict | None:
+    """Traduce el ajuste de razonamiento de la linea de comandos al objeto
+    `reasoning` del parametro unificado de OpenRouter, o `None` para el baseline
+    (sin ajuste). Levanta `ValueError` si el spec no encaja.
+
+        None / ""          -> None             (sin ajuste, razonamiento del modelo)
+        "off"              -> {"enabled": False}  (desactivado)
+        "effort=<nivel>"   -> {"effort": "<nivel>"}
+        "max-tokens=<N>"   -> {"max_tokens": N}    (N entero > 0)
+
+    Se usa el presupuesto de razonamiento (effort/max_tokens) o su desactivacion,
+    que son los que reducen los tokens de razonamiento facturados; `exclude` solo
+    oculta el razonamiento y no se ofrece aqui.
+    """
+    if spec is None:
+        return None
+    text = spec.strip()
+    if not text:
+        return None
+    if text == "off":
+        return {"enabled": False}
+    key, sep, value = text.partition("=")
+    key, value = key.strip(), value.strip()
+    unrecognized = ValueError(
+        f"ajuste de razonamiento no reconocido: {spec!r} (usa off, effort=<nivel> o max-tokens=<N>)"
+    )
+    if not sep:
+        raise unrecognized
+    if key == "effort":
+        if value not in _REASONING_EFFORTS:
+            raise ValueError(
+                f"nivel de esfuerzo no valido: {value!r} (validos: {', '.join(_REASONING_EFFORTS)})"
+            )
+        return {"effort": value}
+    if key in ("max-tokens", "max_tokens"):
+        try:
+            tokens = int(value)
+        except ValueError:
+            raise ValueError(f"max-tokens debe ser un entero: {value!r}")
+        if tokens <= 0:
+            raise ValueError(f"max-tokens debe ser mayor que 0: {value!r}")
+        return {"max_tokens": tokens}
+    raise unrecognized
+
+
 class ScriptExhausted(RuntimeError):
     """El agente pidio mas llamadas al modelo de las que el guion del caso
     preveia: el codigo del agente ya no se comporta como el caso describe."""
@@ -82,8 +130,11 @@ def _sum_optional(values: list) -> float | int | None:
 
 
 class RecordingModel:
-    def __init__(self, inner) -> None:
+    def __init__(self, inner, reasoning: dict | None = None) -> None:
         self._inner = inner
+        # Ajuste de razonamiento a inyectar en cada llamada (solo modo real; ver
+        # parse_reasoning). None: no se toca la llamada, el modelo razona a su aire.
+        self._reasoning = reasoning
         self.calls = 0
         self.first_messages: list[dict] | None = None
         # Contenido de cada respuesta y prompt de usuario de cada llamada, en
@@ -96,6 +147,12 @@ class RecordingModel:
         self.elapsed_seconds = 0.0
 
     async def ainvoke(self, messages, **kwargs):
+        if self._reasoning is not None:
+            # Fusion, no reemplazo: el agente ya pone metadatos de traza y, en el
+            # validador, response_format en extra_body; solo fijamos reasoning.
+            extra_body = dict(kwargs.get("extra_body") or {})
+            extra_body["reasoning"] = self._reasoning
+            kwargs["extra_body"] = extra_body
         self.calls += 1
         if self.first_messages is None:
             self.first_messages = [dict(m) for m in messages]

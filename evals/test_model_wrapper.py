@@ -14,7 +14,20 @@ from evals.model_wrapper import (
     ScriptExhausted,
     extract_usage,
     is_guardrail_rejection,
+    parse_reasoning,
 )
+
+
+class CapturingModel:
+    """Doble que recuerda los kwargs de la ultima llamada (para comprobar la
+    inyeccion del ajuste de razonamiento en extra_body)."""
+
+    def __init__(self):
+        self.last_kwargs = None
+
+    async def ainvoke(self, messages, **kwargs):
+        self.last_kwargs = kwargs
+        return SimpleNamespace(content="ok")
 
 
 def reply(content="ok", input_tokens=10, output_tokens=5, reasoning=2, cost=0.001, prompt_cost=0.0004,
@@ -169,6 +182,74 @@ class RecordingModelTests(unittest.TestCase):
     def test_heuristica_de_guardarrail(self):
         self.assertTrue(is_guardrail_rejection(RuntimeError("Guardrail blocked the request")))
         self.assertFalse(is_guardrail_rejection(RuntimeError("503 service unavailable")))
+
+
+class ParseReasoningTests(unittest.TestCase):
+    def test_baseline_sin_ajuste(self):
+        self.assertIsNone(parse_reasoning(None))
+        self.assertIsNone(parse_reasoning(""))
+        self.assertIsNone(parse_reasoning("   "))
+
+    def test_off_desactiva(self):
+        self.assertEqual(parse_reasoning("off"), {"enabled": False})
+
+    def test_effort_valido(self):
+        self.assertEqual(parse_reasoning("effort=low"), {"effort": "low"})
+        self.assertEqual(parse_reasoning("effort=none"), {"effort": "none"})
+
+    def test_effort_invalido(self):
+        with self.assertRaises(ValueError):
+            parse_reasoning("effort=altisimo")
+
+    def test_max_tokens_valido(self):
+        self.assertEqual(parse_reasoning("max-tokens=256"), {"max_tokens": 256})
+        self.assertEqual(parse_reasoning("max_tokens=256"), {"max_tokens": 256})
+
+    def test_max_tokens_no_numerico_o_no_positivo(self):
+        for bad in ("max-tokens=abc", "max-tokens=0", "max-tokens=-5"):
+            with self.assertRaises(ValueError):
+                parse_reasoning(bad)
+
+    def test_spec_no_reconocido(self):
+        for bad in ("low", "enabled=false", "effort"):
+            with self.assertRaises(ValueError):
+                parse_reasoning(bad)
+
+
+class ReasoningInjectionTests(unittest.TestCase):
+    def test_fusiona_reasoning_sin_pisar_extra_body(self):
+        inner = CapturingModel()
+        model = RecordingModel(inner, reasoning={"effort": "low"})
+        run(model.ainvoke([{"role": "user", "content": "x"}],
+                          extra_body={"metadata": {"trace": "t"}, "response_format": {"type": "json_object"}}))
+        self.assertEqual(inner.last_kwargs["extra_body"]["reasoning"], {"effort": "low"})
+        self.assertEqual(inner.last_kwargs["extra_body"]["metadata"], {"trace": "t"})
+        self.assertEqual(inner.last_kwargs["extra_body"]["response_format"], {"type": "json_object"})
+
+    def test_reasoning_gana_si_el_agente_ya_puso_uno(self):
+        inner = CapturingModel()
+        model = RecordingModel(inner, reasoning={"enabled": False})
+        run(model.ainvoke([{"role": "user", "content": "x"}], extra_body={"reasoning": {"effort": "high"}}))
+        self.assertEqual(inner.last_kwargs["extra_body"]["reasoning"], {"enabled": False})
+
+    def test_sin_extra_body_crea_uno(self):
+        inner = CapturingModel()
+        model = RecordingModel(inner, reasoning={"max_tokens": 128})
+        run(model.ainvoke([{"role": "user", "content": "x"}]))
+        self.assertEqual(inner.last_kwargs["extra_body"], {"reasoning": {"max_tokens": 128}})
+
+    def test_sin_ajuste_no_toca_extra_body(self):
+        inner = CapturingModel()
+        model = RecordingModel(inner)  # reasoning=None
+        run(model.ainvoke([{"role": "user", "content": "x"}], extra_body={"metadata": 1}))
+        self.assertEqual(inner.last_kwargs["extra_body"], {"metadata": 1})
+        self.assertNotIn("reasoning", inner.last_kwargs["extra_body"])
+
+    def test_sin_ajuste_y_sin_extra_body_no_lo_inventa(self):
+        inner = CapturingModel()
+        model = RecordingModel(inner)
+        run(model.ainvoke([{"role": "user", "content": "x"}]))
+        self.assertNotIn("extra_body", inner.last_kwargs)
 
 
 if __name__ == "__main__":
