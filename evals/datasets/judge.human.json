@@ -1,3 +1,13 @@
 {
-  "_comment": "Puntuaciones humanas para calibrar al juez (capstone 5.6). Se rellenan A CIEGAS, despues de que el juez puntue (no antes, para no sesgar). Formato: id del ejercicio -> criterio -> puntuacion 0-2 (o null en 'calidad_del_fallo' si el ejercicio es de tipo knowledge). Ejemplo: \"jg-k-append\": {\"unicidad_de_concepto\": 2, \"autosuficiencia\": 2, \"nivel\": 2, \"calidad_del_fallo\": null, \"utilidad_de_la_justificacion\": 2}"
+  "_comment": "Valoracion HUMANA (tech lead) para calibrar al juez (capstone 5.6). Se hizo a ciegas de la salida del juez. Formato: id -> criterio -> 0-2 (null en 'calidad_del_fallo' para tipo knowledge).",
+  "jg-a-injectable": {"unicidad_de_concepto": 2, "autosuficiencia": 1, "nivel": 2, "calidad_del_fallo": null, "utilidad_de_la_justificacion": 0},
+  "jg-a-observable-doble": {"unicidad_de_concepto": 1, "autosuficiencia": 0, "nivel": 1, "calidad_del_fallo": null, "utilidad_de_la_justificacion": 2},
+  "jg-a-arquitectura": {"unicidad_de_concepto": 0, "autosuficiencia": 0, "nivel": 0, "calidad_del_fallo": null, "utilidad_de_la_justificacion": 1},
+  "jg-a-sin-codigo": {"unicidad_de_concepto": 1, "autosuficiencia": 0, "nivel": 1, "calidad_del_fallo": null, "utilidad_de_la_justificacion": 0},
+  "jg-a-this": {"unicidad_de_concepto": 1, "autosuficiencia": 1, "nivel": 2, "calidad_del_fallo": 1, "utilidad_de_la_justificacion": 2},
+  "jg-a-dos-fallos": {"unicidad_de_concepto": 1, "autosuficiencia": 2, "nivel": 2, "calidad_del_fallo": 2, "utilidad_de_la_justificacion": 2},
+  "jg-a-sin-fallo": {"unicidad_de_concepto": 2, "autosuficiencia": 2, "nivel": 1, "calidad_del_fallo": 0, "utilidad_de_la_justificacion": 2},
+  "jg-a-multifile": {"unicidad_de_concepto": 2, "autosuficiencia": 0, "nivel": 1, "calidad_del_fallo": 0, "utilidad_de_la_justificacion": 2},
+  "jg-a-vaga": {"unicidad_de_concepto": 2, "autosuficiencia": 2, "nivel": 2, "calidad_del_fallo": null, "utilidad_de_la_justificacion": 0},
+  "jg-a-teoria": {"unicidad_de_concepto": 2, "autosuficiencia": 2, "nivel": 0, "calidad_del_fallo": null, "utilidad_de_la_justificacion": 0}
 }
