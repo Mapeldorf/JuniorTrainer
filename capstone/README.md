@@ -33,7 +33,7 @@ marcadas como tales dentro del propio documento:
 | §5.3 | CI/CD ampliado | Implementarlo |
 | §5.5–5.7, Anexo E | Métricas, juez LLM y resultados | Construir la suite de evaluación |
 | §5.8 | Umbrales y alertas del cuadro de mando | Línea base de métricas |
-| §6.3–6.5, Anexo F | Mapeo OWASP, registro de riesgos y red teaming | Ejecutar el ejercicio |
+| §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 
 ## Generar el PDF
 
