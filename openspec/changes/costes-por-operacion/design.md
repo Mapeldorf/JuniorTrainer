@@ -14,9 +14,10 @@ Ver `proposal.md`. Lo comprobado antes de decidir:
 
 **Goals:**
 - Cifras de coste por operación, nivel de uso, memoria y modelo de referencia que se recalculan al cambiar precios o supuestos.
-- Separar con claridad lo **medido** (tokens y coste de llamadas reales) de lo **supuesto** (uso mensual, minutos por ejercicio).
+- Separar con claridad lo **medido** (tokens y coste de llamadas reales) de lo **supuesto** (el uso de la campaña).
 
 **Non-Goals:**
+- Calcular el coste del no-sistema (minutos de tech lead por ejercicio × coste por hora): el uso del tech lead es puntual y condensado en una franja corta, así que un coste por hora no es representativo (decisión del usuario).
 - Contabilidad de facturación o alertas de gasto.
 - Reducir el coste (optimizar prompts, ajustar modelos).
 - Preciar el respaldo en Hugging Face.
@@ -43,13 +44,13 @@ Es una aproximación: en producción la entrada de un agente depende de la salid
 **6. El uso se modela como una campaña por fases, con el equipo como unidad.** Un equipo es un tech lead y 2 juniors. El patrón descrito es una ráfaga: el tech lead genera del orden de 500 ejercicios el primer mes, los juniors los resuelven en 2 semanas, cada año se incorporan 2 juniors más por equipo y después solo hay generación a demanda. Los niveles de uso se expresan en equipos (1, 5 y 30, que son los tech leads de los niveles piloto, equipo y organización del capstone). Tres fases:
 - *Generación inicial:* generaciones por tech lead = ejercicios guardados a generar ÷ (ejercicios por generación × tasa de guardado). Con 500, 5 candidatos y un 90 % de guardado son 500 ÷ 4,5 = 111,1, es decir **112 generaciones** (no 100): la tasa de guardado importa porque la generación produce **candidatos** y el tech lead solo guarda parte. Cinco candidatos es el máximo, así que es el caso con menos generaciones; con 3 serían 186.
 - *Resolución:* evaluaciones = equipos × juniors por equipo × ejercicios resueltos por junior. Con 2 juniors que resuelven cada uno los 500 ejercicios (confirmado), son 1.000 por equipo en 2 semanas. Cada evaluación cuesta evaluador + revisor. Una respuesta no se modifica una vez dada (§2.5), así que no hay reintentos del alumno que multipliquen el coste.
-- *Régimen:* por equipo y año, 2 juniors que se incorporan × el catálogo existente, más los ejercicios nuevos a demanda (generación y su resolución).
+- *Régimen:* por equipo y año, 2 juniors que se incorporan × el catálogo existente, más los ejercicios nuevos que añada el tech lead según el feedback (generación y resolución). Eliminar ejercicios (borrado lógico) no gasta modelo.
 
 La memoria pesa mucho en este patrón: 112 generaciones del mismo tech lead sobre pocos repositorios y tecnologías repiten la clave, así que la mayoría serían aciertos (decisión 5).
 
 El informe da el coste de cada fase, el reparto entre generación y evaluación (se comprueba, no se asume) y el pico de gasto de cualquier ventana de 30 días, que es contra lo que se compara el presupuesto de 5 USD de cada clave: una campaña de 2 semanas concentra el gasto y puede agotar la clave del evaluador aunque el total sea pequeño.
 
-Los supuestos viven en `evals/cost_assumptions.json`: equipos por nivel, juniors por equipo, parámetros de las tres fases, incorporaciones anuales, repositorios y tecnologías por proyecto (5 y 15 como máximo), proporción con repositorio, plan de Tavily, minutos por ejercicio y coste por hora, todos con un campo `nota` que los marca como hipótesis.
+Los supuestos viven en `evals/cost_assumptions.json`: equipos por nivel, juniors por equipo, parámetros de las tres fases, incorporaciones anuales, repositorios y tecnologías por proyecto (5 y 15 como máximo), proporción con repositorio y plan de Tavily, todos con un campo `nota` que los marca como hipótesis.
 
 **6b. Tavily y GitHub entran en el cálculo.** Cada generación sin acierto de memoria hace hasta 5 búsquedas de Tavily (el presupuesto del agente web) y hasta 10 lecturas de GitHub (el del agente de código). El arnés ya cuenta ambas por caso (`probe.search_calls` y `probe.reads`).
 - *GitHub* no tiene coste (confirmado por el usuario): las lecturas se cuentan y valen cero.
@@ -70,7 +71,3 @@ Los supuestos viven en `evals/cost_assumptions.json`: equipos por nivel, juniors
 - [La composición por agente subestima o sobrestima la cadena real] → Se declara en el informe; se puede validar con una generación completa a través del backend (fuera de alcance).
 - [Los supuestos de uso no son datos, y el patrón en ráfaga es difícil de predecir] → Siempre se imprimen como hipótesis; las cifras se leen como órdenes de magnitud y se acompañan de un análisis de sensibilidad sobre los dos parámetros que más pesan (ejercicios por alumno y tasa de guardado).
 - [Los precios cambian] → Fecha y fuente en la tabla, y refresco con un comando.
-
-## Open Questions
-
-- ¿Qué minutos por ejercicio y coste por hora usa el usuario para el no-sistema? Se resuelve editando `cost_assumptions.json`; no cambia las specs ni las tareas.

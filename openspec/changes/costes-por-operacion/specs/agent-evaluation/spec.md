@@ -143,17 +143,6 @@ El sistema SHALL calcular el coste de las mismas operaciones, con los mismos tok
 - **WHEN** se muestra la comparativa
 - **THEN** aparece el coste con ambos modelos y el factor entre ellos
 
-### Requirement: Coste del no-sistema
-El sistema SHALL calcular el coste equivalente de producir a mano los ejercicios que el sistema genera, como minutos por ejercicio por coste por hora, tomando ambos valores del fichero de supuestos y marcandolos como hipotesis.
-
-#### Scenario: Calculo
-- **WHEN** se indican minutos por ejercicio y coste por hora
-- **THEN** el informe muestra el coste de producir a mano la misma cantidad de ejercicios que el escenario de uso
-
-#### Scenario: Valores no indicados
-- **WHEN** faltan minutos por ejercicio o coste por hora
-- **THEN** el informe no calcula el coste del no-sistema e indica que faltan esos valores
-
 ### Requirement: Informe de costes reproducible
 El sistema SHALL generar el informe de costes de forma determinista a partir de un informe de evaluacion real, la tabla de precios y el fichero de supuestos, en formato estructurado y en tablas legibles, indicando el numero de casos que respalda cada cifra.
 
