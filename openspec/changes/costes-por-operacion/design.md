@@ -7,6 +7,7 @@ Ver `proposal.md`. Lo comprobado antes de decidir:
 - **Los tokens ya llegan al arnés.** Una llamada real al evaluador a través de LiteLLM devuelve en la respuesta de `langchain-openai` `usage_metadata` (`input_tokens`, `output_tokens`, y `output_token_details.reasoning`) y `response_metadata.token_usage`, que incluye `cost` (coste facturado por OpenRouter, p. ej. 1,89·10⁻⁵ USD para una llamada de 38 tokens de entrada y 13 de salida) y `cost_details` con el desglose de entrada y salida. `RecordingModel` ya ve cada respuesta.
 - **El alias no identifica al modelo.** `response_metadata.model_name` devuelve el alias lógico (`evaluator`), no el modelo que contestó: no se distingue primario de respaldo.
 - **Hay tokens de razonamiento** aunque el diseño (§3.3) descartó los modelos de razonamiento: una petición trivial dio 10 de 13 tokens de salida como razonamiento. Cuenta como salida y se cobra.
+- **Precios del respaldo disponibles** en `GET https://router.huggingface.co/v1/models` (sin credenciales), por proveedor de inferencia: DeepSeek-V4.1-Flash 0,20 / 0,60 (deepinfra) y 0,30 / 1,20 (novita, baseten); GLM-5.3-Flash 0,15 / 0,50 en todos. El enrutado de Hugging Face decide el proveedor.
 - **Precios públicos disponibles** en `GET https://openrouter.ai/api/v1/models` (sin credenciales): DeepSeek V4.1 Flash 0,02 / 1,00 USD por millón (entrada / salida), GLM-5.3 FlashX 0,37 / 1,25, GLM-5.3 Flash 0,15 / 0,50, Claude Opus 5.5 4,00 / 20,00 y Claude Haiku 5.5 0,10 / 0,50. El respaldo en Hugging Face no tiene API pública equivalente.
 - Los informes de la suite (`evals/results/`) hoy no guardan tokens ni coste, así que ninguno sirve como entrada: hay que repetir la ejecución real tras añadir la captura.
 
@@ -20,7 +21,7 @@ Ver `proposal.md`. Lo comprobado antes de decidir:
 - Calcular el ahorro o el retorno de la formación, ni como coste del no-sistema (horas de tech lead: su uso es puntual y condensado en una franja corta) ni como inferencia o especificaciones evitadas por los juniors en proyectos reales: no es calculable, igual que no lo es el retorno de formar a un empleado (decisión del usuario). Tampoco un punto de equilibrio, que exigiría estimar ese ahorro.
 - Contabilidad de facturación o alertas de gasto.
 - Reducir el coste (optimizar prompts, ajustar modelos).
-- Preciar el respaldo en Hugging Face.
+- Medir la fracción real de llamadas que usa el respaldo (el alias no lo distingue; requeriría los registros de LiteLLM).
 - Modificar los agentes.
 
 ## Decisions
@@ -60,6 +61,8 @@ Los supuestos viven en `evals/cost_assumptions.json`: equipos por nivel, juniors
 - Tavily publica el importe en dólares y el usuario lo plantea en euros: los costes se expresan en USD y no se convierten divisas.
 
 **6c. Se mide el coste, no el retorno.** Los beneficios del sistema son premisas cualitativas del proyecto y no se cuantifican: juniors capaces de depurar cambios puntuales y atómicos con una comprensión mínima y sin gasto de inferencia, juniors que plantean mejores especificaciones, y tech leads y compañeros que pueden desatenderse en buena medida del acompañamiento y la formación de los juniors, que se entrenan solos con la aplicación, y dedicar esas horas a su trabajo. Lo que sí se puede dar con rigor son los **costes unitarios**: por ejercicio guardado (coste de generación de un tech lead ÷ 500), por evaluación (evaluador + revisor) y por junior formado (sus 500 evaluaciones más la mitad de la generación del equipo, que comparten los 2 juniors). Con ellos, quien decida puede razonar la inversión sin que el informe le imponga un ahorro inventado.
+
+**6d. El respaldo es una sensibilidad, no una cifra principal.** `prices.json` guarda, para cada rol, el modelo de respaldo de `infra/litellm/config.yaml` y los precios de cada proveedor publicados por Hugging Face; el refresco lee esa lista sin credenciales. El cálculo reutiliza los tokens medidos con el primario y los precia con el proveedor más barato y el más caro (rango), y pondera por una fracción de llamadas configurable (0 %, 5 %, 20 %, 100 %). Es una cota: el respaldo puede razonar o ser verboso de otra forma y gastar otros tokens. La fracción real no se conoce, así que se presenta como escenarios y no se mezcla con el coste medido.
 
 **7. Modelo de referencia por rol, definido en la tabla de precios.** Opus 5.5 para web, código y ejercicios (el trabajo pesado) y Haiku 5.5 para validador, evaluador y revisor. Se reutilizan los tokens medidos y solo cambian los precios. Es una cota inferior de lo que costaría de verdad: otro modelo gastaría otros tokens (más o menos razonamiento, otra verbosidad). El informe lo dice.
 

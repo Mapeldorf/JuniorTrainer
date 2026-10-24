@@ -20,6 +20,12 @@ PRICES = {
         "production": {a: "prod" for a in price_table.AGENTS},
         "reference": {a: "ref" for a in price_table.AGENTS},
     },
+    "fallback": {
+        "models": {"fb": {"providers": {
+            "barato": {"input_per_m": 0.5, "output_per_m": 1.0},
+            "caro": {"input_per_m": 3.0, "output_per_m": 6.0}}}},
+        "roles": {a: "fb" for a in price_table.AGENTS},
+    },
     "tavily": {
         "selected_plan": "project",
         "credits_per_search": 1,
@@ -38,7 +44,7 @@ def assumptions(**overrides):
         "saved_exercises": 500, "candidates_per_generation": 5, "save_rate": 0.9, "exercises_per_junior": 500,
         "new_juniors_per_year": 2, "new_exercises_per_year": 50, "with_repo_share": 0.8,
         "repositories_per_project": 5, "technologies_per_project": 15, "key_multipliers": [1, 2, 4],
-        "key_budget_usd_30d": 5.0, "regime_memory_hit": False,
+        "key_budget_usd_30d": 5.0, "regime_memory_hit": False, "fallback_shares": [0, 0.05, 0.2, 1.0],
     }
     base.update(overrides)
     return {k: {"value": v, "origin": "test", "note": ""} for k, v in base.items()}
@@ -201,6 +207,58 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(c["missing"], ["code"])
 
 
+class FallbackTests(unittest.TestCase):
+    def setUp(self):
+        self.measures = costs.measure_agents(cases(), DATASETS)
+
+    def test_rango_por_proveedor(self):
+        low = price_table.fallback_price(PRICES, "evaluator", "min")
+        high = price_table.fallback_price(PRICES, "evaluator", "max")
+        self.assertEqual((low["provider"], high["provider"]), ("barato", "caro"))
+
+    def test_mismos_tokens_con_el_precio_del_respaldo(self):
+        low = costs.agent_cost(self.measures["evaluator"], "evaluator", PRICES, "fallback_min")
+        high = costs.agent_cost(self.measures["evaluator"], "evaluator", PRICES, "fallback_max")
+        self.assertAlmostEqual(low["cost"], (1000 * 0.5 + 200 * 1.0) / 1e6)       # 0,0007
+        self.assertAlmostEqual(high["cost"], (1000 * 3.0 + 200 * 6.0) / 1e6)      # 0,0042
+
+    def test_operacion_con_respaldo(self):
+        ops = costs.operations(self.measures, PRICES, "fallback_min")
+        # evaluador 0,0007 + revisor (500 x 0,5 + 100 x 1,0) / 1e6 = 0,00035
+        self.assertAlmostEqual(ops["evaluate_answer"]["cost"], 0.0007 + 0.00035)
+
+    def test_fraccion_cero_es_el_medido_y_cien_es_el_respaldo(self):
+        report = costs.build_cost_report(cases(), DATASETS, PRICES, assumptions())
+        measured = report["campaign"]["piloto"]["campaign_llm_cost"]
+        weighted = report["fallback"]["weighted"]["piloto"]
+        low = report["fallback"]["campaign"]["piloto"]["min"]["campaign_llm_cost"]
+        high = report["fallback"]["campaign"]["piloto"]["max"]["campaign_llm_cost"]
+        self.assertAlmostEqual(weighted["0"]["min"], measured)
+        self.assertAlmostEqual(weighted["0"]["max"], measured)
+        self.assertAlmostEqual(weighted["1.0"]["min"], low)
+        self.assertAlmostEqual(weighted["1.0"]["max"], high)
+        self.assertAlmostEqual(weighted["0.2"]["max"], 0.8 * measured + 0.2 * high)
+
+    def test_el_markdown_declara_que_la_fraccion_no_se_mide(self):
+        text = costs.render_markdown(costs.build_cost_report(cases(), DATASETS, PRICES, assumptions()))
+        self.assertIn("Sensibilidad al modelo de respaldo", text)
+        self.assertIn("no se mide", text)
+        self.assertIn("20% al respaldo", text)
+
+    def test_sin_todas_las_mediciones_la_campana_con_respaldo_no_es_calculable(self):
+        data = cases()
+        del data["code"]
+        report = costs.build_cost_report(data, DATASETS, PRICES, assumptions())
+        self.assertEqual(report["fallback"]["weighted"], {})
+        self.assertIn("Campana con respaldo: no calculable", costs.render_markdown(report))
+
+    def test_respaldo_sin_precio_falla(self):
+        prices = copy.deepcopy(PRICES)
+        prices["fallback"]["models"]["fb"]["providers"] = {}
+        with self.assertRaisesRegex(price_table.PriceError, "no tiene precios"):
+            price_table.fallback_price(prices, "evaluator", "min")
+
+
 class ReportTests(unittest.TestCase):
     def build(self):
         return costs.build_cost_report(cases(), DATASETS, PRICES, assumptions())
@@ -289,6 +347,30 @@ class PricesTests(unittest.TestCase):
         self.assertEqual(saved["models"]["a/b"], {"input_per_m": 0.02, "output_per_m": 1.0})
         self.assertIn("a/b", changes)
 
+    HF_RESPONSE = {"data": [{"id": "x/y", "providers": [
+        {"provider": "uno", "status": "live", "pricing": {"input": 0.2, "output": 0.6}},
+        {"provider": "dos", "status": "live", "pricing": None},
+        {"provider": "tres", "status": "offline", "pricing": {"input": 9, "output": 9}},
+    ]}]}
+
+    def test_precios_del_respaldo_solo_de_proveedores_activos_con_precio(self):
+        found = price_table.extract_hf_prices(self.HF_RESPONSE, ["x/y", "no/existe"])
+        self.assertEqual(found, {"x/y": {"uno": {"input_per_m": 0.2, "output_per_m": 0.6}}})
+
+    def test_refresco_actualiza_tambien_el_respaldo(self):
+        table = copy.deepcopy(PRICES)
+        table["fallback"] = {"source": "x", "fetched": None, "models": {"x/y": {"providers": {}}},
+                             "roles": {a: "x/y" for a in price_table.AGENTS}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "prices.json"
+            path.write_text(json.dumps(table), encoding="utf-8")
+            changes = price_table.refresh(path, models_response={"data": []}, today=date(2026, 11, 1),
+                                          hf_response=self.HF_RESPONSE)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertIn("hf:x/y", changes)
+        self.assertEqual(saved["fallback"]["models"]["x/y"]["providers"]["uno"]["input_per_m"], 0.2)
+        self.assertEqual(saved["fallback"]["fetched"], "2026-11-01")
+
     def test_plan_de_tavily(self):
         plan = price_table.tavily_plan(PRICES)
         self.assertEqual((plan["name"], plan["monthly_fee"], plan["included_credits"]), ("project", 30, 4000))
@@ -300,6 +382,10 @@ class PricesTests(unittest.TestCase):
         for kind in ("production", "reference"):
             for agent in price_table.AGENTS:
                 price_table.model_price(real, real["roles"][kind][agent])     # todos con precio
+        for agent in price_table.AGENTS:
+            low = price_table.fallback_price(real, agent, "min")
+            high = price_table.fallback_price(real, agent, "max")
+            self.assertLessEqual(low["input_per_m"] + low["output_per_m"], high["input_per_m"] + high["output_per_m"])
 
 
 class RepositoryFilesTests(unittest.TestCase):

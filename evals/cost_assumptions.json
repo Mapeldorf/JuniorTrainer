@@ -15,6 +15,7 @@
     "repositories_per_project": {"value": 5, "origin": "usuario", "note": "Maximo de repositorios de un proyecto."},
     "technologies_per_project": {"value": 15, "origin": "usuario", "note": "Maximo de tecnologias de un proyecto (10-15). Con una tecnologia por generacion, acota las claves de memoria: 15 de web y 5 x 15 = 75 de codigo."},
     "key_multipliers": {"value": [1, 2, 4], "origin": "hipotesis", "note": "Sensibilidad: el numero de claves de memoria distintas se multiplica por estos factores (el tech lead mezcla tecnologias y cada combinacion es otra clave)."},
+    "fallback_shares": {"value": [0, 0.05, 0.2, 1.0], "origin": "hipotesis", "note": "Sensibilidad: fraccion de las llamadas que cae al modelo de respaldo. La fraccion real no se mide (el alias no distingue el modelo que contesto)."},
     "key_budget_usd_30d": {"value": 5.0, "origin": "capstone", "note": "Presupuesto de cada virtual key de LiteLLM por 30 dias (3.4)."},
     "regime_memory_hit": {"value": false, "origin": "hipotesis", "note": "En regimen el uso es esporadico y la memoria caduca a los 30 dias sin lecturas: se supone que cada generacion nueva falla la memoria (cota conservadora)."}
   }

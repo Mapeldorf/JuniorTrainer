@@ -42,6 +42,53 @@
       "code": "anthropic/claude-opus-5.5"
     }
   },
+  "fallback": {
+    "source": "https://router.huggingface.co/v1/models",
+    "fetched": "2026-10-24",
+    "note": "Respaldo de infra/litellm/config.yaml en Hugging Face. El precio depende del proveedor de inferencia al que enrute Hugging Face: se informa el rango. Sin precio para providers que no lo publican.",
+    "models": {
+      "deepseek-ai/DeepSeek-V4.1-Flash": {
+        "providers": {
+          "novita": {
+            "input_per_m": 0.3,
+            "output_per_m": 1.2
+          },
+          "baseten": {
+            "input_per_m": 0.3,
+            "output_per_m": 1.2
+          },
+          "deepinfra": {
+            "input_per_m": 0.2,
+            "output_per_m": 0.6
+          }
+        }
+      },
+      "zai-org/GLM-5.3-Flash": {
+        "providers": {
+          "novita": {
+            "input_per_m": 0.15,
+            "output_per_m": 0.5
+          },
+          "baseten": {
+            "input_per_m": 0.15,
+            "output_per_m": 0.5
+          },
+          "deepinfra": {
+            "input_per_m": 0.15,
+            "output_per_m": 0.5
+          }
+        }
+      }
+    },
+    "roles": {
+      "evaluator": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "reviewer": "zai-org/GLM-5.3-Flash",
+      "validator": "zai-org/GLM-5.3-Flash",
+      "exercises": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "web": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "code": "deepseek-ai/DeepSeek-V4.1-Flash"
+    }
+  },
   "tavily": {
     "source": "https://www.tavily.com/pricing y https://docs.tavily.com/documentation/api-credits",
     "fetched": "2026-10-24",

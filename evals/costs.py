@@ -39,7 +39,8 @@ def load_assumptions(path: Path = ASSUMPTIONS_PATH) -> dict:
     required = ("teams_piloto", "teams_equipo", "teams_organizacion", "juniors_per_team", "saved_exercises",
                 "candidates_per_generation", "save_rate", "exercises_per_junior", "new_juniors_per_year",
                 "new_exercises_per_year", "with_repo_share", "repositories_per_project",
-                "technologies_per_project", "key_multipliers", "key_budget_usd_30d", "regime_memory_hit")
+                "technologies_per_project", "key_multipliers", "key_budget_usd_30d", "regime_memory_hit",
+                "fallback_shares")
     missing = [k for k in required if k not in data]
     if missing:
         raise CostError(f"cost_assumptions.json: faltan los supuestos {missing}")
@@ -121,6 +122,8 @@ def agent_cost(measure: dict, agent: str, prices: dict, kind: str, candidates: i
     `measured`: el coste facturado por el proveedor si lo informo (y, si no, el
     precio de lista del modelo de produccion por los tokens medidos).
     `reference`: los mismos tokens con el precio del modelo de referencia.
+    `fallback_min` / `fallback_max`: los mismos tokens con el precio del modelo de
+    respaldo en el proveedor de inferencia mas barato / mas caro.
     """
     if agent == "exercises":
         tokens_in = measure["input_tokens"]
@@ -131,6 +134,10 @@ def agent_cost(measure: dict, agent: str, prices: dict, kind: str, candidates: i
     if kind == "reference":
         model = price_table.agent_model(prices, "reference", agent)
         return {"cost": price_table.token_cost(prices, model, tokens_in, tokens_out), "source": f"precio de {model}"}
+    if kind in ("fallback_min", "fallback_max"):
+        entry = price_table.fallback_price(prices, agent, kind.split("_")[1])
+        return {"cost": (tokens_in * entry["input_per_m"] + tokens_out * entry["output_per_m"]) / 1_000_000,
+                "source": f"respaldo {entry['model']} ({entry['provider']})"}
 
     if agent == "exercises" and measure.get("prompt_cost") is not None and measure.get("completion_cost_per_candidate") is not None:
         return {"cost": measure["prompt_cost"] + candidates * measure["completion_cost_per_candidate"], "source": "facturado"}
@@ -298,6 +305,29 @@ def campaign(level: str, teams: int, measures: dict, assumptions: dict, prices: 
 
 # ------------------------------------------------------------------ informe --
 
+def fallback_section(measures: dict, assumptions: dict, prices: dict, levels: dict, measured: dict,
+                     candidates: int) -> dict:
+    """Coste con el modelo de respaldo, con los mismos tokens medidos: por
+    operacion y por campana (rango entre el proveedor mas barato y el mas caro) y
+    ponderado por la fraccion de llamadas que cae al respaldo. La fraccion real
+    no se mide: son escenarios."""
+    shares = value(assumptions, "fallback_shares")
+    ops = {bound: operations(measures, prices, f"fallback_{bound}", candidates) for bound in ("min", "max")}
+    section = {"shares": shares, "operations": ops, "campaign": {}, "weighted": {},
+               "providers": {a: {b: price_table.fallback_price(prices, a, b) for b in ("min", "max")} for a in AGENTS}}
+    for level, teams in levels.items():
+        low = campaign(level, teams, measures, assumptions, prices, "fallback_min")
+        high = campaign(level, teams, measures, assumptions, prices, "fallback_max")
+        section["campaign"][level] = {"min": low, "max": high}
+        base = measured[level]
+        if base["computable"] and low["computable"] and high["computable"]:
+            section["weighted"][level] = {
+                str(f): {"min": (1 - f) * base["campaign_llm_cost"] + f * low["campaign_llm_cost"],
+                         "max": (1 - f) * base["campaign_llm_cost"] + f * high["campaign_llm_cost"]}
+                for f in shares}
+    return section
+
+
 def build_cost_report(cases: dict[str, list], datasets: dict, prices: dict, assumptions: dict) -> dict:
     measures = measure_agents(cases, datasets)
     missing = [a for a in AGENTS if measures[a] is None]
@@ -325,6 +355,8 @@ def build_cost_report(cases: dict[str, list], datasets: dict, prices: dict, assu
         crosscheck[agent] = {"billed": measure["billed_cost"], "list_price": listed,
                              "ratio": measure["billed_cost"] / listed if listed else None}
 
+    fallback = fallback_section(measures, assumptions, prices, levels, measured, candidates)
+
     return {
         "currency": prices["currency"],
         "prices_fetched": prices["fetched"],
@@ -336,6 +368,7 @@ def build_cost_report(cases: dict[str, list], datasets: dict, prices: dict, assu
         "campaign": measured,
         "campaign_reference": reference,
         "reference_comparison": comparison,
+        "fallback": fallback,
         "crosscheck": crosscheck,
         "assumptions": assumptions,
     }
@@ -410,6 +443,33 @@ def render_markdown(r: dict) -> str:
         out.append("- Sensibilidad al numero de claves de memoria: " + "; ".join(
             f"x{m}: web {s['web_misses']}, codigo {s['code_misses']}, generacion por equipo {_usd(s['generation_cost_per_team'])}"
             for m, s in c["sensitivity"].items()))
+
+    fb = r["fallback"]
+    out += ["", "## Sensibilidad al modelo de respaldo (mismos tokens)", "",
+            "Si el modelo primario falla, LiteLLM reintenta con el respaldo de Hugging Face. El precio depende del "
+            "proveedor de inferencia al que enrute: se muestra el rango. **La fraccion real de llamadas que cae al "
+            "respaldo no se mide** (el alias no distingue el modelo que contesto): son escenarios, no una prediccion.", "",
+            "| Agente | Respaldo | Proveedor mas barato (entrada / salida) | Proveedor mas caro (entrada / salida) |", "|---|---|---|---|"]
+    for agent in AGENTS:
+        lo, hi = fb["providers"][agent]["min"], fb["providers"][agent]["max"]
+        out.append(f"| {agent} | {lo['model']} | {lo['provider']} {lo['input_per_m']} / {lo['output_per_m']} | "
+                   f"{hi['provider']} {hi['input_per_m']} / {hi['output_per_m']} |")
+    out += ["", "| Operacion | Medido | Respaldo (min - max) |", "|---|---|---|"]
+    for key, label in names.items():
+        measured_cost = r["operations"][key]["cost"]
+        low, high = fb["operations"]["min"][key]["cost"], fb["operations"]["max"][key]["cost"]
+        if measured_cost is None:
+            out.append(f"| {label} | no calculable | no calculable |")
+        else:
+            out.append(f"| {label} | {_usd(measured_cost, 6)} | {_usd(low, 6)} - {_usd(high, 6)} |")
+    if fb["weighted"]:
+        out += ["", "| Nivel | " + " | ".join(f"{float(f):.0%} al respaldo" for f in fb["shares"]) + " |",
+                "|---|" + "---|" * len(fb["shares"])]
+        for level, by_share in fb["weighted"].items():
+            out.append(f"| {level} | " + " | ".join(
+                f"{_usd(by_share[str(f)]['min'])} - {_usd(by_share[str(f)]['max'])}" for f in fb["shares"]) + " |")
+    else:
+        out += ["", "Campana con respaldo: no calculable hasta tener la medicion de todos los agentes."]
 
     out += ["", "## Comparativa con el modelo de referencia (mismos tokens)", ""]
     if r["reference_comparison"]:

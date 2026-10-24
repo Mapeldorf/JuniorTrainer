@@ -147,6 +147,29 @@ El sistema SHALL calcular el coste de generar con y sin acierto de memoria de lo
 - **WHEN** se piden mas claves distintas por generacion que las del supuesto base
 - **THEN** el informe muestra como cambia el coste de generar
 
+### Requirement: Coste del modelo de respaldo
+El sistema SHALL mantener en la tabla de precios el modelo de respaldo de cada rol con su precio por proveedor de inferencia, refrescable desde una fuente publica sin credenciales, y SHALL calcular el coste de las operaciones y de la campana con el respaldo y su sensibilidad a la fraccion de llamadas que caen en el, con los mismos tokens medidos.
+
+#### Scenario: Rango de precios
+- **WHEN** un modelo de respaldo tiene varios proveedores con precio
+- **THEN** se calcula con el proveedor mas barato y con el mas caro, y el informe muestra el rango
+
+#### Scenario: Mismos tokens
+- **WHEN** se calcula el coste con el respaldo
+- **THEN** se usan los tokens medidos con el modelo primario y solo cambian los precios
+
+#### Scenario: Fraccion de llamadas
+- **WHEN** se configuran las fracciones 0 %, 5 %, 20 % y 100 %
+- **THEN** el coste con 0 % es el medido, el de 100 % es el del respaldo y los intermedios ponderan ambos
+
+#### Scenario: Fraccion desconocida
+- **WHEN** se presentan los resultados del respaldo
+- **THEN** se declara que la fraccion real de llamadas que cae al respaldo no se mide y que son escenarios
+
+#### Scenario: Respaldo sin precio
+- **WHEN** falta el precio de un modelo de respaldo necesario para el calculo
+- **THEN** el calculo falla indicando el modelo, en lugar de suponer un precio
+
 ### Requirement: Comparativa con modelos de referencia
 El sistema SHALL calcular el coste de las mismas operaciones, con los mismos tokens medidos, usando los precios de un modelo de referencia por rol configurable en la tabla de precios, y SHALL informar la diferencia frente al coste medido.
 

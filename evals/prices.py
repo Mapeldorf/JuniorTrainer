@@ -13,6 +13,7 @@ from pathlib import Path
 
 PRICES_PATH = Path(__file__).resolve().parent / "prices.json"
 OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
+HUGGINGFACE_MODELS_URL = "https://router.huggingface.co/v1/models"
 
 AGENTS = ("evaluator", "reviewer", "validator", "exercises", "web", "code")
 
@@ -23,7 +24,7 @@ class PriceError(ValueError):
 
 def load_prices(path: Path = PRICES_PATH) -> dict:
     prices = json.loads(Path(path).read_text(encoding="utf-8"))
-    for key in ("currency", "models", "roles", "tavily"):
+    for key in ("currency", "models", "roles", "tavily", "fallback"):
         if key not in prices:
             raise PriceError(f"prices.json: falta '{key}'")
     for kind in ("production", "reference"):
@@ -53,6 +54,20 @@ def token_cost(prices: dict, model_id: str, input_tokens: float, output_tokens: 
     return (input_tokens * entry["input_per_m"] + output_tokens * entry["output_per_m"]) / 1_000_000
 
 
+def fallback_price(prices: dict, agent: str, bound: str) -> dict:
+    """Precio por millon del modelo de respaldo del agente: `min` es el
+    proveedor de inferencia mas barato (entrada + salida) y `max` el mas caro.
+    Hugging Face decide el proveedor, asi que se informa el rango."""
+    fallback = prices["fallback"]
+    model_id = fallback["roles"].get(agent)
+    providers = (fallback["models"].get(model_id) or {}).get("providers") or {}
+    if not providers:
+        raise PriceError(f"el modelo de respaldo '{model_id}' del agente '{agent}' no tiene precios: ejecuta el refresco")
+    pick = min if bound == "min" else max
+    name = pick(providers, key=lambda p: providers[p]["input_per_m"] + providers[p]["output_per_m"])
+    return {"model": model_id, "provider": name, **providers[name]}
+
+
 def tavily_plan(prices: dict, name: str | None = None) -> dict:
     tavily = prices["tavily"]
     name = name or tavily["selected_plan"]
@@ -78,15 +93,37 @@ def extract_prices(models_response: dict, model_ids: list[str]) -> dict[str, dic
     return found
 
 
+def extract_hf_prices(models_response: dict, model_ids: list[str]) -> dict[str, dict]:
+    """Precios por millon de tokens de cada proveedor de inferencia de `model_ids`
+    segun `GET https://router.huggingface.co/v1/models`; solo proveedores activos
+    (`live`) que publican precio."""
+    by_id = {m["id"]: m for m in models_response.get("data", [])}
+    found = {}
+    for model_id in model_ids:
+        providers = {}
+        for provider in (by_id.get(model_id) or {}).get("providers", []):
+            pricing = provider.get("pricing")
+            if provider.get("status") == "live" and pricing and pricing.get("input") is not None \
+                    and pricing.get("output") is not None:
+                providers[provider["provider"]] = {"input_per_m": float(pricing["input"]),
+                                                   "output_per_m": float(pricing["output"])}
+        if providers:
+            found[model_id] = providers
+    return found
+
+
 def fetch_models(url: str = OPENROUTER_MODELS_URL, timeout: float = 30.0) -> dict:
     # Consulta publica de solo lectura: no se envia ninguna credencial.
     with urllib.request.urlopen(url, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
-def refresh(path: Path = PRICES_PATH, models_response: dict | None = None, today: date | None = None) -> dict:
-    """Actualiza `models` (solo los que ya figuran en la tabla) y la fecha.
-    Devuelve `{modelo: (precio_antiguo, precio_nuevo)}` de los que cambian."""
+def refresh(path: Path = PRICES_PATH, models_response: dict | None = None, today: date | None = None,
+            hf_response: dict | None = None) -> dict:
+    """Actualiza `models` y, si la tabla lo tiene, los precios por proveedor del
+    respaldo (solo los modelos que ya figuran) y la fecha. Devuelve
+    `{modelo: (precio_antiguo, precio_nuevo)}` de los que cambian; los del respaldo
+    llevan el prefijo `hf:`."""
     path = Path(path)
     prices = load_prices(path)
     response = models_response if models_response is not None else fetch_models(prices.get("source", OPENROUTER_MODELS_URL))
@@ -99,6 +136,24 @@ def refresh(path: Path = PRICES_PATH, models_response: dict | None = None, today
         prices["models"][model_id].update(entry)
     missing = [m for m in prices["models"] if m not in new]
     prices["fetched"] = (today or date.today()).isoformat()
+    fallback = prices.get("fallback")
+    if fallback:
+        try:
+            hf = hf_response if hf_response is not None else fetch_models(fallback.get("source", HUGGINGFACE_MODELS_URL))
+        except OSError as exc:
+            print(f"AVISO: no se pudo consultar Hugging Face ({exc}); se mantienen los precios del respaldo")
+            hf = None
+        if hf is not None:
+            new_hf = extract_hf_prices(hf, list(fallback["models"]))
+            for model_id, providers in new_hf.items():
+                old_providers = fallback["models"][model_id].get("providers") or {}
+                if old_providers != providers:
+                    changes[f"hf:{model_id}"] = (old_providers, providers)
+                fallback["models"][model_id]["providers"] = providers
+            fallback["fetched"] = prices["fetched"]
+            lost = [m for m in fallback["models"] if m not in new_hf]
+            if lost:
+                print(f"AVISO: sin precios publicados para el respaldo {lost}; se mantienen los que hubiera")
     path.write_text(json.dumps(prices, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if missing:
         print(f"AVISO: sin precio publicado para {missing}; se mantiene el que hubiera")

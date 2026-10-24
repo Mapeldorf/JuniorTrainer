@@ -18,6 +18,12 @@
 - [x] 3.3 Añadir los escenarios por fases (con el reparto entre generación y evaluación y la sensibilidad a ejercicios por alumno y tasa de guardado), la comparación del pico de 30 días con el presupuesto de cada clave, el efecto de la memoria con los fallos acotados por repositorios × tecnologías, el coste de Tavily del plan (cuota por los meses con uso más el exceso de créditos),, los costes unitarios (por ejercicio guardado, por evaluación y por junior formado) y la comparativa con el modelo de referencia por rol; verificar con tests a mano, incluidos el caso de presupuesto superado y el cálculo de generaciones a partir de ejercicios guardados
 - [x] 3.4 Salida determinista (JSON y tablas en Markdown) con el número de casos que respalda cada cifra, rechazo de informes simulados y comprobación cruzada entre coste medido y coste calculado; verificar con un test que ejecuta el cálculo dos veces y compara
 
+## 3b. Modelo de respaldo
+
+- [x] 5.1 Añadir a `evals/prices.json` el respaldo de cada rol y sus precios por proveedor, y extender `evals/prices.py` para refrescarlos desde la lista pública de Hugging Face; verificar con tests del parseo y ejecutando el refresco contra la API real
+- [x] 5.2 Calcular en `evals/costs.py` el coste de las operaciones y de la campaña con el respaldo (rango por proveedor) y la sensibilidad a la fracción de llamadas (0 %, 5 %, 20 %, 100 %), y mostrarlo en el informe; verificar con tests a mano, incluidos 0 % igual al medido y 100 % igual al respaldo
+- [x] 5.3 Documentar el respaldo en `evals/README.md`; verificar que los comandos documentados se ejecutan
+
 ## 4. Medición y documentación
 
 - [ ] 4.1 Ejecutar el modo real sobre los seis agentes con la captura activa (a cargo del usuario, con el stack levantado) y generar el informe de costes con `python -m evals.costs`; verificar que no hay agentes «sin datos» y que el coste medido coincide con el calculado
