@@ -59,8 +59,8 @@ El sistema SHALL calcular el coste medio de las cuatro operaciones del sistema (
 El sistema SHALL calcular el coste de una campana de incorporacion para los niveles de uso piloto, equipo y organizacion, expresados en numero de equipos (un tech lead y sus alumnos), en tres fases (generacion inicial, resolucion por los alumnos y regimen), a partir de un fichero editable de supuestos, y SHALL compararlo con el presupuesto de cada clave de LiteLLM en la ventana de 30 dias mas cargada.
 
 #### Scenario: Generacion inicial
-- **WHEN** el supuesto es generar 500 ejercicios guardados con 3 candidatos por generacion y una tasa de guardado del 90 %
-- **THEN** el numero de generaciones por tech lead (unas 185) y su coste se deducen de esos valores y no se escriben a mano
+- **WHEN** el supuesto es generar 500 ejercicios guardados con 5 candidatos por generacion y una tasa de guardado del 90 %
+- **THEN** el numero de generaciones por tech lead (112, el redondeo hacia arriba de 500 entre 4,5) y su coste se deducen de esos valores y no se escriben a mano
 
 #### Scenario: Resolucion por los alumnos
 - **WHEN** se indican los alumnos por equipo y los ejercicios que resuelve cada uno en la campana
@@ -117,7 +117,7 @@ El sistema SHALL calcular el coste de generar con y sin acierto de memoria de lo
 - **THEN** no incluye el coste de esos dos agentes
 
 #### Scenario: Claves distintas acotan los fallos
-- **WHEN** un proyecto tiene 5 repositorios y 15 tecnologias y genera 185 veces
+- **WHEN** un proyecto tiene 5 repositorios y 15 tecnologias y genera 112 veces
 - **THEN** los fallos de memoria del agente de codigo son como mucho 75 y los del agente web como mucho 15
 
 #### Scenario: Menos generaciones que claves
