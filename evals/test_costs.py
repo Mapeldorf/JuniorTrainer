@@ -44,7 +44,7 @@ def assumptions(**overrides):
         "saved_exercises": 500, "candidates_per_generation": 5, "save_rate": 0.9, "exercises_per_junior": 500,
         "new_juniors_per_year": 2, "new_exercises_per_year": 50, "with_repo_share": 0.8,
         "repositories_per_project": 5, "technologies_per_project": 15, "key_multipliers": [1, 2, 4],
-        "key_budget_usd_30d": 5.0, "regime_memory_hit": False, "fallback_shares": [0, 0.05, 0.2, 1.0],
+        "key_budget_usd_30d": 5.0, "key_cap_margin": 2, "regime_memory_hit": False, "fallback_shares": [0, 0.05, 0.2, 1.0],
     }
     base.update(overrides)
     return {k: {"value": v, "origin": "test", "note": ""} for k, v in base.items()}
@@ -175,6 +175,21 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(self.run_campaign()["keys_over_budget"], [])
         over = self.run_campaign(key_budget_usd_30d=1.0)
         self.assertEqual(over["keys_over_budget"], ["code", "evaluator"])
+
+    def test_tope_recomendado_cubre_el_pico_con_holgura(self):
+        self.assertEqual(costs.recommended_cap(0.53, 2), 5)
+        self.assertEqual(costs.recommended_cap(2.63, 2), 10)       # 5,26 -> el siguiente valor redondo
+        self.assertEqual(costs.recommended_cap(15.78, 2), 50)      # 31,56
+        self.assertEqual(costs.recommended_cap(2000, 2), 4000)     # fuera de la escala: se redondea hacia arriba
+
+    def test_tope_recomendado_en_la_campana(self):
+        one = self.run_campaign()["recommended_key_cap"]
+        self.assertEqual(one["most_loaded_key"], "evaluator")       # 1.000 evaluaciones x 0,002
+        self.assertAlmostEqual(one["peak"], 2.0)
+        self.assertEqual(one["usd_30d"], 5)                         # 2,0 x 2 = 4 -> 5
+        org = self.run_campaign(teams=30)["recommended_key_cap"]
+        self.assertAlmostEqual(org["peak"], 60.0)                  # 30 equipos x 2,0
+        self.assertEqual(org["usd_30d"], 200)                       # 60 x 2 = 120 -> 200
 
     def test_el_pico_suma_todos_los_equipos(self):
         c = self.run_campaign(teams=30)

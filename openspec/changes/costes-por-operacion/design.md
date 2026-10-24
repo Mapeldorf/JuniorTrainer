@@ -49,7 +49,7 @@ Es una aproximación: en producción la entrada de un agente depende de la salid
 
 La memoria pesa mucho en este patrón: 112 generaciones del mismo tech lead sobre pocos repositorios y tecnologías repiten la clave, así que la mayoría serían aciertos (decisión 5).
 
-El informe da el coste de cada fase, el reparto entre generación y evaluación (se comprueba, no se asume) y el pico de gasto de cualquier ventana de 30 días, que es contra lo que se compara el presupuesto de 5 USD de cada clave: una campaña de 2 semanas concentra el gasto y puede agotar la clave del evaluador aunque el total sea pequeño.
+El informe da el coste de cada fase, el reparto entre generación y evaluación (se comprueba, no se asume) y el pico de gasto de cualquier ventana de 30 días, que es contra lo que se compara el presupuesto de cada clave (5 USD hoy: una medida de seguridad personal del autor en desarrollo, no un límite del producto; para un cliente se subiría o se quitaría y se consumiría la inferencia por API). El informe da además el **tope que cubriría ese pico** con una holgura configurable (2×, hipótesis), redondeado a un valor redondo, para dimensionar el tope en cada nivel sin imponerlo: una campaña de 2 semanas concentra el gasto y puede agotar la clave del evaluador aunque el total sea pequeño.
 
 Los supuestos viven en `evals/cost_assumptions.json`: equipos por nivel, juniors por equipo, parámetros de las tres fases, incorporaciones anuales, repositorios y tecnologías por proyecto (5 y 15 como máximo), proporción con repositorio y plan de Tavily, todos con un campo `nota` que los marca como hipótesis.
 

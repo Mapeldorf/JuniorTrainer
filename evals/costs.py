@@ -39,8 +39,8 @@ def load_assumptions(path: Path = ASSUMPTIONS_PATH) -> dict:
     required = ("teams_piloto", "teams_equipo", "teams_organizacion", "juniors_per_team", "saved_exercises",
                 "candidates_per_generation", "save_rate", "exercises_per_junior", "new_juniors_per_year",
                 "new_exercises_per_year", "with_repo_share", "repositories_per_project",
-                "technologies_per_project", "key_multipliers", "key_budget_usd_30d", "regime_memory_hit",
-                "fallback_shares")
+                "technologies_per_project", "key_multipliers", "key_budget_usd_30d", "key_cap_margin",
+                "regime_memory_hit", "fallback_shares")
     missing = [k for k in required if k not in data]
     if missing:
         raise CostError(f"cost_assumptions.json: faltan los supuestos {missing}")
@@ -193,6 +193,18 @@ def generations_needed(saved: int, candidates: int, save_rate: float) -> int:
     return math.ceil(saved / (candidates * save_rate))
 
 
+# Valores "redondos" para un tope de presupuesto de una clave de LiteLLM.
+CAP_STEPS = (5, 10, 20, 50, 100, 200, 500, 1000)
+
+
+def recommended_cap(peak: float, margin: float) -> float:
+    """Menor tope redondo que cubre el pico de la clave mas cargada con `margin`
+    veces de holgura. Es un dimensionado, no una medida de seguridad: el tope real
+    lo decide quien lo aplica (para un cliente, subirlo o quitarlo)."""
+    needed = peak * margin
+    return next((step for step in CAP_STEPS if step >= needed), math.ceil(needed))
+
+
 def memory_misses(generations: float, keys: int) -> int:
     """Fallos de memoria: como mucho una vez por clave distinta y nunca mas que generaciones."""
     return min(math.ceil(generations), keys)
@@ -267,6 +279,8 @@ def campaign(level: str, teams: int, measures: dict, assumptions: dict, prices: 
     peak.update({agent: teams * resolution_agents[agent] for agent in EVALUATION_AGENTS})
     budget = a("key_budget_usd_30d")
     over_budget = sorted(agent for agent, c in peak.items() if c > budget)
+    margin = a("key_cap_margin")
+    cap = recommended_cap(max(peak.values()), margin)
 
     generation_cost = base["llm_cost"]
     return {
@@ -283,6 +297,8 @@ def campaign(level: str, teams: int, measures: dict, assumptions: dict, prices: 
                   "evaluation": teams * resolution_cost / llm_campaign if llm_campaign else None},
         "peak_30d_per_key": peak,
         "keys_over_budget": over_budget,
+        "recommended_key_cap": {"usd_30d": cap, "margin": margin, "most_loaded_key": max(peak, key=peak.get),
+                                "peak": max(peak.values())},
         "tavily": {
             "campaign": {name: _tavily_cost(prices, teams * base["tavily_credits"], 1, name)
                          for name in prices["tavily"]["plans"]},
@@ -433,6 +449,9 @@ def render_markdown(r: dict) -> str:
             f"- Pico de 30 dias por clave (presupuesto {value(r['assumptions'], 'key_budget_usd_30d')}): "
             + ", ".join(f"{k} {_usd(v)}" for k, v in c["peak_30d_per_key"].items())
             + (f". **Superan el presupuesto: {', '.join(c['keys_over_budget'])}.**" if c["keys_over_budget"] else ". Ninguna lo supera."),
+            f"- Tope por clave que cubre el pico de la clave mas cargada ({c['recommended_key_cap']['most_loaded_key']}, "
+            f"{_usd(c['recommended_key_cap']['peak'])}) con {c['recommended_key_cap']['margin']:g}x de holgura: "
+            f"**{c['recommended_key_cap']['usd_30d']:g} USD / 30 dias** (dimensionado; el tope real es una decision de quien lo aplica).",
         ]
         for plan, t in c["tavily"]["campaign"].items():
             if not t["sufficient"]:

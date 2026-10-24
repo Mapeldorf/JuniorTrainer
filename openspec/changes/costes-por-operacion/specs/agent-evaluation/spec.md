@@ -78,6 +78,10 @@ El sistema SHALL calcular el coste de una campana de incorporacion para los nive
 - **WHEN** el coste estimado de un agente en la ventana de 30 dias mas cargada supera su presupuesto
 - **THEN** el informe lo marca para ese nivel de uso y agente
 
+#### Scenario: Tope por clave recomendado
+- **WHEN** se calcula el pico de 30 dias de cada clave y se indica una holgura
+- **THEN** el informe da, por nivel, el menor tope redondo que cubre el pico de la clave mas cargada con esa holgura, presentado como dimensionado y no como medida de seguridad
+
 #### Scenario: Donde se concentra el coste
 - **WHEN** se muestra el resultado de un nivel
 - **THEN** aparece el reparto del coste total entre las tres fases y entre generacion y evaluacion

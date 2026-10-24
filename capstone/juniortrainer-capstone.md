@@ -598,12 +598,25 @@ completa campos que falten y no pisa lo ajustado a mano—:
 
 | Virtual key | Modelos permitidos | Presupuesto | Ritmo |
 |---|---|---|---|
-| `agent-web` | `generator` + su fallback | 5 USD / 30 días | 60 rpm |
-| `agent-code` | `generator` + su fallback | 5 USD / 30 días | 60 rpm |
-| `agent-exercises` | `generator` + su fallback | 5 USD / 30 días | 60 rpm |
-| `agent-evaluator` | `evaluator` + su fallback | 5 USD / 30 días | 60 rpm |
-| `agent-reviewer` | `reviewer` + su fallback | 5 USD / 30 días | 60 rpm |
-| `agent-validator` | `validator` + su fallback | 5 USD / 30 días | 60 rpm |
+| `agent-web` | `generator` + su fallback | 50 USD / 30 días (ver nota) | 60 rpm |
+| `agent-code` | `generator` + su fallback | 50 USD / 30 días (ver nota) | 60 rpm |
+| `agent-exercises` | `generator` + su fallback | 50 USD / 30 días (ver nota) | 60 rpm |
+| `agent-evaluator` | `evaluator` + su fallback | 50 USD / 30 días (ver nota) | 60 rpm |
+| `agent-reviewer` | `reviewer` + su fallback | 50 USD / 30 días (ver nota) | 60 rpm |
+| `agent-validator` | `validator` + su fallback | 50 USD / 30 días (ver nota) | 60 rpm |
+
+**Sobre el presupuesto de 50 USD.** Es un tope por clave y por 30 días, y es una
+medida de seguridad que fija quien opera el sistema, no un límite del producto. El
+valor que lleva hoy `provision_keys.py` es **5 USD**, el que el autor aplica en
+desarrollo como protección personal; el documento dimensiona el de despliegue en
+50 USD porque 5 se queda corto a escala de organización. La campaña de incorporación
+de §3.8 concentra el gasto en pocas semanas, y con 30 equipos el pico de una sola
+clave en 30 días (la del revisor) llega a unos 16 USD, tres veces el valor de 5 USD:
+con 50 USD queda una holgura de unas tres veces sobre ese pico y el tope sigue
+cumpliendo su función (un bucle a 60 peticiones por minuto lo agotaría en unas horas
+con el agente de código y en un día con el revisor, no en semanas). Para un cliente, el tope se subiría o se quitaría y la inferencia se
+consumiría directamente por API. Alinear `provision_keys.py` con este valor es un
+cambio pendiente.
 
 La restricción por modelo no es cosmética: si el agente de código fuera
 comprometido, su credencial no podría invocar al evaluador ni al validador. Y el
@@ -856,7 +869,7 @@ El trabajo a ejecutar, en orden:
    real —un equipo que genera repetidamente sobre el mismo stack y el mismo
    repositorio— el acierto es la norma y no la excepción. La diferencia es
    argumento de diseño, no un detalle: hay que cuantificarla.
-5. **Palancas de control ya implementadas**: presupuesto de 5 USD/30 días por
+5. **Palancas de control ya implementadas**: presupuesto por clave (§3.4: 5 USD/30 días hoy, 50 dimensionado) por
    virtual key, 60 rpm por clave, rate limit de generación a 5/min por usuario,
    TTL de 30 días en las memorias y los presupuestos de operaciones de §3.5.
 6. **Comparativa contra un modelo frontier** sobre la misma tabla, para
@@ -1850,7 +1863,7 @@ operación de negocio ya terminó, y hacerla fallar por un problema de observabi
 sería invertir la prioridad. La observabilidad se cae sola, no arrastra al producto.
 
 **Control de consumo.** LiteLLM registra en su propio Postgres el gasto por virtual
-key, con presupuesto de 5 USD/30 días y 60 rpm por clave (§3.4), y expone una
+key, con presupuesto por clave (§3.4) y 60 rpm, y expone una
 interfaz de administración con credenciales propias —no la master key
 (`litellm-admin-ui-credentials`)—.
 
@@ -2006,7 +2019,7 @@ traza documental de por qué existe cada uno.
 |---|---|---|---|
 | 13 | Rate limiting **por usuario** (no por IP): 30/min general, 5/min generar, 3/min invitar | Abuso del gasto en IA; que compartir IP comparta cuota; esquivar el límite cambiando de IP | `backend/app/rate_limit.py` (`api-rate-limiting`) |
 | 14 | Rate limiting por agente (60/min), evaluado **antes** de comprobar la credencial | Aluvión de peticiones internas, incluso con token válido | `agents/*/app/rate_limit.py` |
-| 15 | Presupuesto de 5 USD/30 días y 60 rpm **por virtual key** | Consumo ilimitado por bucle o abuso, acotado por agente | `provision_keys.py` (`litellm-key-budgets`, `litellm-key-rate-limit`) |
+| 15 | Presupuesto por clave a 30 días (5 USD hoy; 50 dimensionado en §3.4) y 60 rpm **por virtual key** | Consumo ilimitado por bucle o abuso, acotado por agente | `provision_keys.py` (`litellm-key-budgets`, `litellm-key-rate-limit`) |
 | 16 | Presupuestos de operaciones por tarea (5 búsquedas, 10 ficheros, 3 consultas) consumidos **antes** de actuar | Bucles de herramienta | `agents/*/app/tools/` |
 | 17 | Límite de cuerpo HTTP de 1 MiB, con middleware **ASGI puro** que corta sin bufferizar | Agotamiento de memoria; un `BaseHTTPMiddleware` bufferizaría el cuerpo y anularía el objetivo | `backend/app/body_size_limit.py` (`api-body-size-limit`) |
 
