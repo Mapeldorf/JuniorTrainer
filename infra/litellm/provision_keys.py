@@ -20,6 +20,10 @@ Variables de entorno:
     LITELLM_MASTER_KEY  Credencial de administracion del proxy (obligatoria).
     LITELLM_BASE_URL    URL del proxy. Por defecto http://localhost:4000
                          (el puerto que docker-compose.yml publica al host).
+    LITELLM_KEY_MAX_BUDGET_USD
+                        Techo de gasto por key en USD. Por defecto 5 (desarrollo);
+                        en produccion se exporta 50 (el dimensionado del capstone
+                        §3.4). Debe ser un numero mayor que 0.
 """
 
 from __future__ import annotations
@@ -54,9 +58,13 @@ _AGENT_MODELS: dict[str, list[str]] = {
 # Una key existente puede conservar esa metadata de antes: es inerte, porque
 # ya no existe el guardarrail global al que se referia.
 
-# Techo de gasto por key (propuesta litellm-key-budgets): mismo importe y
-# periodo para las 5, ver design.md para la justificacion.
-_MAX_BUDGET_USD = 5
+# Techo de gasto por key. El importe se lee de LITELLM_KEY_MAX_BUDGET_USD
+# (change litellm-key-budget-configurable): 5 USD por defecto en desarrollo,
+# 50 en produccion (el dimensionado del capstone §3.4). El upsert de abajo
+# nunca pisa un budget ya puesto, asi que cambiar la variable no reescribe las
+# keys ya aprovisionadas de otro entorno; ver design.md. El periodo es fijo.
+_DEFAULT_MAX_BUDGET_USD = 5.0
+_MAX_BUDGET_ENV_VAR = "LITELLM_KEY_MAX_BUDGET_USD"
 _BUDGET_DURATION = "30d"
 
 # Limite de ritmo por key (propuesta litellm-key-rate-limit): mismo numero
@@ -89,11 +97,13 @@ def _find_key(client: httpx.Client, alias: str) -> dict | None:
     return keys[0] if keys else None
 
 
-def _generate_key(client: httpx.Client, alias: str, models: list[str]) -> str:
+def _generate_key(
+    client: httpx.Client, alias: str, models: list[str], max_budget: float
+) -> str:
     body: dict = {
         "key_alias": alias,
         "models": models,
-        "max_budget": _MAX_BUDGET_USD,
+        "max_budget": max_budget,
         "budget_duration": _BUDGET_DURATION,
         "rpm_limit": _RPM_LIMIT,
     }
@@ -102,10 +112,12 @@ def _generate_key(client: httpx.Client, alias: str, models: list[str]) -> str:
     return response.json()["key"]
 
 
-def _missing_fields(existing: dict, desired_models: list[str]) -> dict:
+def _missing_fields(
+    existing: dict, desired_models: list[str], max_budget: float
+) -> dict:
     missing: dict = {}
     if existing.get("max_budget") is None:
-        missing["max_budget"] = _MAX_BUDGET_USD
+        missing["max_budget"] = max_budget
         missing["budget_duration"] = _BUDGET_DURATION
     if existing.get("rpm_limit") is None:
         missing["rpm_limit"] = _RPM_LIMIT
@@ -122,10 +134,30 @@ def _apply_missing_fields(client: httpx.Client, token: str, fields: dict) -> Non
     response.raise_for_status()
 
 
+def _read_max_budget() -> float:
+    """Techo de gasto por key en USD: la variable de entorno o el defecto."""
+    raw = os.environ.get(_MAX_BUDGET_ENV_VAR)
+    if raw is None or raw.strip() == "":
+        return _DEFAULT_MAX_BUDGET_USD
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f"{_MAX_BUDGET_ENV_VAR}={raw!r} no es un numero")
+    if value <= 0:
+        raise ValueError(f"{_MAX_BUDGET_ENV_VAR}={raw!r} debe ser mayor que 0")
+    return value
+
+
 def main() -> int:
     master_key = os.environ.get("LITELLM_MASTER_KEY")
     if not master_key:
         print("Error: falta LITELLM_MASTER_KEY en el entorno.", file=sys.stderr)
+        return 1
+
+    try:
+        max_budget = _read_max_budget()
+    except ValueError as exc:
+        print(f"Error: {exc}.", file=sys.stderr)
         return 1
 
     base_url = os.environ.get("LITELLM_BASE_URL", "http://localhost:4000")
@@ -139,10 +171,10 @@ def main() -> int:
             env_var = _AGENT_ENV_VAR[alias]
             existing = _find_key(client, alias)
             if existing is None:
-                key = _generate_key(client, alias, models)
+                key = _generate_key(client, alias, models, max_budget)
                 print(f"{env_var}={key}")
                 continue
-            missing = _missing_fields(existing, models)
+            missing = _missing_fields(existing, models, max_budget)
             if missing:
                 _apply_missing_fields(client, existing["token"], missing)
                 print(f"{env_var}: ya existia (alias {alias!r}), actualizada con {sorted(missing)}")
