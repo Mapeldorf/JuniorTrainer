@@ -36,6 +36,18 @@ entorno sin modificar el codigo de los agentes.
 - **WHEN** se ejecuta el juez
 - **THEN** no se escribe en la base de datos ni se modifica ningun dato de la aplicacion
 
+### Requirement: Credencial propia del juez
+El sistema SHALL autenticar las llamadas del juez al proxy con una credencial propia,
+restringida al modelo del juez, y SHALL no usar la `master_key` de administracion.
+
+#### Scenario: Credencial propia
+- **WHEN** el juez llama al proxy de LiteLLM
+- **THEN** la llamada se autentica con la virtual key propia del juez, no con la `master_key`
+
+#### Scenario: Uso atribuible y revocable
+- **WHEN** se consulta o se revoca la virtual key del juez
+- **THEN** afecta solo a las llamadas del juez, no a las de los agentes
+
 ### Requirement: Conjunto de calibracion versionado y puntuacion humana separada
 El sistema SHALL mantener en el repositorio un conjunto de ejercicios a juzgar y un
 fichero aparte con las puntuaciones humanas sobre los mismos ejercicios, de modo que el

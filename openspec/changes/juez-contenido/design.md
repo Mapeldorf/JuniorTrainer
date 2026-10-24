@@ -38,9 +38,10 @@ el camino del usuario.
 resuelve por variable de entorno (`JUDGE_MODEL`), de modo que cambiar de juez es cambiar
 una variable, sin tocar código. El criterio es que **no** sea ninguno de los cuatro roles
 de producción, para evitar el sesgo de autopreferencia. El juez se autentica contra
-LiteLLM con la **master key**: es una herramienta de administración/offline (como
-`provision_keys.py`), no un agente del producto, y no tiene sentido darle una virtual key
-con presupuesto de negocio.
+LiteLLM con su **propia virtual key** (`AGENT_JUDGE_LITELLM_KEY`), restringida al alias
+`judge` y aprovisionada como las de los agentes: es lo que exige el principio de
+`litellm-agent-keys` —cada consumidor del proxy con su credencial propia, ninguna con la
+master key— y mantiene su uso atribuible y revocable por separado.
 
 **3. Rúbrica de cinco criterios, cada uno 0–2, con justificación obligatoria.** Los cinco
 criterios son la traducción directa de lo que piden los prompts (§5.6):

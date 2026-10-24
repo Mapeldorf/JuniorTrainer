@@ -52,8 +52,9 @@ model_list:
   # Juez offline de calidad pedagogica (capstone §5.6, change juez-contenido):
   # un modelo frontier DISTINTO de los cuatro roles de produccion, para evitar
   # el sesgo de autopreferencia. No recibe trafico de negocio ni tiene fallback;
-  # solo lo llama `evals/judge.py` desde el host, con la master key. La redaccion
-  # global de PII (presidio-pii) le aplica como a cualquier deployment.
+  # solo lo llama `evals/judge.py` desde el host, con su propia virtual key
+  # (`AGENT_JUDGE_LITELLM_KEY`, aprovisionada como las de los agentes). La
+  # redaccion global de PII (presidio-pii) le aplica como a cualquier deployment.
   - model_name: judge
     litellm_params:
       model: os.environ/JUDGE_MODEL

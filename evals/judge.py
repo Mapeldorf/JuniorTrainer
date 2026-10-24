@@ -3,8 +3,9 @@
 Instrumento de medida, NO un agente ni un servicio A2A: puntua ejercicios con una
 rubrica de cinco criterios usando un modelo frontier (alias `judge` de LiteLLM)
 distinto de los cuatro de produccion, y se calibra contra puntuaciones humanas.
-Solo biblioteca estandar; llama a LiteLLM por HTTP con la master key (es una
-herramienta de administracion/offline, no un agente del producto).
+Solo biblioteca estandar; llama a LiteLLM por HTTP con su **propia virtual key**
+(`AGENT_JUDGE_LITELLM_KEY`), como cualquier otro consumidor del proxy: nunca con
+la master key de administracion.
 
 Uso (desde la raiz del repositorio):
 
@@ -189,13 +190,14 @@ def render_summary(report: dict) -> str:
 
 def _preflight() -> tuple[str, str, str]:
     model = os.environ.get("JUDGE_MODEL", "").strip()
-    master_key = os.environ.get("LITELLM_MASTER_KEY", "").strip()
+    judge_key = os.environ.get("AGENT_JUDGE_LITELLM_KEY", "").strip()
     base_url = os.environ.get("LITELLM_BASE_URL", "").strip()
     missing = [name for name, value in
-               (("JUDGE_MODEL", model), ("LITELLM_MASTER_KEY", master_key), ("LITELLM_BASE_URL", base_url)) if not value]
+               (("JUDGE_MODEL", model), ("AGENT_JUDGE_LITELLM_KEY", judge_key),
+                ("LITELLM_BASE_URL", base_url)) if not value]
     if missing:
         raise SystemExit(f"faltan variables de entorno: {', '.join(missing)}")
-    return model, master_key, base_url
+    return model, judge_key, base_url
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -213,10 +215,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"dataset invalido: {exc}", file=sys.stderr)
         return 2
 
-    model, master_key, base_url = _preflight()
+    model, judge_key, base_url = _preflight()
 
     def invoke(system: str, user: str) -> str:
-        return call_judge(base_url, master_key, model, system, user, args.timeout)
+        return call_judge(base_url, judge_key, model, system, user, args.timeout)
 
     judged = [judge_case(case, invoke) for case in cases]
     report = build_report(judged, human, model)
