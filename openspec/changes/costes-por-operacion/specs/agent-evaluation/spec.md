@@ -109,6 +109,25 @@ El sistema SHALL contar las busquedas web y las lecturas de repositorio de cada 
 - **WHEN** el agente de codigo lee ficheros del repositorio
 - **THEN** las lecturas se cuentan por caso y su coste es cero
 
+### Requirement: Costes unitarios de la formacion
+El sistema SHALL calcular, para cada nivel de uso, el coste por ejercicio guardado, el coste por evaluacion y el coste de formar a un alumno, entendido como sus evaluaciones mas su parte del coste de generacion de su equipo, sin estimar ahorros ni beneficios.
+
+#### Scenario: Coste por ejercicio guardado
+- **WHEN** se conoce el coste de la fase de generacion de un tech lead y los ejercicios guardados
+- **THEN** el coste por ejercicio guardado es su cociente
+
+#### Scenario: Coste por evaluacion
+- **WHEN** se calcula el coste de evaluar una respuesta
+- **THEN** es el del evaluador mas el del revisor
+
+#### Scenario: Coste de formar a un alumno
+- **WHEN** un equipo tiene dos alumnos que resuelven 500 ejercicios cada uno
+- **THEN** el coste por alumno es 500 evaluaciones mas la mitad del coste de generacion del equipo
+
+#### Scenario: Sin ahorros
+- **WHEN** se presentan los costes unitarios
+- **THEN** el informe no incluye ningun ahorro, retorno ni punto de equilibrio
+
 ### Requirement: Efecto de la memoria de los agentes
 El sistema SHALL calcular el coste de generar con y sin acierto de memoria de los agentes web y de codigo, y SHALL estimar los fallos de memoria de una campana como el menor entre el numero de generaciones y el de claves distintas posibles segun los repositorios y tecnologias de un proyecto.
 

@@ -17,7 +17,7 @@ Ver `proposal.md`. Lo comprobado antes de decidir:
 - Separar con claridad lo **medido** (tokens y coste de llamadas reales) de lo **supuesto** (el uso de la campaña).
 
 **Non-Goals:**
-- Calcular el coste del no-sistema (minutos de tech lead por ejercicio × coste por hora): el uso del tech lead es puntual y condensado en una franja corta, así que un coste por hora no es representativo (decisión del usuario).
+- Calcular el ahorro o el retorno de la formación, ni como coste del no-sistema (horas de tech lead: su uso es puntual y condensado en una franja corta) ni como inferencia o especificaciones evitadas por los juniors en proyectos reales: no es calculable, igual que no lo es el retorno de formar a un empleado (decisión del usuario). Tampoco un punto de equilibrio, que exigiría estimar ese ahorro.
 - Contabilidad de facturación o alertas de gasto.
 - Reducir el coste (optimizar prompts, ajustar modelos).
 - Preciar el respaldo en Hugging Face.
@@ -58,6 +58,8 @@ Los supuestos viven en `evals/cost_assumptions.json`: equipos por nivel, juniors
 - El plan es **de la organización**: la cuota se paga una vez por mes con uso, no por equipo. El cálculo de campaña suma los créditos de todos los equipos, resta los incluidos y cobra el exceso. En la tabla *por operación* se muestra además un coste marginal por búsqueda con el precio adicional (0,008), etiquetado como tal, porque una operación suelta no tiene cuota propia.
 - Si el plan no está definido, el coste de generar se marca como incompleto en lugar de omitirse en silencio. Si la demanda excede el plan gratuito, que no admite exceso, el informe lo dice.
 - Tavily publica el importe en dólares y el usuario lo plantea en euros: los costes se expresan en USD y no se convierten divisas.
+
+**6c. Se mide el coste, no el retorno.** El beneficio del sistema (juniors capaces de depurar cambios puntuales y atómicos con una comprensión mínima, sin gasto de inferencia, y de plantear mejores especificaciones) es una premisa cualitativa del proyecto y no se cuantifica. Lo que sí se puede dar con rigor son los **costes unitarios**: por ejercicio guardado (coste de generación de un tech lead ÷ 500), por evaluación (evaluador + revisor) y por junior formado (sus 500 evaluaciones más la mitad de la generación del equipo, que comparten los 2 juniors). Con ellos, quien decida puede razonar la inversión sin que el informe le imponga un ahorro inventado.
 
 **7. Modelo de referencia por rol, definido en la tabla de precios.** Opus 5.5 para web, código y ejercicios (el trabajo pesado) y Haiku 5.5 para validador, evaluador y revisor. Se reutilizan los tokens medidos y solo cambian los precios. Es una cota inferior de lo que costaría de verdad: otro modelo gastaría otros tokens (más o menos razonamiento, otra verbosidad). El informe lo dice.
 

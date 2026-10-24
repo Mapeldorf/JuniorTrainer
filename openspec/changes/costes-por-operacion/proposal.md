@@ -13,6 +13,7 @@ Se ha comprobado que no hace falta construir una contabilidad nueva: cada respue
 - Un **calculador de costes** (`evals/costs.py`) que, a partir de un informe real, los precios y unos supuestos de uso editables, produce:
   - coste por operación (validar una tecnología, evaluar una respuesta, generar sin repositorio, generar con repositorio), desglosado por etapa;
   - coste de una **campaña de incorporación** en tres niveles de tamaño (1, 5 y 30 equipos, que son los 1, 5 y 30 tech leads de los niveles piloto, equipo y organización del capstone): el uso real no es estacionario, así que se modela por fases —generación inicial, resolución por los juniors en 2 semanas y régimen posterior con las incorporaciones anuales y la generación a demanda— y se compara el mes más cargado con el presupuesto de 5 USD/30 días por clave;
+  - **costes unitarios de la formación**: coste por ejercicio guardado, por evaluación y por junior formado (sus evaluaciones más su parte de la generación del equipo), que son los números con los que se puede razonar la inversión;
   - efecto de la memoria de los agentes web y de código (con y sin acierto);
   - comparativa con un modelo de referencia: Opus 5.5 para web, código y ejercicios, y Haiku 5.5 para validador, evaluador y revisor;
 - La sección §3.8 del capstone, redactada con los resultados.
@@ -29,7 +30,7 @@ Se ha comprobado que no hace falta construir una contabilidad nueva: cada respue
 
 ### Fuera de alcance
 
-El **coste del no-sistema** (minutos de tech lead por ejercicio × coste por hora), que el capstone proponía como cifra que justifica el proyecto: el usuario indica que un coste por hora del tech lead no es representativo, porque su uso es puntual y condensado en una franja corta tras recibir el producto. No se calcula ni se pide ningún dato para ello.
+**Cuantificar el ahorro o el retorno.** El capstone proponía el coste del no-sistema (horas de tech lead) como la cifra que justifica el proyecto. El usuario descarta cualquier cálculo de ahorro: ni horas del tech lead (su uso es puntual y condensado en una franja corta), ni inferencia o especificaciones que los juniors se ahorrarían después en tareas reales en proyectos, porque no es calculable, igual que no lo es el retorno de formar a un empleado. §3.8 da el **coste** de la formación y presenta su beneficio como una premisa cualitativa: preparar a los juniors para depurar cambios puntuales y atómicos sin recurrir a inferencia y para plantear mejores especificaciones. No se compara ni se calcula un punto de equilibrio.
 
 Facturación real, alertas de gasto, optimización de prompts para gastar menos, el caché de prompts del proveedor (`input_cache_read`) y cualquier cambio en el código de los agentes.
 
