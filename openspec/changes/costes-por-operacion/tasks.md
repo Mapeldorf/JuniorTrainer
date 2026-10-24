@@ -26,6 +26,6 @@
 
 ## 4. Medición y documentación
 
-- [ ] 4.1 Ejecutar el modo real sobre los seis agentes con la captura activa (a cargo del usuario, con el stack levantado) y generar el informe de costes con `python -m evals.costs`; verificar que no hay agentes «sin datos» y que el coste medido coincide con el calculado
+- [x] 4.1 Ejecutar el modo real sobre los seis agentes con la captura activa (a cargo del usuario, con el stack levantado) y generar el informe de costes con `python -m evals.costs`; verificar que no hay agentes «sin datos» y que el coste medido coincide con el calculado
 - [ ] 4.2 Redactar §3.8 del capstone con las tablas generadas, los supuestos y los límites, y actualizar las referencias de §3.4, §5.7 y el glosario; indicando en el punto del coste del no-sistema que no se calcula ningún ahorro y por qué, y añadiendo en §1.1 las premisas cualitativas de la formación —depurar cambios puntuales y atómicos sin recurrir a inferencia, plantear mejores especificaciones y liberar a tech leads y compañeros del acompañamiento de los juniors— sin cifras; verificar que no queda «Sección pendiente» en §3.8 y que cada cifra del texto coincide con el informe
 - [x] 4.3 Documentar en `evals/README.md` cómo medir y calcular costes; verificar que los comandos documentados se ejecutan tal cual
