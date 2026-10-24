@@ -83,34 +83,50 @@ El sistema SHALL calcular el coste de una campana de incorporacion para los nive
 - **THEN** aparece el reparto del coste total entre las tres fases y entre generacion y evaluacion
 
 ### Requirement: Coste de busquedas y lecturas externas
-El sistema SHALL contar las busquedas web y las lecturas de repositorio de cada caso del agente web y del de codigo, SHALL incluir en el coste de generar el precio por busqueda configurado en la tabla de precios, y SHALL informar como incompleto cualquier coste de generacion cuyo precio por busqueda no este configurado.
+El sistema SHALL contar las busquedas web y las lecturas de repositorio de cada caso, SHALL calcular el coste de las busquedas como la cuota mensual del plan configurado mas los creditos que excedan los incluidos al precio del credito adicional, y SHALL informar de cualquier plan cuyos creditos no basten y no admita exceso.
 
 #### Scenario: Busquedas contadas
 - **WHEN** el agente web realiza busquedas en un caso
 - **THEN** el registro del caso incluye cuantas hizo, sin contar las que el presupuesto rechaza
 
-#### Scenario: Con precio por busqueda
-- **WHEN** la tabla de precios define el precio por busqueda
-- **THEN** el coste de generar incluye las busquedas multiplicadas por ese precio, mostrado como una etapa aparte
+#### Scenario: Dentro de los creditos incluidos
+- **WHEN** los creditos consumidos en la campana no superan los incluidos en el plan
+- **THEN** el coste de las busquedas es la cuota mensual del plan por los meses con uso
 
-#### Scenario: Sin precio por busqueda
-- **WHEN** la tabla de precios no define el precio por busqueda
+#### Scenario: Por encima de los creditos incluidos
+- **WHEN** los creditos consumidos superan los incluidos
+- **THEN** el coste suma la cuota y el exceso de creditos multiplicado por el precio del credito adicional
+
+#### Scenario: Plan gratuito insuficiente
+- **WHEN** la demanda supera los creditos del plan gratuito
+- **THEN** el informe indica que el plan no basta en lugar de calcular un coste
+
+#### Scenario: Precio no configurado
+- **WHEN** la tabla de precios no define el plan de busqueda
 - **THEN** el coste de generar se muestra solo con el coste del modelo y marcado como incompleto
 
 #### Scenario: Lecturas de repositorio
 - **WHEN** el agente de codigo lee ficheros del repositorio
-- **THEN** las lecturas se cuentan por caso y no se les asigna precio salvo que la tabla lo defina
+- **THEN** las lecturas se cuentan por caso y su coste es cero
 
 ### Requirement: Efecto de la memoria de los agentes
-El sistema SHALL calcular el coste de generar con y sin acierto de memoria de los agentes web y de codigo, y SHALL aplicar una tasa de acierto configurable en los escenarios de uso.
+El sistema SHALL calcular el coste de generar con y sin acierto de memoria de los agentes web y de codigo, y SHALL estimar los fallos de memoria de una campana como el menor entre el numero de generaciones y el de claves distintas posibles segun los repositorios y tecnologias de un proyecto.
 
 #### Scenario: Con acierto
 - **WHEN** se calcula una generacion con acierto de memoria en web y codigo
 - **THEN** no incluye el coste de esos dos agentes
 
-#### Scenario: Tasa intermedia
-- **WHEN** la tasa de acierto configurada es del 50 %
-- **THEN** el coste esperado de esos agentes es la mitad del coste sin acierto
+#### Scenario: Claves distintas acotan los fallos
+- **WHEN** un proyecto tiene 5 repositorios y 15 tecnologias y genera 185 veces
+- **THEN** los fallos de memoria del agente de codigo son como mucho 75 y los del agente web como mucho 15
+
+#### Scenario: Menos generaciones que claves
+- **WHEN** las generaciones son menos que las claves posibles
+- **THEN** los fallos no superan el numero de generaciones
+
+#### Scenario: Sensibilidad
+- **WHEN** se piden mas claves distintas por generacion que las del supuesto base
+- **THEN** el informe muestra como cambia el coste de generar
 
 ### Requirement: Comparativa con modelos de referencia
 El sistema SHALL calcular el coste de las mismas operaciones, con los mismos tokens medidos, usando los precios de un modelo de referencia por rol configurable en la tabla de precios, y SHALL informar la diferencia frente al coste medido.
