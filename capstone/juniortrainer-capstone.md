@@ -565,7 +565,7 @@ consciente, no un descuido.
 | Modelos frontier cerrados | Coste por operación entre uno y dos órdenes de magnitud mayor para una tarea que no necesita ese techo de capacidad, y dependencia de un proveedor único para procesar código propietario de clientes. Son, eso sí, los candidatos naturales para el **juez de evaluación offline** (§5.6), donde el coste es irrelevante porque las ejecuciones son contadas. |
 | Inferencia local (Ollama, vLLM en una máquina del equipo) | Incompatible con el presupuesto de 45 s del camino síncrono en hardware razonable. Sigue siendo el destino natural del sistema si un cliente exige que el código no salga de su red, y es precisamente para eso que todos los modelos elegidos son open-weight. |
 | Un único modelo para los cuatro roles | Más simple de operar, y pierde lo único que hace fiable la evaluación: la independencia entre las dos pasadas. |
-| Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. **Matiz medido (§3.8):** los modelos elegidos razonan igualmente, y entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, que se facturan como salida. |
+| Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. **Matiz medido (§3.8):** los modelos elegidos razonan igualmente, y entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, que se facturan como salida. **Experimento (§3.8, apartado 14):** recortar ese razonamiento con `effort` en los GLM (revisor, validador) baja el coste y la latencia a la mitad o menos sin perder calidad en la muestra; DeepSeek solo honra el apagado completo, y `off` es incompatible con el primario GLM (lo tumba y la llamada cae al fallback). |
 
 ### 3.4 Forma de consumo: LiteLLM como centralita
 
@@ -950,7 +950,7 @@ El respaldo no dispara el coste: queda en el mismo orden de magnitud que el prim
 
 **11. Tres hallazgos de la medición**
 
-- **Casi toda la salida de tres agentes es razonamiento.** Entre el 72 % y el 81 % de los tokens de salida del revisor (81 %), el agente de ejercicios (76 %) y el validador (72 %) son tokens de razonamiento: un borrador interno que el modelo escribe antes de responder y que el proveedor factura como salida. §3.3 descartó los modelos de razonamiento porque ninguna tarea los necesita; los modelos configurados razonan igualmente, como se observa en sus respuestas. Es la palanca de coste y de latencia más clara que ha salido de esta medición, y apagar o limitar el razonamiento es un experimento pendiente que debe medirse con la suite de §5.5 (coste y calidad), no darse por bueno.
+- **Casi toda la salida de tres agentes es razonamiento.** Entre el 72 % y el 81 % de los tokens de salida del revisor (81 %), el agente de ejercicios (76 %) y el validador (72 %) son tokens de razonamiento: un borrador interno que el modelo escribe antes de responder y que el proveedor factura como salida. §3.3 descartó los modelos de razonamiento porque ninguna tarea los necesita; los modelos configurados razonan igualmente, como se observa en sus respuestas. Es la palanca de coste y de latencia más clara que ha salido de esta medición; recortarlo se midió después con la suite de §5.5 (apartado 14): en los GLM baja el coste y la latencia a la mitad o menos sin perder calidad en la muestra.
 - **El revisor, no el evaluador, es el coste de evaluar.** Pesa el 77 % del coste de una evaluación, porque razona mucho más (266 frente a 36 tokens de razonamiento de media). Como la evaluación es la fase más numerosa, esa diferencia es la que más se nota en la campaña.
 - **El precio de lista no sirve para predecir lo facturado.** La razón entre lo facturado y los tokens medidos al precio de lista va de 0,73 a 1,40 según el agente; lo más probable es que OpenRouter enrute a proveedores con precios distintos al que publica. Por eso las cifras de esta sección usan el coste facturado siempre que el proveedor lo informa.
 
@@ -963,6 +963,35 @@ El respaldo no dispara el coste: queda en el mismo orden de magnitud que el prim
 - Los supuestos marcados como hipótesis (ejercicios nuevos al año, proporción con repositorio, holgura del tope, fracciones de respaldo, multiplicadores de claves) son entradas editables en `evals/cost_assumptions.json`, no datos medidos.
 - El coste facturado es el del modelo que respondió, primario o respaldo; el alias no los distingue.
 - Los precios cambian: se guardan con fecha y fuente (24 de octubre de 2026) y se refrescan con un comando.
+
+**14. Experimento: coste del razonamiento por nivel.** Medido el 24 de octubre de 2026 con el flag `--reasoning` (solo modo real) sobre los tres agentes que más razonan y el evaluador como control, con `--limit-per-set 20` (validador 16 tras el pre-filtro, ejercicios 7). La palanca fija el esfuerzo de razonamiento del modelo —objeto `reasoning` de OpenRouter inyectado en la llamada, sin tocar los agentes— y se vuelve a medir coste y calidad. Coste medio por llamada (facturado) y razonamiento medio por caso:
+
+| Agente (modelo) | Nivel | Razon. tok | Coste/llamada (USD) | p50 latencia (ms) | Calidad |
+|---|---|---|---|---|---|
+| revisor (GLM-5.3-FlashX) | baseline | 231 | 0,000457 | 3.184 | validez/adherencia 1,00 |
+| | effort=low | 0 | 0,000168 | 2.171 | 1,00 |
+| | effort=medium | 0 | 0,000127 | 2.172 | 1,00 |
+| | effort=high | 17 | 0,000188 | 2.250 | 1,00 |
+| validador (GLM-5.3-Flash) | baseline | 345 | 0,000082 | 2.921 | gate FP 1, FN 0 |
+| | effort=low | 218 | 0,000061 | 2.144 | FP 0, FN 0 |
+| | effort=medium | 180 | 0,000047 | 1.564 | FP 0, FN 0 |
+| | effort=high | 246 | 0,000059 | 1.808 | FP 0, FN 0 |
+| ejercicios (DeepSeek-V4.1-Flash) | baseline | 1.621 | 0,001616 | 9.966 | cardinalidad 1,00 |
+| | off | 393 | 0,000790 | 3.073 | cardinalidad 1,00 |
+| evaluador (control, DeepSeek) | baseline | 40 | 0,000179 | 1.512 | exactitud 1,00 |
+
+Tres lecturas, que son el resultado tanto como las cifras:
+
+- **Qué modelo honra la palanca, y cómo, es parte del hallazgo.** Los GLM (revisor, validador) honran `effort` en el primario: recortan el razonamiento y bajan el coste medio por llamada y la latencia a la mitad o menos, y en esta muestra **sin perder calidad** (validez y adherencia siguen en 1,00; el gate del validador incluso pierde su único falso positivo). DeepSeek (ejercicios, evaluador) honra el **apagado** (`off`) —ejercicios pasa de 0,001616 a 0,000790 USD y de 9,9 a 3,1 s— pero **ignora la granularidad `effort`** (con `effort=low` el razonamiento no baja, incluso sube), por eso no aparece en la tabla.
+- **`off` es incompatible con el primario GLM.** Mandar `reasoning:{enabled:false}` hace que la llamada al primario GLM falle (`status=failure`) y LiteLLM la sirva con el fallback de Hugging Face, que el proxy registra a coste cero; no mide, por tanto, «el primario GLM sin razonamiento». Se vio en los `/spend/logs` de LiteLLM: todas las llamadas `off` del revisor y 17 de 20 del validador salieron por el deployment de Hugging Face. Para recortar razonamiento en los GLM hay que usar `effort`, no `off`.
+- **Posible coste de calidad en ejercicios, por confirmar.** Con menos razonamiento el solapamiento de temas máximo entre generaciones consecutivas sube (de 0,28 a entre 0,41 y 0,53). Es una señal débil —7 casos y es el máximo de un par, no la media— pero es lo único que apunta a una pérdida y por eso se deja escrito.
+
+Caveats: muestra corta (apartados 1 y 13); la comparación entre niveles es **relativa**, así que vale aunque las etiquetas del dataset sigan siendo provisionales (§5.5); el coste del `off` de los GLM no es medible en el primario (cae al fallback). El experimento completo costó del orden de 0,09 USD. Se reproduce con la receta de `evals/README.md` (sección «Experimento: coste del razonamiento»):
+
+```bash
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 20
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 20 --reasoning effort=low
+```
 
 **Cómo reproducirlo**, desde la raíz del repositorio y con el stack levantado:
 
