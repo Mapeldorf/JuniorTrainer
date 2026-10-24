@@ -133,9 +133,11 @@ python -m unittest evals.test_judge         # sus tests, sin red
 - **Entrada:** `evals/datasets/judge.jsonl` (una línea por ejercicio: `id`, `type`,
   `statement`, `code`, `expected_answer`).
 - **Rúbrica:** `unicidad_de_concepto`, `autosuficiencia`, `nivel`, `calidad_del_fallo`
-  (solo `debug`; `null` en `knowledge`) y `utilidad_de_la_justificacion`; cada una 0–2, con
-  justificación obligatoria. Salida JSON validada; si no cumple, un reintento y, si vuelve
-  a fallar, el ejercicio cuenta como **no juzgado** (no como puntuación).
+  (solo `debug`; `null` en `knowledge`) y `utilidad_de_la_justificacion`; cada una 0–2 **con
+  una ancla operativa por nivel** (las mismas definiciones en el prompt del juez y en la
+  valoración humana, para que calibración y juez midan lo mismo). Salida JSON validada; si no
+  cumple, un reintento y, si vuelve a fallar, el ejercicio cuenta como **no juzgado** (no como
+  puntuación).
 - **Calibración:** las puntuaciones humanas viven aparte, en `evals/datasets/judge.human.json`,
   y se rellenan **a ciegas** de las del juez. Se mide el κ de Cohen por criterio; si es
   bajo, se corrige la rúbrica, no el resultado.

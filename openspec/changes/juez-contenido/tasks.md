@@ -22,7 +22,7 @@
 ## 4. Ejecución y calibración reales
 
 - [x] 4.1 Ejecutar el juez contra el stack levantado (modelo `openrouter/anthropic/claude-sonnet-4.6`) y verificar que juzga los 10 ejercicios de Angular sin escrituras en la base de datos
-- [x] 4.2 Puntuar la misma muestra a ciegas (tech lead) y calcular el κ por criterio. Hecho: κ **global 0,312** (acuerdo *justo*); por criterio, nivel 0,531, unicidad 0,355, utilidad 0,167, autosuficiencia 0,118, calidad del fallo 0,111. Acuerdo bajo → **la rúbrica necesita revisión** antes de usar el juez como señal de regresión; queda como siguiente paso, no ejecutado
+- [x] 4.2 Puntuar la misma muestra a ciegas (tech lead) y calcular el κ por criterio. Con la rúbrica **anclada** (definición por nivel, la misma para juez y humano), κ **global 0,475** (acuerdo moderado): unicidad 0,796, nivel 0,677, utilidad 0,375, autosuficiencia 0,286, calidad del fallo −0,091 (solo 4 pares). Subió desde 0,312 en la ronda con la rúbrica laxa, lo que **confirma que el problema era la definición de la rúbrica**. Siguen flojos `autosuficiencia` y `calidad_del_fallo` (esta última con muestra mínima): revisarlos es el siguiente paso, no ejecutado
 - [x] 4.3 Documentar en `evals/README.md` cómo se ejecuta el juez, el formato de la rúbrica y el de las puntuaciones humanas, y que no corre en CI (necesita modelo)
 - [ ] 4.4 Actualizar §5.6 del capstone con el estado real (implementado y en ejecución, sin calibrar) — va en rama aparte, tras el merge
 
