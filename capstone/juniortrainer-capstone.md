@@ -607,16 +607,17 @@ completa campos que falten y no pisa lo ajustado a mano—:
 
 **Sobre el presupuesto de 50 USD.** Es un tope por clave y por 30 días, y es una
 medida de seguridad que fija quien opera el sistema, no un límite del producto. El
-valor que lleva hoy `provision_keys.py` es **5 USD**, el que el autor aplica en
-desarrollo como protección personal; el documento dimensiona el de despliegue en
-50 USD porque 5 se queda corto a escala de organización. La campaña de incorporación
-de §3.8 concentra el gasto en pocas semanas, y con 30 equipos el pico de una sola
-clave en 30 días (la del revisor) llega a unos 16 USD, tres veces el valor de 5 USD:
-con 50 USD queda una holgura de unas tres veces sobre ese pico y el tope sigue
-cumpliendo su función (un bucle a 60 peticiones por minuto lo agotaría en unas horas
-con el agente de código y en un día con el revisor, no en semanas). Para un cliente, el tope se subiría o se quitaría y la inferencia se
-consumiría directamente por API. Alinear `provision_keys.py` con este valor es un
-cambio pendiente.
+importe es **configurable por entorno**: `provision_keys.py` lo lee de
+`LITELLM_KEY_MAX_BUDGET_USD`, con **5 USD por defecto** —el que el autor aplica en
+desarrollo como protección personal— y **50 USD en despliegue** (el que exporta
+producción, y el que muestra la tabla), porque 5 se queda corto a escala de
+organización. La campaña de incorporación de §3.8 concentra el gasto en pocas semanas,
+y con 30 equipos el pico de una sola clave en 30 días (la del revisor) llega a unos
+16 USD, más de tres veces el valor de desarrollo: con 50 USD queda una holgura de unas
+tres veces sobre ese pico y el tope sigue cumpliendo su función (un bucle a 60
+peticiones por minuto lo agotaría en unas horas con el agente de código y en un día
+con el revisor, no en semanas). Para un cliente, el tope se subiría o se quitaría y la
+inferencia se consumiría directamente por API.
 
 La restricción por modelo no es cosmética: si el agente de código fuera
 comprometido, su credencial no podría invocar al evaluador ni al validador. Y el
@@ -925,7 +926,7 @@ El plan gratuito alcanza en los tres niveles, pero con 30 equipos roza el límit
 | reviewer | 0,53 | 2,63 | 15,78 |
 | **Tope que cubre el pico (USD / 30 días)** | **5** | **10** | **50** |
 
-Con el tope de 5 USD que se aplica hoy, ninguna clave lo supera en el piloto ni en el nivel de equipo, pero a escala de organización lo superarían code, exercises y reviewer. Por eso §3.4 dimensiona el tope de despliegue en 50 USD. Es una medida de seguridad personal, no un límite del producto: para un cliente se subiría o se quitaría y la inferencia se consumiría por API.
+El tope por clave es configurable (`LITELLM_KEY_MAX_BUDGET_USD`): con el valor de desarrollo, 5 USD, ninguna clave lo supera en el piloto ni en el nivel de equipo, pero a escala de organización lo superarían code, exercises y reviewer, así que el despliegue exporta 50 USD (§3.4). Es una medida de seguridad, no un límite del producto: para un cliente se subiría o se quitaría y la inferencia se consumiría por API.
 
 **9. Si el modelo primario falla.** LiteLLM reintenta con el respaldo de Hugging Face (DeepSeek-V4.1-Flash para el generador y el evaluador; GLM-5.3-Flash para el revisor y el validador). Su precio depende del proveedor de inferencia al que enrute Hugging Face, así que se da un rango (proveedor más barato y más caro) con los mismos tokens medidos. **La fracción real de llamadas que cae al respaldo no se mide** (el alias que ve el cliente no distingue qué modelo contestó): son escenarios, no una predicción.
 
@@ -2115,7 +2116,7 @@ traza documental de por qué existe cada uno.
 |---|---|---|---|
 | 13 | Rate limiting **por usuario** (no por IP): 30/min general, 5/min generar, 3/min invitar | Abuso del gasto en IA; que compartir IP comparta cuota; esquivar el límite cambiando de IP | `backend/app/rate_limit.py` (`api-rate-limiting`) |
 | 14 | Rate limiting por agente (60/min), evaluado **antes** de comprobar la credencial | Aluvión de peticiones internas, incluso con token válido | `agents/*/app/rate_limit.py` |
-| 15 | Presupuesto por clave a 30 días (5 USD hoy; 50 dimensionado en §3.4) y 60 rpm **por virtual key** | Consumo ilimitado por bucle o abuso, acotado por agente | `provision_keys.py` (`litellm-key-budgets`, `litellm-key-rate-limit`) |
+| 15 | Presupuesto por clave a 30 días (configurable: 5 USD en desarrollo, 50 en despliegue, §3.4) y 60 rpm **por virtual key** | Consumo ilimitado por bucle o abuso, acotado por agente | `provision_keys.py` (`litellm-key-budgets`, `litellm-key-budget-configurable`, `litellm-key-rate-limit`) |
 | 16 | Presupuestos de operaciones por tarea (5 búsquedas, 10 ficheros, 3 consultas) consumidos **antes** de actuar | Bucles de herramienta | `agents/*/app/tools/` |
 | 17 | Límite de cuerpo HTTP de 1 MiB, con middleware **ASGI puro** que corta sin bufferizar | Agotamiento de memoria; un `BaseHTTPMiddleware` bufferizaría el cuerpo y anularía el objetivo | `backend/app/body_size_limit.py` (`api-body-size-limit`) |
 
