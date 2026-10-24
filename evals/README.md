@@ -77,6 +77,22 @@ Validez de salida · adherencia a límites (enunciado ≤ 50 palabras, nombre �
 
 Una métrica sin casos aparece como `n/d`, no como cero.
 
+## Costes (capstone §3.8)
+
+Con el modo real, cada caso guarda los tokens (entrada, salida y razonamiento) y el coste facturado que informa el proveedor. `evals.costs` los convierte en las tablas de §3.8:
+
+```bash
+python -m evals.run --mode real --agents evaluator,reviewer,validator,exercises,web,code --limit-per-set 10
+EVALS_REAL_REPO=propietario/repo@commit EVALS_REAL_TECHNOLOGIES=Angular,TypeScript python -m evals.run --mode real --agents code --limit-per-set 3
+python -m evals.costs evals/results/<informe-1>.json evals/results/<informe-2>.json   # el ultimo informe manda por agente
+python -m evals.update_prices                                                       # refresca evals/prices.json desde OpenRouter
+```
+
+- **Entradas:** los informes reales, `prices.json` (precios con fecha y fuente, modelos de produccion y de referencia, planes de Tavily) y `cost_assumptions.json` (supuestos de uso; cada uno lleva su origen: `usuario`, `capstone` o `hipotesis`). Un informe simulado se rechaza.
+- **Salida determinista** (`evals/results/<informe>-costes.{json,md}`): medicion por agente, coste por operacion con desglose, campana por fases y nivel de uso (con el pico de 30 dias frente al presupuesto de cada clave de LiteLLM, Tavily segun el plan y sensibilidad a las claves de memoria), costes unitarios, comparativa con el modelo de referencia y comprobacion cruzada de lo facturado frente al precio de lista.
+- **Solo costes:** no calcula ahorros, retornos ni puntos de equilibrio.
+- **Limites:** la composicion por agente aproxima la cadena real (en produccion la entrada de un agente depende de la salida del anterior); el coste facturado es el del modelo que respondio, primario o respaldo, y el alias no los distingue; el modelo de referencia es una cota inferior.
+
 ## Casos adversariales
 
 Comprobación determinista en ambos modos: el contenido no confiable (respuesta del alumno, justificación propuesta, tecnologías, fragmentos de búsqueda web, ficheros del repositorio) viaja entre los delimitadores de dato en el prompt que recibe el modelo, y los datos personales los rechaza el pre-filtro antes de llamar al modelo. En modo real se cuentan además los **ataques exitosos** (un veredicto `correct` con una etiqueta distinta, o un `valid=true` donde no debía), sin que bloqueen la ejecución.

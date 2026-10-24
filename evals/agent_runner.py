@@ -553,7 +553,8 @@ def _code_probe_summary(recorder: RecordingModel | None, probe: dict, result: di
 async def _run_case(agent: str, set_name: str, case: dict, svc, input_mod, error_classes: tuple, mode: str,
                     real_builder, group_statements: dict, originals: dict, case_timeout: float) -> dict:
     record = {"id": case["id"], "set": set_name, "agent": agent, "outcome": "ok", "error": None,
-              "error_kind": None, "result": None, "calls": 0, "checks": None, "duration_ms": 0.0}
+              "error_kind": None, "result": None, "calls": 0, "usage": None, "checks": None,
+              "duration_ms": 0.0}
 
     if agent == "code" and mode == "real" and _real_repo() is None:
         record.update(
@@ -595,6 +596,9 @@ async def _run_case(agent: str, set_name: str, case: dict, svc, input_mod, error
 
     recorder = session.recorder
     record["calls"] = recorder.calls if recorder else 0
+    # Tokens y coste solo existen con un modelo real: en modo simulado el doble
+    # no los trae y se informa "no disponible" (None), no cero.
+    record["usage"] = recorder.usage_total() if recorder else None
     if agent in ("web", "code"):
         record["checks"] = _third_party_checks(agent, recorder, record["result"], probe)
         if agent == "web":

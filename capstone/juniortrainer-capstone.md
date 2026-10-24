@@ -115,6 +115,19 @@ típicos. Las dos opciones disponibles son malas:
 El coste del problema se paga dos veces: en tiempo de rampa del junior y en horas
 de senior dedicadas a formación en lugar de a producto.
 
+Hay además una razón que no aparece en esa cuenta. Un junior acostumbrado a
+resolverlo todo recurriendo a la IA no llega a entender el código del proyecto, y
+cada consulta es gasto de inferencia que se repite. Entrenarle con ejercicios del
+propio código pretende darle una base mínima y aplicable: poder resolver por sí
+mismo cambios puntuales y atómicos —de los que no compensa redactar una
+especificación— con una comprensión mínima de la tecnología y sin recurrir a
+inferencia, y plantear mejores especificaciones cuando sí hagan falta. Y los tech
+leads y el resto de compañeros pueden desatenderse en buena medida de la formación
+y el acompañamiento de los juniors mientras estos se entrenan con la aplicación, y
+dedicar esas horas a su trabajo. Son premisas del proyecto, no resultados medidos:
+igual que el retorno de formar a un empleado, su valor no se puede expresar en
+cifras. §3.8 da el **coste** de la formación, no su retorno.
+
 ### 1.2 Usuarios y roles
 
 El sistema tiene exactamente **dos roles**, y la frontera entre ellos es también

@@ -6,11 +6,92 @@ Uso (desde la raiz del repo): python -m unittest evals.test_model_wrapper
 import asyncio
 import unittest
 
-from evals.model_wrapper import RecordingModel, ScriptedModel, ScriptExhausted, is_guardrail_rejection
+from types import SimpleNamespace
+
+from evals.model_wrapper import (
+    RecordingModel,
+    ScriptedModel,
+    ScriptExhausted,
+    extract_usage,
+    is_guardrail_rejection,
+)
+
+
+def reply(content="ok", input_tokens=10, output_tokens=5, reasoning=2, cost=0.001, prompt_cost=0.0004,
+          completion_cost=0.0006):
+    """Respuesta con la forma que devuelve `langchain-openai` a traves de LiteLLM."""
+    token_usage = {"prompt_tokens": input_tokens, "completion_tokens": output_tokens}
+    if cost is not None:
+        token_usage["cost"] = cost
+        token_usage["cost_details"] = {"upstream_inference_prompt_cost": prompt_cost,
+                                       "upstream_inference_completions_cost": completion_cost}
+    return SimpleNamespace(
+        content=content,
+        usage_metadata={"input_tokens": input_tokens, "output_tokens": output_tokens,
+                        "output_token_details": {"reasoning": reasoning}},
+        response_metadata={"token_usage": token_usage},
+    )
+
+
+class FixedReplies:
+    def __init__(self, replies):
+        self._replies = list(replies)
+
+    async def ainvoke(self, messages, **kwargs):
+        return self._replies.pop(0)
 
 
 def run(coro):
     return asyncio.run(coro)
+
+
+class UsageTests(unittest.TestCase):
+    def test_extrae_tokens_razonamiento_y_coste(self):
+        usage = extract_usage(reply())
+        self.assertEqual(usage, {"input_tokens": 10, "output_tokens": 5, "reasoning_tokens": 2,
+                                 "cost": 0.001, "prompt_cost": 0.0004, "completion_cost": 0.0006})
+
+    def test_sin_coste_informado_queda_none_y_no_cero(self):
+        usage = extract_usage(reply(cost=None))
+        self.assertEqual(usage["input_tokens"], 10)
+        self.assertIsNone(usage["cost"])
+        self.assertIsNone(usage["prompt_cost"])
+
+    def test_el_doble_del_modo_simulado_no_trae_uso(self):
+        self.assertIsNone(extract_usage(SimpleNamespace(content="x")))
+
+    def test_tokens_desde_token_usage_si_falta_usage_metadata(self):
+        response = SimpleNamespace(content="x", usage_metadata=None,
+                                   response_metadata={"token_usage": {"prompt_tokens": 7, "completion_tokens": 3}})
+        usage = extract_usage(response)
+        self.assertEqual((usage["input_tokens"], usage["output_tokens"]), (7, 3))
+        self.assertIsNone(usage["reasoning_tokens"])
+
+    def test_varias_llamadas_suman(self):
+        model = RecordingModel(FixedReplies([reply(input_tokens=10, output_tokens=5, cost=0.001),
+                                             reply(input_tokens=20, output_tokens=8, cost=0.002)]))
+        run(model.ainvoke([{"role": "user", "content": "a"}]))
+        run(model.ainvoke([{"role": "user", "content": "b"}]))
+        total = model.usage_total()
+        self.assertEqual((total["calls"], total["input_tokens"], total["output_tokens"]), (2, 30, 13))
+        self.assertAlmostEqual(total["cost"], 0.003)
+        self.assertTrue(total["cost_complete"])
+
+    def test_coste_incompleto_si_una_llamada_no_lo_informa(self):
+        model = RecordingModel(FixedReplies([reply(cost=0.001), reply(cost=None)]))
+        run(model.ainvoke([{"role": "user", "content": "a"}]))
+        run(model.ainvoke([{"role": "user", "content": "b"}]))
+        total = model.usage_total()
+        self.assertAlmostEqual(total["cost"], 0.001)
+        self.assertFalse(total["cost_complete"])
+
+    def test_simulado_no_disponible_en_lugar_de_cero(self):
+        model = RecordingModel(ScriptedModel(["a"]))
+        run(model.ainvoke([{"role": "user", "content": "x"}]))
+        self.assertIsNone(model.usage_total())
+
+    def test_sin_llamadas_no_hay_uso(self):
+        self.assertIsNone(RecordingModel(ScriptedModel([])).usage_total())
 
 
 class ScriptedModelTests(unittest.TestCase):
