@@ -2247,30 +2247,72 @@ cuya corrección depende de desactivar otro control está mal colocado.
 
 ### 6.4 Análisis de riesgos
 
-> **Sección pendiente de completar.** Las entradas están identificadas; faltan la
-> valoración de probabilidad e impacto y la decisión formal de aceptación de cada
-> riesgo residual.
+El registro recoge los diez riesgos propios de este sistema —los genéricos de
+cualquier aplicación web ya los cubre §6.2—, cada uno con su control actual, una
+valoración de **probabilidad** e **impacto**, el **nivel** que resulta de ambas y el
+**tratamiento** con su decisión de aceptación.
 
-El registro de riesgos a desarrollar, con los diez que son propios de este sistema:
+**El método de valoración, para que los niveles no sean una opinión.** Probabilidad
+e impacto se puntúan en tres grados (Baja/Media/Alta y Bajo/Medio/Alto) y el nivel
+sale de combinarlos con esta matriz, no caso a caso:
 
-| # | Riesgo | Control actual | Residual preliminar |
+| | Impacto Bajo | Impacto Medio | Impacto Alto |
 |---|---|---|---|
-| 1 | **Un alumno manipula su propia corrección** por inyección en el texto de su respuesta | Delimitadores + frase defensiva; el revisor no puede cambiar el veredicto; bloqueo de Lakera en evaluador y revisor **pendiente de medir** su tasa de falsos positivos | **El riesgo más propio del dominio**: es el único actor con incentivo directo, y hoy su única defensa activa es la instrucción. A cuantificar en el red teaming (§6.5) |
-| 2 | Inyección desde el contenido de un repositorio hacia el agente de código | Delimitadores; validación de rutas contra el árbol real; agente sin capacidad de escritura | Acotado a calidad del resultado |
-| 3 | **Fuga de código propietario al proveedor del modelo** | Modelos open-weight autoalojables; sin persistencia en disco; auditoría de accesos | **Aceptado por diseño**, con mitigación disponible (mover la inferencia) si un cliente lo exige |
-| 4 | Fuga de datos personales del alumno al proveedor o a las trazas | Presidio en MASK; `mask_input`; pre-filtro del validador | Residual: PII que Presidio no reconoce y que no es DNI |
-| 5 | Coste descontrolado por abuso o bucle | Presupuesto y ritmo por clave; rate limiting; presupuestos de operaciones | Bajo, acotado por agente |
-| 6 | Un alumno accede a asignaciones de otro | Filtrado explícito en el código + RLS como segunda capa | Bajo |
-| 7 | **Todos los servicios comparten el mismo `.env`** | Ninguno hoy | **Riesgo asumido en desarrollo que un despliegue real debe cerrar** (§5.1) |
-| 8 | Degradación silenciosa de calidad del fallback | Fallback a modelo equivalente, y al mismo modelo en el validador | A medir: la comparativa primario/fallback es parte de §5.7 |
-| 9 | **Falso positivo de guardarraíl que rompe el servicio** | Lakera retirado de la ruta de generación; Presidio acotado a 5 entidades, a la entrada y **solo a los campos que escribe una persona** | **Ya ocurrido dos veces** (§7). La redacción por campo elimina la causa raíz en lugar de recortar el alcance; para Lakera el riesgo se traslada a LLM01 y está declarado |
-| 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Aprobación humana de ejercicios; doble pasada en la evaluación | Es el riesgo de producto más serio: un junior no tiene criterio para detectar que la corrección es errónea |
+| **Prob. Alta** | Medio | Alto | Alto |
+| **Prob. Media** | Bajo | Medio | Alto |
+| **Prob. Baja** | Bajo | Bajo | Medio |
 
-El riesgo 10 merece una nota, porque es el que no se resuelve con un control
-técnico. El sistema enseña a alguien que, por definición, no puede evaluar si lo que
-se le enseña es correcto. Los ejercicios pasan por un humano; las valoraciones, no.
-La mitigación real no es un guardarraíl: es que el tech lead revise las valoraciones
-a posteriori, y que el producto lo haga fácil.
+Dos honestidades del método. La **probabilidad de un riesgo de inyección no está
+medida** —esa es justo la razón de ser del red teaming de §6.5—, así que donde la
+pongo va marcada como hipótesis: es un juicio, no un dato. Y el **impacto** se razona
+sobre el radio de daño real del sistema, no sobre el peor caso imaginable: como
+ningún agente tiene herramientas de escritura (§6.2), ninguna inyección llega a
+ejecución de código o a borrado de datos, y el techo del daño por inyección es la
+calidad de un resultado.
+
+| # | Riesgo | Prob. | Impacto | Nivel | Tratamiento y decisión de aceptación |
+|---|---|---|---|---|---|
+| 1 | **Un alumno manipula su propia corrección** por inyección en el texto de su respuesta | Media *(hipótesis)* | Medio | **Medio** | **Mitigar.** Delimitadores + frase defensiva; el revisor no puede cambiar el veredicto; el bloqueo de Lakera en evaluador y revisor está pendiente de subir el umbral y remedir (§6.5). Hoy su única defensa activa es la instrucción. Residual **aceptado de forma temporal** hasta cuantificarlo en el red teaming |
+| 2 | Inyección desde el contenido de un repositorio hacia el agente de código | Baja | Bajo | **Bajo** | **Aceptar.** El tech lead elige el repositorio, el agente solo lee y valida rutas contra el árbol real, y no tiene escritura; el daño queda acotado a la calidad del resultado |
+| 3 | **Fuga de código propietario al proveedor del modelo** | Alta *(por diseño)* | Alto | **Alto** | **Aceptar por diseño.** Ocurre en cada generación con repositorio: es inherente a la función. Mitigación disponible si un cliente lo exige: mover la inferencia a modelos open-weight autoalojados (§3.1), sin reescribir nada. Sin persistencia en disco y con auditoría de accesos (§6.2 controles 22, 25) |
+| 4 | Fuga de datos personales del alumno al proveedor o a las trazas | Baja | Medio | **Bajo** | **Aceptar.** Presidio en MASK sobre la respuesta, `mask_input` en trazas y pre-filtro de DNI/NIE (§6.2, §6.6). Residual: PII que Presidio no reconoce y que no es DNI/NIE; ampliable añadiendo entidades |
+| 5 | Coste descontrolado por abuso o bucle | Baja | Bajo | **Bajo** | **Aceptar.** Presupuesto y ritmo por clave, rate limiting en dos niveles y presupuestos de operaciones (§6.2 controles 13-16); el daño está acotado por el tope de cada clave |
+| 6 | Un alumno accede a asignaciones de otro | Baja | Medio | **Bajo** | **Aceptar.** Doble capa: filtrado explícito por alumno en el código y RLS en la base de datos (§6.2 controles 3-4) |
+| 7 | **Todos los servicios comparten el mismo `.env`** | Alta *(en desarrollo)* | Alto | **Alto** | **Mitigar en el despliegue; aceptar solo en desarrollo.** No hay control hoy. Un gestor de secretos por servicio es ya un requisito de la plataforma (§5.2) y lo cierra; es una postura de desarrollo que un despliegue real no puede heredar |
+| 8 | Degradación silenciosa de calidad del fallback | Media *(no medida)* | Medio | **Medio** | **Medir.** El fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). La comparativa primario/fallback es parte de §5.7. Residual aceptado de forma interina hasta medirla |
+| 9 | **Falso positivo de guardarraíl que rompe el servicio** | Baja *(tras el arreglo)* | Alto | **Medio** | **Mitigado en origen.** Ya ocurrió dos veces (§7); la redacción por campo elimina la causa raíz en lugar de recortar el alcance, y Lakera salió de la ruta de generación. El residual de reactivar Lakera se traslada a LLM01 (§6.3) y está declarado |
+| 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas en la evaluación (§3.3, §4.6). Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
+
+**Los tres riesgos de nivel Alto concentran lo que de verdad hay que decidir**, y
+ninguno se cierra con un control más:
+
+- **Riesgo 3 (fuga de código al proveedor)** no es un fallo a corregir sino una
+  propiedad del producto: para generar ejercicios del código de la empresa, ese
+  código tiene que llegar a un modelo. La decisión es aceptarlo, y lo que hace la
+  aceptación defendible es que la salida está preparada —todos los modelos son
+  open-weight y la inferencia es autoalojable— el día que un cliente no lo acepte.
+- **Riesgo 7 (`.env` compartido)** es alto hoy y bajo por construcción en cuanto se
+  despliega con un gestor de secretos. Se acepta **únicamente mientras sea
+  desarrollo**; dejarlo pasar a producción sería convertir una comodidad de
+  desarrollo en una vulnerabilidad real.
+- **Riesgo 10 (contenido incorrecto enseñado como correcto)** es el riesgo de
+  producto más serio, y el que no se resuelve con un control técnico. El sistema
+  enseña a alguien que, por definición, no puede evaluar si lo que se le enseña es
+  correcto. Los ejercicios pasan por un humano; las valoraciones, no. La mitigación
+  real no es un guardarraíl: es que el tech lead revise las valoraciones a
+  posteriori, y que el producto lo haga fácil. La aceptación del residual está
+  condicionada a que esa revisión exista.
+
+**Las decisiones de aceptación.** El registro las propone; la aceptación formal de
+cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
+
+| Riesgo | Decisión |
+|---|---|
+| 3 | Aceptado por diseño, con el autoalojamiento como salida comercial |
+| 7 | Aceptado solo en desarrollo; su cierre es condición del despliegue |
+| 10 | Aceptado a condición de la revisión a posteriori de las valoraciones |
+| 1, 8 | Aceptados de forma temporal hasta su medición (red teaming §6.5 y comparativa §5.7) |
+| 2, 4, 5, 6, 9 | Aceptados como residual bajo o medio con los controles actuales |
 
 ### 6.5 Red teaming
 
