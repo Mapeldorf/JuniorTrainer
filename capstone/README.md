@@ -28,11 +28,10 @@ marcadas como tales dentro del propio documento:
 
 | Sección | Qué falta | Depende de |
 |---|---|---|
-| §3.8 | Costes anticipados por nivel de uso | Instrumentar una tanda de ejecuciones y extraer tokens y coste de Langfuse |
 | §5.2 | Presupuesto de infraestructura | Decidirlo |
 | §5.3 | CI/CD ampliado | Implementarlo |
-| §5.5–5.7, Anexo E | Métricas, juez LLM y resultados | Construir la suite de evaluación |
-| §5.8 | Umbrales y alertas del cuadro de mando | Línea base de métricas |
+| §5.6 | Juez LLM para la calidad pedagógica (calibrado con etiquetas humanas) | Implementarlo |
+| §5.8 | Umbrales y alertas del cuadro de mando | Fijarlos (la línea base ya existe, §5.7) |
 | §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 | §6.6 | Trabajo de cumplimiento: RAT, base jurídica, transparencia, acuerdos de encargado y retención | Cumplimiento |
 
