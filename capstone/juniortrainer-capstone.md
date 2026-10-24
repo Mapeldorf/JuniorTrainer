@@ -2228,22 +2228,48 @@ cuya corrección depende de desactivar otro control está mal colocado.
 
 ### 6.3 Mapeo OWASP Top 10 para aplicaciones LLM
 
-> **Sección pendiente de redacción formal.** Los controles existen y están
-> inventariados en §6.2; el mapeo riesgo a riesgo, con el riesgo residual declarado,
-> es trabajo de redacción pendiente. El esqueleto, con la valoración preliminar:
+El OWASP Top 10 para aplicaciones LLM es la lista de referencia de los riesgos
+propios de un sistema construido sobre modelos de lenguaje. Esta sección recorre
+los diez, uno a uno, con tres cosas por riesgo: los **controles reales** que lo
+mitigan —cada uno rastreable a §6.2, a un change archivado o a un fichero del
+repositorio—, el **veredicto** y, sobre todo, el **riesgo residual declarado**. La
+honestidad del mapeo está en esa tercera columna: un control existente no se cuenta
+como riesgo cerrado si su eficacia no está medida, y donde la medición queda para el
+red teaming (§6.5) se dice así en lugar de darlo por hecho.
 
-| Riesgo OWASP | Controles aplicables | Estado preliminar |
+| Riesgo OWASP | Controles reales (con traza) | Veredicto y riesgo residual |
 |---|---|---|
-| **LLM01** Inyección de prompts | Delimitadores y frase defensiva en los 7 prompts; Lakera en `block` sobre el validador y su respaldo; ausencia de herramientas de escritura en todos los agentes | **Mitigado, con un residual declarado.** Ya hay bloqueo efectivo, pero solo en el gate de entrada. En la ruta de generación no hay detección automatizada, y en el evaluador y el revisor su activación está pendiente de medir la tasa de falsos positivos sobre respuestas reales (§6.5) |
-| **LLM02** Fuga de información sensible | Presidio en MASK y BLOCK; `mask_input` en trazas; roles de BD de mínimo privilegio; GitHub App de solo lectura sin persistencia | **Mitigado.** Residual: el código propietario del repositorio **sí** llega al proveedor del modelo por diseño, y eso es inherente a la función |
-| **LLM03** Cadena de suministro | Dependencias fijadas en `requirements.txt`; modelos open-weight con fallback a otro proveedor | **Parcial.** Sin análisis automatizado de vulnerabilidades de dependencias en CI |
-| **LLM04** Envenenamiento de datos | El sistema no entrena ni ajusta modelos. La memoria de los agentes sí es un vector: contenido manipulado que entre en la caché persiste 30 días | **A analizar.** Es el riesgo menos obvio y conviene no despacharlo con un «no aplica» |
-| **LLM05** Manejo inadecuado de la salida | Parseo estricto, esquema JSON, veredicto restringido a tres valores, límites en código, validación de rutas contra el árbol real, degradación defensiva de contradicciones | **Mitigado.** Es el riesgo mejor cubierto del sistema |
-| **LLM06** Agencia excesiva | Ningún agente tiene herramientas de escritura; presupuestos de operaciones; dos llamadas fijas en lugar de bucle agéntico; aprobación humana de todo lo que persiste | **Mitigado por diseño** (§4.6) |
-| **LLM07** Fuga del prompt de sistema | Instrucción explícita de no revelar el prompt en los 7 agentes | **Parcial.** La instrucción no es una garantía. El impacto real es bajo: los prompts están en este documento |
-| **LLM08** Debilidades de vectores y *embeddings* | No se usan *embeddings* ni búsqueda vectorial | **No aplica** |
-| **LLM09** Desinformación | Doble pasada con modelos independientes; cerco anti-alucinación en los prompts; aprobación humana de los ejercicios | **Parcial.** La valoración al alumno es el punto expuesto (§4.6) |
-| **LLM10** Consumo ilimitado | Presupuesto y ritmo por virtual key; rate limiting en dos niveles; presupuestos de operaciones; límite de cuerpo; timeouts en capas | **Mitigado** |
+| **LLM01** Inyección de prompts | Delimitadores de dato y frase defensiva adaptada en los 7 prompts (§3.6); detección de Lakera en `block` **solo** sobre el validador y su respaldo (`guardarrailes-por-capas`, §6.2 control de IA); ausencia de herramientas de escritura en los seis agentes (§4.6) | **Mitigado, con residual declarado.** El bloqueo automatizado solo actúa en el *gate* de entrada: Lakera se retiró de la ruta de generación por falsos positivos sobre rutas de repositorio (§6.5) y su activación en evaluador y revisor está condicionada a subir el umbral de *enforcement* y volver a medir —la medición sobre 15 respuestas reales dio 1 falso positivo (§6.5)—. En esos dos agentes, por tanto, **hoy solo protege la instrucción**. Además, el cierre del propio delimitador desde el contenido no confiable es posible en los prompts del evaluador, el web y el de código: ningún código lo impide (objetivo 10, §6.5). El radio de daño queda acotado a la **calidad del resultado** (§6.2) |
+| **LLM02** Fuga de información sensible | Presidio autoalojado, redactando en el agente (evaluador y revisor) y como red en `MASK` en el proxy, acotado a 5 entidades y a la entrada (§6.2, §6.6); pre-filtro determinista del validador para DNI/NIE, que Presidio no reconoce (§6.2); `mask_input` de Langfuse en las trazas (§6.6); tres roles de BD de mínimo privilegio (§6.2 controles 10-11); GitHub App de solo lectura sin persistencia en disco (§6.2 control 22) | **Mitigado.** Residual inherente a la función: el **código propietario del repositorio sí llega al proveedor del modelo** por diseño (riesgo 3, aceptado, con la inferencia autoalojable como mitigación disponible). Residual menor: PII que Presidio no reconoce y que no es DNI/NIE (riesgo 4) |
+| **LLM03** Cadena de suministro | El frontend fija sus dependencias con *lockfile* (`frontend/package-lock.json`, instalado con `npm ci` en el CI, §5.3); los modelos son open-weight con fallback a otro proveedor (§3.3) | **Parcial, con asimetría entre lados.** El backend y los seis agentes declaran sus dependencias **solo por rango** en `requirements.txt` (`fastapi>=0.115,<0.116`…), **sin fijarlas a versión exacta ni por *hash* y sin *lockfile***, de modo que dos construcciones de un agente pueden no ser idénticas. Y no hay análisis automatizado de vulnerabilidades de dependencias en el CI (ni `dependabot`, ni escaneo de imágenes, ni SCA) en ningún lado. Es el hueco de proceso más claro de todo el inventario |
+| **LLM04** Envenenamiento de datos | El sistema **no entrena ni ajusta** modelos, lo que descarta el vector clásico. El único vector real es la **memoria** de los agentes web y de código: el resumen que se cachea deriva de contenido no confiable (web o repositorio). Lo acotan el aislamiento de la memoria en el rol `agents_memory`, sin `USAGE` sobre `public` (§6.2 control 11); los delimitadores en el prompt que produce ese resumen; y una clave de caché por repositorio y tecnologías, que limita el alcance de un envenenamiento a esa clave | **Parcial, y es el riesgo menos obvio.** Una entrada manipulada que entre en la caché persiste su TTL de **30 días** (`agents/*/app/memory.py`), y como el TTL se **refresca en cada lectura** (`refresh_on_read=True`), una clave que se consulte a menudo puede no caducar nunca. Es el objetivo 9 del red teaming (§6.5), específico de esta arquitectura |
+| **LLM05** Manejo inadecuado de la salida | Parseo estricto y esquema JSON con `additionalProperties: false` (§3.5); veredicto restringido a tres valores; límites de palabras comprobados en código con un reintento correctivo (§3.5); validación de rutas contra el árbol real del commit (§6.2 control 24); degradación defensiva ante contradicciones | **Mitigado. Es el riesgo mejor cubierto del sistema**, porque es la aplicación directa del principio «lo que el prompt pide, el código lo garantiza»: ninguna salida llega al usuario sin parsear, validar y, si no cuadra, rechazar |
+| **LLM06** Agencia excesiva | Ningún agente tiene herramientas de escritura —el de código solo lee, el de ejercicios solo hace `SELECT`, evaluador y revisor no tienen herramientas (§6.2)—; presupuestos de operaciones consumidos antes de actuar (§6.2 control 16); número fijo de llamadas al modelo en lugar de bucle agéntico; aprobación humana de todo lo que persiste (§4.6) | **Mitigado por diseño.** La autonomía está acotada por la arquitectura, no por la confianza en el modelo: aunque un agente fuera manipulado, no dispone de ninguna acción con efecto fuera de devolver texto |
+| **LLM07** Fuga del prompt de sistema | Instrucción explícita de no revelar el prompt, incluida en los 7 agentes (§3.6) | **Parcial, con impacto bajo.** La instrucción no es una garantía y su extracción es un objetivo del red teaming (objetivo 3, §6.5). Pero el impacto es bajo por una razón de diseño: los prompts íntegros están publicados en el Anexo A, así que su divulgación no entrega ningún secreto operativo —no contienen credenciales ni lógica oculta— |
+| **LLM08** Debilidades de vectores y *embeddings* | No se usan *embeddings*, ni base de datos vectorial, ni RAG | **No aplica.** La memoria es una caché por clave exacta (§4.8), no una búsqueda por similitud, de modo que no hay un espacio de *embeddings* que envenenar o consultar de forma adversaria |
+| **LLM09** Desinformación | Doble pasada con **modelos de familias distintas** en la evaluación —evaluador DeepSeek, revisor GLM (§3.3)—; cerco anti-alucinación en los prompts, con declaración explícita de las tecnologías sin fuentes (§3.6); aprobación humana de todos los ejercicios antes de que entren al catálogo (§4.6) | **Parcial.** El contenido generado pasa por un humano, pero la **valoración que llega al alumno no** (§4.6): es el único punto donde una salida del modelo llega a una persona sin revisión, y el alumno es, por definición, quien menos criterio tiene para detectar un error (riesgo 10, §6.4) |
+| **LLM10** Consumo ilimitado | Presupuesto y ritmo de 60 rpm por virtual key (§6.2 control 15); rate limiting en dos niveles, por usuario y por agente (§6.2 controles 13-14); presupuestos de operaciones por tarea (§6.2 control 16); límite de cuerpo HTTP de 1 MiB (§6.2 control 17); timeouts encadenados en capas (§3.5) | **Mitigado.** El gasto está acotado por clave, de modo que un bucle o un abuso en un agente no puede consumir el presupuesto de otro ni, en el peor caso, pasar del tope de su propia clave |
+
+**Dónde está de verdad el riesgo residual, en una frase por caso que lo merece.**
+
+- **LLM01 es el riesgo vivo del sistema**, no por falta de controles sino porque el
+  único actor con incentivo adverso —el alumno— llega al evaluador y al revisor, y
+  ahí el bloqueo automatizado está apagado a la espera de recalibrar su umbral. Su
+  cuantificación es el objetivo central del red teaming (§6.5) y el riesgo 1 del
+  registro (§6.4).
+- **LLM03 es el único hueco que no es de medición sino de proceso**, y por eso es el
+  más fácil de cerrar: fijar dependencias con *lockfile* y añadir un escaneo de
+  vulnerabilidades al CI son tareas acotadas que no dependen de ningún modelo.
+- **LLM04 es el que una lista genérica despacharía mal.** La tentación es marcarlo
+  «no aplica» porque no hay entrenamiento; la memoria persistente lo reintroduce por
+  la puerta de atrás, y el refresco en lectura convierte un envenenamiento puntual en
+  uno potencialmente indefinido.
+
+Tres riesgos quedan **mitigados por diseño y no por confianza** —LLM05, LLM06 y
+LLM10—: su control no es una instrucción que el modelo pueda desobedecer, sino una
+propiedad de la arquitectura (parseo en código, ausencia de herramientas, topes por
+clave) que se cumple aunque el modelo falle. Es la misma idea que ordena todo el
+capítulo 3 llevada al terreno de la seguridad.
 
 ### 6.4 Análisis de riesgos
 
