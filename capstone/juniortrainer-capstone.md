@@ -1778,7 +1778,7 @@ flowchart TB
 | 1 — Unitarios y de contrato | Total | Nulo | Cada PR | Parcial: 29 specs de frontend, nada en backend |
 | 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 19 scripts, hoy **manuales** |
 | 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`, §5.5): modo simulado en CI; modo real ejecutado completo y repetido (§5.7) |
-| 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
+| 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Implementado y calibrado** (`evals/`, §5.6): juez offline, κ 0,475 |
 | 5 — Señales de producción | — | Nulo | Continuo | Instrumentado y **con umbrales definidos** (§5.8); el cuadro de mando, por montar |
 
 El principio que ordena la pirámide: **medir con el instrumento más determinista
@@ -1903,40 +1903,54 @@ siguen siendo pocas: el κ de §5.7 se lee con ese margen.
 
 ### 5.6 LLM como juez
 
-> **Sección pendiente de implementación.**
+> **Implementado y calibrado.** El juez vive en `evals/` (change `juez-contenido`,
+> spec `content-judging`), es un instrumento **offline** —no un agente— y usa un
+> modelo frontier distinto de los de producción (`openrouter/anthropic/claude-sonnet-4.6`,
+> con su propia virtual key) a través de LiteLLM. Se ejecutó sobre 10 ejercicios de
+> Angular y se calibró contra la puntuación a ciegas del tech lead: **κ global 0,475**
+> (acuerdo moderado), con `unicidad` (0,796) y `nivel` (0,677) bien, y
+> `autosuficiencia` (0,286) y `calidad_del_fallo` (−0,091, solo 4 casos) flojos. El
+> primer intento, con una rúbrica laxa, dio 0,312: **anclar los criterios subió el
+> acuerdo**, que es la prueba de que el instrumento mide **el cumplimiento de la
+> especificación** y no su propio gusto.
 
 Para lo único que no admite medición determinista —la calidad pedagógica del
-contenido— se usará un juez LLM **offline**, con cuatro condiciones de diseño que
-lo hacen defendible:
+contenido— el juez LLM **offline** cumple cuatro condiciones de diseño que lo hacen
+defendible:
 
 **1. El juez no es ninguno de los cuatro modelos en producción.** Un modelo que
-juzga su propia salida tiene sesgo de autopreferencia documentado. Aquí el juez será
-un modelo frontier distinto, que es además el único uso donde su coste es
-irrelevante: las ejecuciones son contadas y no están en el camino del usuario.
+juzga su propia salida tiene sesgo de autopreferencia documentado. El juez es un
+modelo frontier distinto, que es además el único uso donde su coste es irrelevante:
+las ejecuciones son contadas y no están en el camino del usuario.
 
 **2. Rúbrica con criterios puntuados y justificación obligatoria**, no una nota
-global:
+global. Cada criterio lleva una **definición operativa por nivel** (0/1/2), y son
+**las mismas** en el prompt del juez y en la valoración humana —si no, cada uno mide
+cosa distinta, que es justo lo que pasó en el primer intento de calibración—:
 
-| Criterio | Pregunta |
+| Criterio | Qué mide |
 |---|---|
-| Unicidad de concepto | ¿El enunciado trata un solo concepto, sin encadenar preguntas? |
-| Autosuficiencia | ¿Es resoluble solo con el enunciado y el código entregado? |
-| Nivel | ¿Es un ejercicio de junior recién incorporado, no de senior? |
-| Calidad del fallo (`debug`) | ¿El fragmento contiene exactamente un fallo, real y localizable? |
-| Utilidad de la justificación | ¿Dice qué falta o qué está mal, en lugar de explicar teoría? |
+| Unicidad de concepto | Que el enunciado trate un solo concepto, sin encadenar preguntas |
+| Autosuficiencia | Que se resuelva con el enunciado y el código entregados |
+| Nivel | Que sea de junior recién incorporado, no de senior |
+| Calidad del fallo (`debug`) | Que el fragmento tenga exactamente un fallo, real y localizable |
+| Utilidad de la justificación | Que la respuesta esperada diga qué está bien o mal y por qué |
 
 Los cinco criterios son una traducción directa de lo que los prompts piden, lo que
 hace que el juez mida **el cumplimiento de la especificación** y no sus propias
 preferencias estéticas.
 
-**3. Calibración contra etiquetas humanas.** Sobre una muestra del dataset, un
-humano puntúa con la misma rúbrica y se mide la concordancia con el juez (κ de
-Cohen). Un juez sin calibrar es una opinión con formato de métrica. Si la
-concordancia es baja, se corrige la rúbrica, no el resultado.
+**3. Calibración contra puntuaciones humanas.** El tech lead puntúa la misma muestra
+a ciegas, con las mismas anclas, y se mide la concordancia (κ de Cohen por criterio).
+Un juez sin calibrar es una opinión con formato de métrica. Y cuando la concordancia
+salió baja (0,312), se corrigió **la rúbrica**, no el resultado: redefinir los
+criterios la subió a 0,475. Los dos criterios que siguen flojos (`autosuficiencia` y
+`calidad_del_fallo`, este con muestra mínima) quedan pendientes de una nueva pasada.
 
 **4. Límites declarados.** El juez no sustituye la aprobación del tech lead
-(§4.6): es un instrumento de regresión para detectar que un cambio de modelo o de
-prompt ha empeorado la calidad, no un control de calidad en producción.
+(§4.6): es un **instrumento de regresión** para detectar que un cambio de modelo o de
+prompt ha empeorado la calidad, no un control de calidad en producción. Y 0,475 es
+«moderado», no «bueno»: vale como señal relativa, no como nota.
 
 ### 5.7 Resultados de la evaluación
 
@@ -2809,7 +2823,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
-| Cerrar la suite de evaluación: **umbrales** y juez LLM (§5.6, §5.8) | La ejecución completa y repetida, con las etiquetas revisadas por el tech lead, ya está hecha (§5.7); falta convertir esa línea base en umbrales que bloqueen el merge y añadir el juez para medir la calidad pedagógica |
+| Afinar el juez de contenido y montar el cuadro de mando (§5.6, §5.8) | El juez ya funciona y está calibrado (κ 0,475); faltan revisar `autosuficiencia` y `calidad_del_fallo` y construir el cuadro de mando, cuyos umbrales ya están definidos |
 | CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en `develop`, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
 | Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy los doce servicios comparten el mismo `.env` |
 | Cerrar la cobertura del red teaming (§6.5) | El ejercicio ya se ejecutó (informe en `capstone/red-teaming/informe.md`): 0 ataques exitosos. Falta lo que el arnés no mide hoy: la resistencia del **modelo** en web y código —requiere un repositorio de prueba con el fichero envenenado para el de código, y es inviable de controlar en web—, y los objetivos 7 (enunciado con PII o contenido inapropiado) y 9 (envenenar la memoria), que exigen extender el arnés |
