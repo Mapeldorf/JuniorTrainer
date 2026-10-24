@@ -1,0 +1,3 @@
+{
+  "_comment": "Puntuaciones humanas para calibrar al juez (capstone 5.6). Se rellenan A CIEGAS, despues de que el juez puntue (no antes, para no sesgar). Formato: id del ejercicio -> criterio -> puntuacion 0-2 (o null en 'calidad_del_fallo' si el ejercicio es de tipo knowledge). Ejemplo: \"jg-k-append\": {\"unicidad_de_concepto\": 2, \"autosuficiencia\": 2, \"nivel\": 2, \"calidad_del_fallo\": null, \"utilidad_de_la_justificacion\": 2}"
+}
