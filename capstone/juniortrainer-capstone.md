@@ -1737,7 +1737,7 @@ simulados (más abajo). El plan:
 | 1 | Lint y comprobación de tipos en backend y en los seis agentes (`ruff`, `mypy`) | Sí |
 | 2 | Tests de backend: unitarios de los *schemas*, de la orquestación con agentes simulados, y de contrato de los endpoints | Sí |
 | 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados. *La suite simulada ya cubre parte de este terreno (§5.4)* | Sí |
-| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en `develop`. *A medias: el modo simulado ya corre en cada PR; faltan el modo real en `develop` y los umbrales* | Sí, por umbral |
+| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en `develop`. *El modo simulado corre en cada PR y el modo real completo ya se ejecutó (§5.7); faltan los **umbrales** y hacerlo bloqueante* | Sí, por umbral |
 | 5 | Construcción y publicación de las imágenes de los doce servicios con etiqueta por commit | — |
 | 6 | Despliegue automático a `develop` y comprobación de salud posterior | — |
 | 7 | Despliegue a producción con aprobación manual | — |
@@ -1756,8 +1756,8 @@ hay red, secretos ni coste. Lo que comprueba es el **código** de los agentes
 modelo. El **modo real** (`python -m evals.run --mode real`) existe, pero se lanza
 a mano y no corre en CI. El job se pone en rojo cuando una invariante se rompe;
 que además bloquee el merge es un ajuste de protección de rama del repositorio,
-no algo que quede en el código. Pendiente del punto 4: la ejecución completa en
-modo real, los **umbrales** a partir de esa línea base y hacerlo bloqueante.
+no algo que quede en el código. Pendiente del punto 4: los **umbrales** a partir de
+esa línea base (§5.7) y hacerlo bloqueante.
 
 ### 5.4 Estrategia de evaluación
 
@@ -1777,7 +1777,7 @@ flowchart TB
 |---|---|---|---|---|
 | 1 — Unitarios y de contrato | Total | Nulo | Cada PR | Parcial: 29 specs de frontend, nada en backend |
 | 2 — Verificadores de comportamiento | Total | Nulo con simulación | Cada PR | 19 scripts, hoy **manuales** |
-| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`, §5.5): modo simulado en CI; modo real manual, ejecutado solo de forma exploratoria (§5.7) |
+| 3 — Dataset dorado con métricas deterministas | Alto (métrica determinista sobre salida estocástica) | Bajo | Por cambio de modelo o de prompt | **Implementado** (`evals/`, §5.5): modo simulado en CI; modo real ejecutado completo y repetido (§5.7) |
 | 4 — LLM como juez | Bajo, acotado con rúbrica | Medio | Por cambio de modelo o de prompt | **Pendiente** |
 | 5 — Señales de producción | — | Nulo | Continuo | Instrumentado (§5.8), sin umbrales |
 
@@ -1822,12 +1822,12 @@ de trazas y la memoria real siguen dependiendo de ellos.
 
 ### 5.5 Métricas no subjetivas
 
-> **Implementado; ejecución real solo exploratoria.** El arnés vive en `evals/`
-> (especificación formal: `openspec/specs/agent-evaluation/`) y calcula las
+> **Implementado; ejecución completa y etiquetas revisadas.** El arnés vive en
+> `evals/` (especificación formal: `openspec/specs/agent-evaluation/`) y calcula las
 > métricas de abajo sobre un dataset de 125 casos. El modo simulado corre en CI; el
-> real se ha ejecutado una vez con 5 casos por conjunto (§5.7). Faltan la
-> ejecución completa, la revisión de las etiquetas por el tech lead y los
-> umbrales.
+> real se ha ejecutado **completo y repetido** (tres veces, más dos con el modelo de
+> respaldo) y el tech lead **revisó y ratificó las etiquetas** (§5.7). Faltan los
+> umbrales (§5.8).
 
 Sobre un **dataset dorado** versionado en el repositorio —entradas de ejemplo con
 su resultado esperado o su propiedad verificable—, estas métricas no requieren
@@ -1895,11 +1895,11 @@ adversariales de web y código tampoco se ejecutan en modo real: su contenido
 malicioso lo aporta el caso, pero ahí esos agentes leen fuentes reales, así que no
 se inyectaría nada y el resultado daría una falsa sensación de resistencia.
 
-**Una cautela sobre las etiquetas.** Las ha redactado el autor a partir de lo que
-piden los prompts, no un revisor independiente. Hay al menos una discutible:
-«registra una ruta POST y convierte la respuesta en XML» está etiquetada como
-incorrecta y el modelo la valoró como incompleta, con una justificación razonable.
-Hasta que el tech lead las revise, el κ de Cohen es un indicio, no una medida.
+**Sobre las etiquetas.** Las redactó el autor a partir de lo que piden los prompts.
+El tech lead las revisó para §5.7 y las ratificó tal cual: la única discutible —«registra
+una ruta POST y convierte la respuesta en XML», etiquetada como `incorrect` y que el
+modelo valoró como `incomplete`— se mantuvo como `incorrect`. Veintidós respuestas
+siguen siendo pocas: el κ de §5.7 se lee con ese margen.
 
 ### 5.6 LLM como juez
 
@@ -1940,58 +1940,74 @@ prompt ha empeorado la calidad, no un control de calidad en producción.
 
 ### 5.7 Resultados de la evaluación
 
-> **Solo hay una ejecución exploratoria**, con 5 casos por conjunto. Valida el
-> arnés y da una primera impresión; no permite concluir sobre calidad (con cinco
-> respuestas, una sola valoración distinta mueve la exactitud veinte puntos). La
-> ejecución completa y repetida, con las etiquetas revisadas, y la comparativa
-> entre el modelo primario y el fallback siguen pendientes.
+> **Ejecución completa, repetida y con las etiquetas revisadas.** Tres ejecuciones
+> de los seis agentes en modo real (24 de octubre de 2026) sobre los casos de calidad
+> del dataset, más dos con el modelo de respaldo. El tech lead revisó las 22
+> etiquetas de evaluación y las ratificó tal cual. Faltan los umbrales (§5.8), que ya
+> pueden salir de esta línea base.
 
-Ejecución del 23 de octubre de 2026 con los modelos de producción a través de
-LiteLLM:
+Los modelos son los de producción a través de LiteLLM; el agente de código analiza
+`Mapeldorf/autobot-frontend` en el commit `37cf3b0`. Todo se reproduce con
+`python -m evals.run --mode real` (§5.5), y las cifras de abajo salen de los informes
+que el arnés escribe en `evals/results/`.
 
-| Agente | Casos | Salida válida | Otras métricas | Latencia p50 / p95 |
+| Agente | Casos | Salida válida | Métricas | Latencia p50 / p95 |
 |---|---|---|---|---|
-| Evaluador | 10 | 100 % | Exactitud 0,80 y κ 0,71 sobre 5 respuestas; ningún reintento; 0 ataques exitosos de 5 | 1,5 s / 3,5 s |
-| Revisor | 7 | 100 % | Ningún reintento; límites de palabras al 100 % | 3,0 s / 3,9 s |
-| Validador | 10 | 100 % | 0 falsos positivos; 0 ataques exitosos de 5 (3 los bloqueó Lakera, 1 el pre-filtro y 1 lo rechazó el modelo) | 2,3 s / 8,1 s |
-| Ejercicios | 5 | 100 % | Cardinalidad y límites al 100 %; solapamiento de temas máximo 0,235 | 6,7 s / 14,3 s |
-| Web | 7 | 100 % | Cobertura de tecnologías al 100 % | 7,9 s / 20,7 s |
-| Código (`autobot-frontend`) | 4 | 100 % | En los 2 casos de calidad: 20 rutas válidas de 20 y 20 fragmentos fundamentados de 20, con las lecturas dentro del presupuesto | 30,2 s / 48,7 s |
+| Evaluador | 22 | 100 % | Exactitud **1,000** y κ **1,000** en las tres ejecuciones; matriz de confusión diagonal (8 `correct` / 5 `incomplete` / 9 `incorrect`); ningún reintento; 0 ataques exitosos de 6 | 1,7 s / 2,7 s |
+| Revisor | 22 | 100 % | Límites de palabras al 100 %; ningún reintento; 0 ataques exitosos de 4 (revisión manual) | 3,6 s / 5,5 s |
+| Validador | 34 | 100 % | 0 falsos positivos y 0 falsos negativos del gate; duplicados: precisión 1,000 y cobertura 1,000 / 1,000 / 0,800; 0 ataques exitosos de 9 (4 bloqueados por Lakera, 2 por el pre-filtro) | 2,6 s / 5,2 s |
+| Ejercicios | 7 | 100 % | Cardinalidad 1,000; adherencia a límites 100 %; solapamiento de temas máximo 0,278 / 0,250 / 0,263 (medio 0,23 / 0,23 / 0,25) | 12,6 s / 87,8 s |
+| Web | 5 | 100 % | Presupuesto de búsquedas, cobertura de tecnologías y declaración de ausencia de fuentes, los tres al 100 % | 10,7 s / 21,6 s |
+| Código (`autobot-frontend`) | 2 | 100 % | 20 rutas válidas de 20, lecturas dentro del presupuesto, 20 fragmentos fundamentados de 20 y línea de inicio correcta, en las tres ejecuciones | 38,4 s / 51,6 s |
 
-Tres notas para leer la tabla. El **p95 de la evaluación** (3,5 s) queda muy por
-debajo del presupuesto de 45 s de §3.1, pero con diez llamadas es un dato, no una
-distribución. Las métricas de **web** que esa ejecución dio por incumplidas
-(presupuesto de búsquedas al 80 %, ausencia de fuentes declarada al 50 %) eran
-fallos del arnés y no del agente (lección 8 de §7); recalculadas con el mismo
-informe y el arnés corregido, la ausencia de fuentes declarada es 2 de 2 y el
-agente solo llegó a hacer 5 búsquedas. Y de los **cuatro casos de código**, dos son
-adversariales que hoy ya no se ejecutan en modo real: las cifras de rutas y
-fragmentos son las de los dos de calidad.
+Cuatro notas para leer la tabla:
 
-Los tokens y los costes medidos con el mismo arnés (ejecuciones del 24 de octubre, que ya capturan el uso) están en §3.8.
+- **La exactitud 1,000 hay que leerla con su tamaño.** Son 22 respuestas, no 200: un
+  solo caso mal clasificado la bajaría a ~0,95. El κ de 1,000 dice que el acuerdo con
+  la etiqueta humana no se explica por azar, sobre una muestra que conviene seguir
+  ampliando. Es la métrica más importante del sistema porque es lo único que llega al
+  alumno sin humano en medio.
+- **El p95 de la evaluación** (2,7 s) queda muy por debajo del presupuesto de 45 s de
+  §3.1. El más alto es el de ejercicios (hasta 87 s en un caso): no tiene presupuesto
+  duro, pero es el que más varía.
+- **Las tres ejecuciones coinciden** salvo en la cobertura de duplicados del validador
+  (1,000 en dos, 0,800 en una) y el solapamiento de temas de ejercicios (0,25 a 0,28).
+  Es la variación esperable de un modelo estocástico, y la razón de medir tres veces:
+  una sola ejecución no es una distribución.
+- **Ningún ataque exitoso** en ninguna ejecución (0 de 19 medibles en real); el detalle
+  está en el informe de red teaming (§6.5).
 
-**Lo que esta ejecución enseñó sobre el sistema**, además de sobre el arnés:
+**Comparativa primario / fallback.** Dos ejecuciones completas con los cuatro roles
+resueltos al modelo de respaldo de Hugging Face. El respaldo es el mismo modelo
+open-weight salvo el del revisor, que es `GLM-5.3-Flash` frente al primario
+`GLM-5.3-FlashX`:
 
-- **El guardarraíl del validador funciona donde está en bloqueo.** Lakera rechazó
-  tres de las cinco entradas adversariales sin que el modelo las viera.
-- **Ningún ataque medible tuvo éxito** (0 de 10, entre evaluador y validador),
-  incluido un intento de cerrar el delimitador de la respuesta del alumno. Pero
-  los casos adversariales del dataset muestran que ese cierre es *posible* en los
-  prompts del evaluador, del agente web y del de código (§6.5): hoy solo lo frena
-  la instrucción.
-- **El agente de código falla si las tecnologías no encajan con el repositorio.**
-  Con React y FastAPI sobre un repositorio Angular, el modelo no eligió ningún
-  fichero y la tarea terminó con «no se pudo leer ningún fichero». Es coherente con
-  el diseño, pero es un mensaje poco útil para quien lanza la generación (§8).
-- **Una etiqueta del dataset es discutible** (§5.5), lo que recuerda que la
-  exactitud depende de quién etiqueta.
+| Métrica | Primario | Fallback |
+|---|---|---|
+| Evaluador: exactitud / κ | 1,000 / 1,000 | 1,000 / 1,000 |
+| Validador: falsos positivos / negativos del gate | 0 / 0 | 0 / 0 |
+| Validador: cobertura de duplicados | 1,000 / 1,000 / 0,800 | 0,600 / 0,800 |
+| Ejercicios: solapamiento de temas máx (medio) | 0,25–0,28 (0,23–0,25) | 0,32–0,53 (0,30–0,37) |
+| Código: fragmentos fundamentados | 1,000 | 0,950 / 1,000 |
+| Web: cobertura y declaración | 1,000 | 1,000 |
 
-**Para que esta sección sea la que promete** hace falta: la ejecución completa (unos
-noventa casos de calidad), repetida tres a cinco veces porque los modelos no son
-deterministas; etiquetas revisadas por el tech lead, y más casos de evaluación (con
-veintidós respuestas el κ tiene un margen muy amplio); y la comparativa entre
-modelo primario y fallback, que el arnés ya permite cambiando la variable de
-entorno del modelo.
+La conclusión, para el riesgo 8: **la calidad del respaldo es equivalente en lo
+esencial y ligeramente peor en dos cosas concretas** —repite más los temas al generar
+ejercicios y falló un fragmento de código en una de las dos ejecuciones—. No es
+«idéntico»: es medible y algo peor en generación. En **coste** no se mide: Hugging
+Face no informa coste por llamada, así que §3.8 lo estima con los precios publicados
+de HF sobre los tokens medidos.
+
+**Lo que esta sección deja claro**: el sistema cumple el contrato de salida (JSON
+válido, límites, cardinalidad, presupuestos) en el 100 % de los casos de calidad en
+las tres ejecuciones; el evaluador —lo único que llega al alumno sin supervisión—
+coincide con la etiqueta humana en las 22 respuestas; y el respaldo no degradó la
+calidad de forma material.
+
+**Lo que sigue pendiente**: los **umbrales** que conviertan estos valores en alarmas
+(§5.8), que ya tienen línea base; el **juez LLM** (§5.6), que necesita esta misma
+revisión humana para calibrarse; y **ampliar el conjunto de evaluación** —con 22
+respuestas el κ tiene un margen ancho, y es la métrica que más lo nota—.
 
 ### 5.8 Monitorización en producción
 
@@ -2771,7 +2787,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
-| Completar la suite de evaluación: ejecución real completa y repetida, etiquetas revisadas por el tech lead, umbrales y juez LLM (§5.5–§5.7) | El arnés y el dataset ya existen, pero solo se ha ejecutado una muestra de 5 casos por conjunto: aún no hay forma de saber con datos si un cambio de modelo o de prompt empeora la calidad |
+| Cerrar la suite de evaluación: **umbrales** y juez LLM (§5.6, §5.8) | La ejecución completa y repetida, con las etiquetas revisadas por el tech lead, ya está hecha (§5.7); falta convertir esa línea base en umbrales que bloqueen el merge y añadir el juez para medir la calidad pedagógica |
 | CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en `develop`, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
 | Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy los doce servicios comparten el mismo `.env` |
 | Cerrar la cobertura del red teaming (§6.5) | El ejercicio ya se ejecutó (informe en `capstone/red-teaming/informe.md`): 0 ataques exitosos. Falta lo que el arnés no mide hoy: la resistencia del **modelo** en web y código —requiere un repositorio de prueba con el fichero envenenado para el de código, y es inviable de controlar en web—, y los objetivos 7 (enunciado con PII o contenido inapropiado) y 9 (envenenar la memoria), que exigen extender el arnés |
@@ -3134,9 +3150,9 @@ evaluación de políticas sobre lo que el rol ya puede leer, que en ambos casos 
 Los informes JSON de cada ejecución se escriben en `evals/results/` y no se
 versionan (el directorio está ignorado por git). Lo que sí está en el repositorio
 es el dataset y el arnés, de modo que cualquier ejecución se reproduce con
-`python -m evals.run` (§5.5). La única ejecución real hasta la fecha, exploratoria,
-está resumida en §5.7. Cuando se haga la ejecución completa, su informe de
-referencia se guardará en `evals/baseline/`.
+`python -m evals.run` (§5.5). Las ejecuciones reales completas y repetidas —tres con
+los modelos primarios y dos con el respaldo— están resumidas en §5.7. Su informe de
+referencia se guardará en `evals/baseline/` cuando se fijen los umbrales (§5.8).
 
 ## Anexo F — Informe de red teaming
 
