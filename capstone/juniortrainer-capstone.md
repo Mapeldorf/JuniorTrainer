@@ -10,7 +10,7 @@
 | **Versión** | 0.1 — borrador |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
 | **Especificación formal** | `openspec/specs/` — 27 capacidades |
-| **Historial de cambios** | `openspec/changes/archive/` — 54 cambios |
+| **Historial de cambios** | `openspec/changes/archive/` — 55 cambios |
 
 ---
 
@@ -32,8 +32,8 @@ Lo que se ha construido, en cifras:
 | Modelos lógicos | **4** roles sobre 2 familias de modelos y 2 proveedores |
 | Servicios en ejecución | **12** contenedores |
 | Capacidades especificadas formalmente | **27** |
-| Cambios propuestos, implementados y archivados | **54** |
-| Commits | **290** |
+| Cambios propuestos, implementados y archivados | **55** |
+| Commits | **306** |
 | Controles de seguridad implementados | **25** |
 | Casos del dataset de evaluación (`evals/`) | **120**, en seis conjuntos |
 
@@ -1456,7 +1456,7 @@ control de versiones:
 openspec/
   specs/      27 capacidades vigentes — la normativa actual del sistema
   changes/
-    archive/  54 cambios implementados y archivados, con fecha
+    archive/  55 cambios implementados y archivados, con fecha
   config.yaml reglas del proceso (idioma, estilo de los artefactos)
 ```
 
@@ -1515,7 +1515,7 @@ en el control de versiones, se revisan en los PR y evolucionan con el proyecto.
 
 #### La evidencia de que el proceso funcionó
 
-No es una afirmación de intenciones: hay 54 cambios archivados y el historial
+No es una afirmación de intenciones: hay 55 cambios archivados y el historial
 muestra el proceso atrapando errores. Cuatro ejemplos, todos reales:
 
 - **`litellm-huggingface-fallback`.** Al verificar la tarea 4.1 se descubrió que el
@@ -2869,7 +2869,7 @@ documenta, para cada una, qué es y cómo obtenerla o generarla.
 | Integraciones | `github-repo-access` |
 | Frontend | `frontend-security-headers`, `frontend-ui-theme`, `confirm-dialog` |
 
-### C.2 Los 54 cambios archivados (`openspec/changes/archive/`)
+### C.2 Los 55 cambios archivados (`openspec/changes/archive/`)
 
 Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 `design.md`, `tasks.md` y los deltas de especificación.
@@ -2886,8 +2886,9 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 20 oct | `busqueda-manual-bloques`, `eliminar-memoria-corta-agente-web`, `long-polling-generaciones-pendientes`, `reintento-sesion-caducada-frontend`, `validador-contexto-generacion`, `validador-duplicados-tecnologias` |
 | 22 oct | `acortar-requisitos-largos`, `eliminar-memoria-agente-ejercicios`, `guardarrailes-por-capas` |
 | 23 oct | `suite-evaluacion-agentes` |
+| 24 oct | `costes-por-operacion` |
 
-Dos lecturas de esta tabla. La primera: **trece de los 54 cambios son de seguridad**
+Dos lecturas de esta tabla. La primera: **trece de los 55 cambios son de seguridad**
 (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y están
 concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
@@ -2904,10 +2905,17 @@ como la sutileza más fina del sistema. Esa es la forma que tiene un proyecto de
 madurar: no añadiendo controles, sino descubriendo que uno de ellos existía solo
 para compensar a otro.
 
-Y una cuarta, la del último cambio: `suite-evaluacion-agentes` es el primero que no
+Y una cuarta, la de `suite-evaluacion-agentes`: es el primero que no
 añade ni corrige funcionalidad, sino que construye un instrumento para medir el
 resto. Y su primera ejecución real obligó a corregir cinco fallos del propio
 instrumento (§7, lección 8): un sistema que se mide tiene que medirse a sí mismo.
+
+Y una quinta, la del último cambio: `costes-por-operacion` usa ese instrumento y, al
+hacerlo, contradice una decisión del propio diseño. §3.3 descartó los modelos de
+razonamiento y la medición mostró que los modelos elegidos razonan igualmente: entre
+el 72 % y el 81 % de la salida de tres agentes son tokens de razonamiento. No es un
+fallo del proceso, es la razón de medir; y queda escrito en §3.3 y §3.8 en lugar de
+corregirse en silencio.
 
 ## Anexo D — Migraciones de base de datos
 
