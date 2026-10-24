@@ -1,0 +1,123 @@
+# Spec Delta
+
+## ADDED Requirements
+
+### Requirement: Captura de tokens y coste por llamada
+El sistema SHALL registrar en cada caso evaluado en modo real los tokens de entrada, de salida y de razonamiento de cada llamada al modelo, y el coste facturado cuando el proveedor lo informe, sin modificar el codigo de los agentes.
+
+#### Scenario: Llamada con coste informado
+- **WHEN** el proveedor devuelve el coste de la llamada
+- **THEN** el registro del caso incluye los tokens y ese coste
+
+#### Scenario: Llamada sin coste informado
+- **WHEN** el proveedor devuelve tokens pero no coste
+- **THEN** el registro incluye los tokens y el coste queda como no informado, sin inventarlo
+
+#### Scenario: Caso con varias llamadas
+- **WHEN** un caso requiere mas de una llamada al modelo
+- **THEN** el registro suma los tokens y el coste de todas sus llamadas
+
+#### Scenario: Modo simulado
+- **WHEN** la ejecucion es en modo simulado
+- **THEN** tokens y coste se informan como no disponibles, no como cero
+
+### Requirement: Tabla de precios versionada
+El sistema SHALL mantener en el repositorio una tabla de precios por millon de tokens de entrada y de salida de los modelos que usa y de los de referencia, con la fecha y la fuente de cada precio, y SHALL poder refrescarla desde una fuente publica sin credenciales.
+
+#### Scenario: Precio con fecha y fuente
+- **WHEN** se consulta el precio de un modelo
+- **THEN** la tabla indica su precio de entrada y de salida, la fecha de la consulta y la fuente
+
+#### Scenario: Modelo ausente
+- **WHEN** se necesita el precio de un modelo que no esta en la tabla
+- **THEN** el calculo falla indicando el modelo, en lugar de suponer un precio
+
+#### Scenario: Refresco
+- **WHEN** se ejecuta el refresco de precios
+- **THEN** la tabla se actualiza con los precios publicados y la fecha de ese dia, sin enviar credenciales
+
+### Requirement: Coste por operacion
+El sistema SHALL calcular el coste medio de las cuatro operaciones del sistema (validar una tecnologia, evaluar una respuesta, generar sin repositorio y generar con repositorio) componiendo el coste medio medido de los agentes que intervienen, y SHALL desglosarlo por etapa.
+
+#### Scenario: Composicion
+- **WHEN** se calcula el coste de evaluar una respuesta
+- **THEN** es la suma del coste medio del evaluador y del revisor, y el desglose muestra ambos
+
+#### Scenario: Generacion con repositorio
+- **WHEN** se calcula el coste de generar con repositorio
+- **THEN** incluye al validador, al agente web, al de codigo (con sus dos llamadas) y al de ejercicios
+
+#### Scenario: Etapa dominante
+- **WHEN** se muestra el desglose de una operacion
+- **THEN** cada etapa aparece con su coste y su porcentaje del total
+
+#### Scenario: Agente sin datos
+- **WHEN** falta la medicion de un agente que interviene en una operacion
+- **THEN** la operacion se informa como no calculable e indica el agente que falta
+
+### Requirement: Escenarios de uso con supuestos explicitos
+El sistema SHALL calcular el coste mensual para los niveles de uso piloto, equipo y organizacion a partir de un fichero editable de supuestos (generaciones por tech lead y mes, evaluaciones por alumno y mes, proporcion con repositorio), y SHALL compararlo con el presupuesto de cada clave de LiteLLM.
+
+#### Scenario: Supuestos editables
+- **WHEN** se cambia un supuesto del fichero
+- **THEN** el calculo refleja el cambio sin tocar el codigo
+
+#### Scenario: Presupuesto de clave superado
+- **WHEN** el coste mensual estimado de un agente supera su presupuesto de 30 dias
+- **THEN** el informe lo marca para ese nivel de uso y agente
+
+#### Scenario: Supuestos como hipotesis
+- **WHEN** se presentan los resultados
+- **THEN** los supuestos de uso aparecen listados junto a las cifras como hipotesis, no como datos medidos
+
+### Requirement: Efecto de la memoria de los agentes
+El sistema SHALL calcular el coste de generar con y sin acierto de memoria de los agentes web y de codigo, y SHALL aplicar una tasa de acierto configurable en los escenarios de uso.
+
+#### Scenario: Con acierto
+- **WHEN** se calcula una generacion con acierto de memoria en web y codigo
+- **THEN** no incluye el coste de esos dos agentes
+
+#### Scenario: Tasa intermedia
+- **WHEN** la tasa de acierto configurada es del 50 %
+- **THEN** el coste esperado de esos agentes es la mitad del coste sin acierto
+
+### Requirement: Comparativa con modelos de referencia
+El sistema SHALL calcular el coste de las mismas operaciones, con los mismos tokens medidos, usando los precios de un modelo de referencia por rol configurable en la tabla de precios, y SHALL informar la diferencia frente al coste medido.
+
+#### Scenario: Mismos tokens
+- **WHEN** se calcula el coste con el modelo de referencia
+- **THEN** se usan los tokens medidos de cada llamada y solo cambian los precios
+
+#### Scenario: Referencia por rol
+- **WHEN** los roles web, codigo y ejercicios se asignan a un modelo y evaluador, revisor y validador a otro
+- **THEN** cada agente se precia con el modelo de su rol
+
+#### Scenario: Diferencia
+- **WHEN** se muestra la comparativa
+- **THEN** aparece el coste con ambos modelos y el factor entre ellos
+
+### Requirement: Coste del no-sistema
+El sistema SHALL calcular el coste equivalente de producir a mano los ejercicios que el sistema genera, como minutos por ejercicio por coste por hora, tomando ambos valores del fichero de supuestos y marcandolos como hipotesis.
+
+#### Scenario: Calculo
+- **WHEN** se indican minutos por ejercicio y coste por hora
+- **THEN** el informe muestra el coste de producir a mano la misma cantidad de ejercicios que el escenario de uso
+
+#### Scenario: Valores no indicados
+- **WHEN** faltan minutos por ejercicio o coste por hora
+- **THEN** el informe no calcula el coste del no-sistema e indica que faltan esos valores
+
+### Requirement: Informe de costes reproducible
+El sistema SHALL generar el informe de costes de forma determinista a partir de un informe de evaluacion real, la tabla de precios y el fichero de supuestos, en formato estructurado y en tablas legibles, indicando el numero de casos que respalda cada cifra.
+
+#### Scenario: Reproducibilidad
+- **WHEN** se calcula dos veces con las mismas entradas
+- **THEN** los dos informes de costes son identicos
+
+#### Scenario: Respaldo de cada cifra
+- **WHEN** se muestra el coste medio de un agente
+- **THEN** se indica de cuantos casos y llamadas sale
+
+#### Scenario: Informe simulado
+- **WHEN** se intenta calcular costes desde un informe de modo simulado
+- **THEN** el calculo se rechaza indicando que requiere un informe real
