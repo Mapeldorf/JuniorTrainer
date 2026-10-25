@@ -9,8 +9,8 @@
 | **Fecha** | Octubre de 2026 |
 | **Versión** | 0.1 — borrador |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
-| **Especificación formal** | `openspec/specs/` — 27 capacidades |
-| **Historial de cambios** | `openspec/changes/archive/` — 55 cambios |
+| **Especificación formal** | `openspec/specs/` — 28 capacidades |
+| **Historial de cambios** | `openspec/changes/archive/` — 59 cambios |
 
 ---
 
@@ -33,7 +33,7 @@ Lo que se ha construido, en cifras:
 | Servicios en ejecución | **12** contenedores |
 | Capacidades especificadas formalmente | **27** |
 | Cambios propuestos, implementados y archivados | **55** |
-| Commits | **306** |
+| Commits | **353** |
 | Controles de seguridad implementados | **25** |
 | Casos del dataset de evaluación (`evals/`) | **125**, en seis conjuntos |
 
@@ -1484,9 +1484,9 @@ control de versiones:
 
 ```
 openspec/
-  specs/      27 capacidades vigentes — la normativa actual del sistema
+  specs/      28 capacidades vigentes — la normativa actual del sistema
   changes/
-    archive/  55 cambios implementados y archivados, con fecha
+    archive/  59 cambios implementados y archivados, con fecha
   config.yaml reglas del proceso (idioma, estilo de los artefactos)
 ```
 
@@ -1545,7 +1545,7 @@ en el control de versiones, se revisan en los PR y evolucionan con el proyecto.
 
 #### La evidencia de que el proceso funcionó
 
-No es una afirmación de intenciones: hay 55 cambios archivados y el historial
+No es una afirmación de intenciones: hay 59 cambios archivados y el historial
 muestra el proceso atrapando errores. Cuatro ejemplos, todos reales:
 
 - **`litellm-huggingface-fallback`.** Al verificar la tarea 4.1 se descubrió que el
@@ -3121,12 +3121,12 @@ documenta, para cada una, qué es y cómo obtenerla o generarla.
 
 ## Anexo C — El proceso de especificación como evidencia
 
-### C.1 Las 27 capacidades vigentes (`openspec/specs/`)
+### C.1 Las 28 capacidades vigentes (`openspec/specs/`)
 
 | Dominio | Capacidades |
 |---|---|
 | Agentes | `agent-auth`, `agent-memory`, `agent-resilience`, `agent-trace-privacy` |
-| Generación y evaluación | `exercise-generation`, `answer-evaluation`, `exercise-catalog`, `exercise-blocks`, `agent-evaluation` |
+| Generación y evaluación | `exercise-generation`, `answer-evaluation`, `exercise-catalog`, `exercise-blocks`, `agent-evaluation`, `content-judging` |
 | Tecnologías | `technology-catalog`, `technology-validation` |
 | Asignación | `block-assignment`, `student-assignments` |
 | Autenticación y datos | `user-auth`, `data-authorization` |
@@ -3136,7 +3136,7 @@ documenta, para cada una, qué es y cómo obtenerla o generarla.
 | Integraciones | `github-repo-access` |
 | Frontend | `frontend-security-headers`, `frontend-ui-theme`, `confirm-dialog` |
 
-### C.2 Los 55 cambios archivados (`openspec/changes/archive/`)
+### C.2 Los 59 cambios archivados (`openspec/changes/archive/`)
 
 Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 `design.md`, `tasks.md` y los deltas de especificación.
@@ -3153,9 +3153,9 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 20 oct | `busqueda-manual-bloques`, `eliminar-memoria-corta-agente-web`, `long-polling-generaciones-pendientes`, `reintento-sesion-caducada-frontend`, `validador-contexto-generacion`, `validador-duplicados-tecnologias` |
 | 22 oct | `acortar-requisitos-largos`, `eliminar-memoria-agente-ejercicios`, `guardarrailes-por-capas` |
 | 23 oct | `suite-evaluacion-agentes` |
-| 24 oct | `costes-por-operacion` |
+| 24 oct | `costes-por-operacion`, `litellm-key-budget-configurable`, `evals-reasoning-effort`, `evals-umbrales-gate`, `juez-contenido` |
 
-Dos lecturas de esta tabla. La primera: **trece de los 55 cambios son de seguridad**
+Dos lecturas de esta tabla. La primera: **trece de los 59 cambios son de seguridad**
 (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y están
 concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
