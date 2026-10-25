@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Autor** | *(por completar)* |
-| **Fecha** | Octubre de 2026 |
-| **Versión** | 0.1 — borrador |
+| **Autor** | Chema Bravo |
+| **Fecha** | 26 de octubre de 2026 |
+| **Versión** | 1.0 |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
 | **Especificación formal** | `openspec/specs/` — 28 capacidades |
 | **Historial de cambios** | `openspec/changes/archive/` — 59 cambios |
@@ -31,11 +31,11 @@ Lo que se ha construido, en cifras:
 | Agentes de IA independientes | **6**, cada uno con su servicio, credencial y presupuesto |
 | Modelos lógicos | **4** roles sobre 2 familias de modelos y 2 proveedores |
 | Servicios en ejecución | **12** contenedores |
-| Capacidades especificadas formalmente | **27** |
-| Cambios propuestos, implementados y archivados | **55** |
-| Commits | **353** |
+| Capacidades especificadas formalmente | **28** |
+| Cambios propuestos, implementados y archivados | **59** |
+| Commits | **355**, alcanzables desde `develop` (25 de octubre de 2026) |
 | Controles de seguridad implementados | **25** |
-| Casos del dataset de evaluación (`evals/`) | **125**, en seis conjuntos |
+| Casos del dataset de evaluación (`evals/`) | **125**, en seis conjuntos, más **10** del juez (§5.6) |
 
 Tres decisiones articulan el sistema y se defienden a lo largo del documento:
 
@@ -54,7 +54,8 @@ Tres decisiones articulan el sistema y se defienden a lo largo del documento:
 El documento recorre la elección y parametrización de los modelos (parte II), el
 diseño del sistema de agentes y de la cadena de desarrollo asistida por copilotos
 (parte III), el despliegue y la evaluación (parte IV) y los controles de seguridad
-y el análisis de riesgos (parte V).
+y el análisis de riesgos (parte V); cierra con las lecciones aprendidas y el
+trabajo futuro (parte VI).
 
 ---
 
@@ -83,6 +84,7 @@ programa del máster. Esta tabla localiza cada concepto de la rúbrica.
 | Controles de seguridad implementados | §6.2 |
 | Análisis de riesgos | §6.3, §6.4 |
 | Red teaming | §6.5 |
+| Privacidad y datos personales | §6.6 |
 
 **Convenciones.** Las referencias a archivos son rutas del repositorio
 (`backend/app/orchestrator.py`). Las referencias entre comillas simples a un
