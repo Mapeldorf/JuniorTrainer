@@ -1765,6 +1765,26 @@ umbral se incumple; que además bloquee el merge es un ajuste de protección de 
 repositorio, no algo que quede en el código. Pendiente del punto 4: que la protección de
 rama haga obligatorio ese gate.
 
+**Lo que necesita el entorno `develop` para el gate.** A diferencia de `production`,
+`develop` no necesita los doce servicios para cumplir su papel de *gate*: la suite de
+evaluación no toca la base de datos de la aplicación (sustituye la memoria), así que
+basta con **LiteLLM, los seis agentes y Presidio** (más `litellm-db`). Eso reduce el
+entorno a lo que de verdad se mide.
+
+El problema a resolver es la **alcanzabilidad**: el job corre en un *runner* de GitHub y
+tiene que llegar al `/v1` de LiteLLM de `develop`, que (§5.2) **no debe ser público**
+—tiene la master key y la UI de administración—. Tres formas, de la más simple a la más
+aislada: permitir en el firewall solo las IPs de GitHub Actions; un túnel o VPN
+(Tailscale, WireGuard) por el que entra el runner; o un *runner* autoalojado dentro de
+`develop`, que no expone nada.
+
+Los **secretos** que el job necesita en GitHub son: la URL del proxy de `develop`
+(`EVALS_LITELLM_BASE_URL`), las seis virtual keys de los agentes, `TAVILY_API_KEY`, la
+credencial de la GitHub App y `EVALS_REAL_REPO`.
+
+**El aprovisionamiento de `develop`** —servidor, red y secretos— **es infraestructura y
+queda pendiente**; aquí queda especificado su alcance y lo que exige.
+
 ### 5.4 Estrategia de evaluación
 
 El marco antes de los números, porque la pregunta «¿funciona bien?» esconde cinco
