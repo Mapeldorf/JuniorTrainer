@@ -1718,6 +1718,7 @@ lo que no cambió:
 | `frontend` | `npm ci`, `ng build` y `ng test --no-watch` (29 ficheros de especificación) |
 | `litellm-guardrails` | Comprobación estática de `infra/litellm/config.yaml`: que todo deployment de respaldo lleva al menos los guardarraíles de su primario y que existe una redacción de PII activa de forma global, más sus propios casos sintéticos |
 | `agent-evals` | Los 75 tests del propio arnés de evaluación y la suite de §5.5 en **modo simulado** sobre los seis agentes, con un entorno de dependencias por agente. Solo corre si el PR toca `agents/` o `evals/` |
+| `evals-gate` | A demanda (`workflow_dispatch`): la suite de §5.5 en **modo real con umbrales** (`--gates`) contra el entorno `develop`; falla si una métrica de calidad baja del umbral. No corre en cada PR: necesita modelos y el stack |
 
 El tercero es nuevo (change `guardarrailes-por-capas`) y es el **primer control de
 `infra/` que entra en el CI**: hasta entonces ningún cambio en `infra/` disparaba
@@ -1725,7 +1726,10 @@ nada. No necesita red, modelo ni credenciales, así que corre en cada *pull requ
 que toque ese directorio. Nació, además, reproduciendo un fallo real: ejecutado
 contra la configuración sin arreglar, nombraba los dos deployments de respaldo que
 se habían quedado sin guardarraíles. El cuarto, `agent-evals` (change
-`suite-evaluacion-agentes`), es el primero que ejecuta código de los agentes.
+`suite-evaluacion-agentes`), es el primero que ejecuta código de los agentes. El
+quinto, `evals-gate` (change `evals-umbrales-gate`), es el **gate real**: corre la
+suite en modo real contra `develop`, a demanda, y falla si una métrica de calidad baja
+del umbral.
 
 **Lo que falta, y es el criterio explícito que separa un proyecto evaluable de uno
 consumible por terceros.** El CI del backend solo verifica que arranca; no verifica
@@ -1737,7 +1741,7 @@ simulados (más abajo). El plan:
 | 1 | Lint y comprobación de tipos en backend y en los seis agentes (`ruff`, `mypy`) | Sí |
 | 2 | Tests de backend: unitarios de los *schemas*, de la orquestación con agentes simulados, y de contrato de los endpoints | Sí |
 | 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados. *La suite simulada ya cubre parte de este terreno (§5.4)* | Sí |
-| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en `develop`. *El modo simulado corre en cada PR y el modo real completo ya se ejecutó (§5.7); faltan los **umbrales** y hacerlo bloqueante* | Sí, por umbral |
+| 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en `develop`. *Hecho el **gate por umbral** (job `evals-gate`, change `evals-umbrales-gate`); falta solo que la protección de rama del repositorio lo haga obligatorio* | Sí, por umbral |
 | 5 | Construcción y publicación de las imágenes de los doce servicios con etiqueta por commit | — |
 | 6 | Despliegue automático a `develop` y comprobación de salud posterior | — |
 | 7 | Despliegue a producción con aprobación manual | — |
@@ -1753,11 +1757,13 @@ suite en **modo simulado** sobre los seis agentes: el modelo se sustituye por un
 doble guionizado, y Tavily, GitHub y la memoria por datos del caso, así que no
 hay red, secretos ni coste. Lo que comprueba es el **código** de los agentes
 —parseo, límites, reintento, presupuestos, delimitadores—, no la calidad del
-modelo. El **modo real** (`python -m evals.run --mode real`) existe, pero se lanza
-a mano y no corre en CI. El job se pone en rojo cuando una invariante se rompe;
-que además bloquee el merge es un ajuste de protección de rama del repositorio,
-no algo que quede en el código. Pendiente del punto 4: los **umbrales** a partir de
-esa línea base (§5.7) y hacerlo bloqueante.
+modelo. El **modo real** (`python -m evals.run --mode real`) existe y **ya tiene gate
+por umbral** (`--gates`, con los umbrales de `evals/thresholds.json` derivados de la
+línea base de §5.7): el job `evals-gate` lo corre a demanda contra `develop` y falla si
+una métrica baja del umbral. El job se pone en rojo cuando una invariante se rompe o un
+umbral se incumple; que además bloquee el merge es un ajuste de protección de rama del
+repositorio, no algo que quede en el código. Pendiente del punto 4: que la protección de
+rama haga obligatorio ese gate.
 
 ### 5.4 Estrategia de evaluación
 
