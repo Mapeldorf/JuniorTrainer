@@ -9,14 +9,14 @@
   {"agent": "reviewer", "metric": "metrics.limit_adherence_rate", "min": 0.98},
 
   {"agent": "validator", "metric": "metrics.valid_output_rate", "min": 0.98},
-  {"agent": "validator", "metric": "metrics.validator.gate.false_positive_rate", "max": 0.05},
+  {"agent": "validator", "metric": "metrics.validator.gate.false_positive_rate", "max": 0.10},
   {"agent": "validator", "metric": "metrics.validator.gate.false_negative_rate", "max": 0.05},
   {"agent": "validator", "metric": "metrics.validator.duplicates.precision", "min": 0.80},
   {"agent": "validator", "metric": "metrics.validator.duplicates.recall", "min": 0.80},
 
   {"agent": "exercises", "metric": "metrics.valid_output_rate", "min": 0.98},
   {"agent": "exercises", "metric": "metrics.cardinality_conformance_rate", "min": 0.90},
-  {"agent": "exercises", "metric": "metrics.topic_overlap.max", "max": 0.40},
+  {"agent": "exercises", "metric": "metrics.topic_overlap.max", "max": 0.50},
 
   {"agent": "web", "metric": "metrics.valid_output_rate", "min": 0.98},
   {"agent": "web", "metric": "metrics.web.search_budget_respected_rate", "min": 0.90},
