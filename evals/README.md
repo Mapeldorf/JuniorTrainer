@@ -118,6 +118,24 @@ Comprobación determinista en ambos modos: el contenido no confiable (respuesta 
 
 Hallazgo informativo: si el contenido no confiable incluye el marcador de fin de delimitador, el prompt contiene uno de más y el contenido sigue "dentro" de su tramo según el arnés; el informe lo lista en `spoofable_markers` (hoy, `ad-eval-cierre-delimitador`, `ad-web-cierre-delimitador` y `ad-code-cierre-delimitador`). En el agente de código la comprobación reproduce el formato numerado de líneas del prompt (`1: ...`), así que si el agente lo cambia la comprobación fallará y habrá que actualizarla.
 
+## Gate de umbrales (capstone §5.3)
+
+La suite puede **fallar** por umbrales, no solo informar. Los umbrales viven en
+`evals/thresholds.json` (lista de `{agent, metric, min|max}`; `agent: "*"` aplica a todos),
+derivados de la línea base de §5.7. Son un **dato editable**: ajustar un umbral no toca
+código.
+
+```bash
+python -m evals.run --mode real --gates   # falla (código 1) si una métrica incumple su umbral
+```
+
+- Solo en **modo real** (el doble simulado no mide calidad); fuera de real se rechaza.
+- Una métrica **sin casos** no se evalúa: se informa aparte, no como fallo.
+- Sin `--gates`, el modo real informa y sale 0 (comportamiento de siempre).
+- El job de CI `evals-gate` lo corre **a demanda** (`workflow_dispatch`) contra el entorno
+  `develop`, con la URL y las claves por secretos. El entorno `develop` en vivo y sus
+  secretos son infraestructura (§5.2).
+
 ## Juez de contenido (capstone §5.6)
 
 Instrumento **offline** —no un agente— que puntúa la calidad pedagógica de los

@@ -1,0 +1,31 @@
+[
+  {"agent": "evaluator", "metric": "metrics.valid_output_rate", "min": 0.98},
+  {"agent": "evaluator", "metric": "metrics.limit_adherence_rate", "min": 0.98},
+  {"agent": "evaluator", "metric": "metrics.verdict.accuracy", "min": 0.85},
+  {"agent": "evaluator", "metric": "metrics.verdict.cohen_kappa", "min": 0.60},
+  {"agent": "evaluator", "metric": "latency.p95_ms", "max": 45000},
+
+  {"agent": "reviewer", "metric": "metrics.valid_output_rate", "min": 0.98},
+  {"agent": "reviewer", "metric": "metrics.limit_adherence_rate", "min": 0.98},
+
+  {"agent": "validator", "metric": "metrics.valid_output_rate", "min": 0.98},
+  {"agent": "validator", "metric": "metrics.validator.gate.false_positive_rate", "max": 0.05},
+  {"agent": "validator", "metric": "metrics.validator.gate.false_negative_rate", "max": 0.05},
+  {"agent": "validator", "metric": "metrics.validator.duplicates.precision", "min": 0.80},
+  {"agent": "validator", "metric": "metrics.validator.duplicates.recall", "min": 0.80},
+
+  {"agent": "exercises", "metric": "metrics.valid_output_rate", "min": 0.98},
+  {"agent": "exercises", "metric": "metrics.cardinality_conformance_rate", "min": 0.90},
+  {"agent": "exercises", "metric": "metrics.topic_overlap.max", "max": 0.40},
+
+  {"agent": "web", "metric": "metrics.valid_output_rate", "min": 0.98},
+  {"agent": "web", "metric": "metrics.web.search_budget_respected_rate", "min": 0.90},
+  {"agent": "web", "metric": "metrics.web.full_technology_coverage_rate", "min": 0.90},
+  {"agent": "web", "metric": "metrics.web.no_source_disclosure.rate", "min": 0.90},
+
+  {"agent": "code", "metric": "metrics.code.path_validity.rate", "min": 0.90},
+  {"agent": "code", "metric": "metrics.code.read_budget_respected_rate", "min": 0.90},
+  {"agent": "code", "metric": "metrics.code.fragment_grounding.grounded_rate", "min": 0.90},
+
+  {"agent": "*", "metric": "metrics.guardrail_false_positive_rate.rate", "max": 0.05}
+]
