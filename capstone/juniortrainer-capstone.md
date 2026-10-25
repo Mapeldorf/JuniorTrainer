@@ -155,13 +155,14 @@ El recorrido funcional completo, tal y como está implementado:
    realmente una tecnología de programación y si ya existe en el catálogo con otro
    nombre.
 2. **Generación.** El tech lead elige tecnologías del catálogo, opcionalmente un
-   repositorio de GitHub, el tipo de ejercicio y cuántos quiere (1 a 5). El
-   sistema responde de inmediato y trabaja de fondo: investiga documentación
-   actual, lee el repositorio en un commit concreto y redacta los candidatos.
+   repositorio de GitHub —sin repositorio solo se puede generar el tipo
+   `knowledge`—, el tipo de ejercicio y cuántos quiere (1 a 5). El sistema
+   responde de inmediato y trabaja de fondo: investiga documentación actual, lee
+   el repositorio en un commit concreto y redacta los candidatos.
 3. **Revisión humana.** El tech lead ve los candidatos con su nombre, su enunciado,
    los fragmentos de código etiquetados por fichero y la respuesta esperada. Edita
-   lo que quiera y guarda solo los que valen. **Nada entra al catálogo sin este
-   paso.**
+   el nombre y la respuesta esperada de los que quiera y guarda solo los que
+   valen. **Nada entra al catálogo sin este paso.**
 4. **Bloques.** Agrupa ejercicios guardados en bloques ordenados.
 5. **Asignación.** Asigna un bloque a uno o varios alumnos. La asignación crea una
    **copia congelada** de la composición del bloque: editar el bloque después no
@@ -193,7 +194,7 @@ sus **requisitos no funcionales**:
 | Redactar ejercicios | Derivada de las dos anteriores | Media | Lectura de BD | Alto |
 | Corregir respuesta | Texto escrito por el alumno | **Baja y con incentivo adverso** | Ninguna | Bajo |
 | Revisar corrección | Salida de otro modelo | Media | Ninguna | Bajo |
-| Validar entrada | Texto escrito por el tech lead | **Baja** | Lectura de catálogo | Muy bajo |
+| Validar entrada | Texto escrito por el tech lead | **Baja** | Lectura de catálogo (solo en el alta) | Muy bajo |
 
 Una sola llamada a un modelo frontier con todas las herramientas disponibles
 resolvería el problema funcional y crearía cuatro problemas de ingeniería:
@@ -224,8 +225,18 @@ Lo que el sistema **no** hace, y por qué:
 |---|---|
 | Ejecutar el código del alumno | Evaluar por ejecución exigiría aislamiento de ejecución de código arbitrario: una superficie de ataque entera que el producto no necesita. La evaluación es sobre la explicación del alumno, no sobre un test que pasa. |
 | Clonar o almacenar repositorios | Se lee por API y no se persiste nada en disco. Reduce la superficie de exposición de código propietario. |
+| Escribir en el repositorio | La GitHub App es de solo lectura (`Contents: Read-only`): no hay ramas, ni commits, ni *pull requests*. |
+| Ejecutar acciones con efecto | Ningún agente tiene herramientas de escritura: leen y devuelven texto (§6.2). |
 | Calificar numéricamente | El veredicto es categórico (`correct` / `incomplete` / `incorrect`). Una nota numérica sugeriría una precisión que un juez LLM no tiene. |
 | Decidir qué ejercicio vale | La aprobación es siempre humana. |
+| Reescribir un candidato entero | En la revisión solo se editan el nombre y la respuesta esperada; el enunciado y el código se descartan si no valen. |
+| Asignar ejercicios sueltos | La unidad de asignación es el bloque; del bloque sale la copia congelada para uno o varios alumnos. |
+| Editar el historial | La asignación queda congelada y las respuestas son inmutables, garantizado con *triggers* en la base de datos. |
+| Búsqueda semántica | No hay *embeddings* ni base vectorial: la memoria es una caché por clave exacta, no una búsqueda por similitud. |
+| Conversar con el sistema | No hay chat ni diálogo libre: la interacción son formularios, bloques y respuestas. |
+| Analítica de progreso | No hay vista agregada; los datos existen y su producto queda en el trabajo futuro (§8). |
+| Avisar por correo | El único correo es la invitación: asignar un bloque no envía ningún aviso al alumno. |
+| Internacionalización | Todo se entrega en español; el prompt lo exige en los seis agentes (§3.1). |
 | Autorregistro de usuarios | La entrada al sistema es por invitación de un tech lead. |
 
 ---
