@@ -248,7 +248,7 @@ Lo que el sistema **no** hace, y por qué:
 ```mermaid
 flowchart TB
     subgraph Cliente["Cliente"]
-        FE["Frontend<br/>Angular 22 + Tailwind"]
+        FE["Frontend :4200<br/>Angular 22 + Tailwind"]
     end
 
     subgraph Nucleo["Núcleo (Docker Compose, red privada)"]
@@ -274,36 +274,75 @@ flowchart TB
     end
 
     FE -->|"HTTP + JWT"| BE
+    FE -.->|"autenticación (clave anon)"| SB
     BE -->|"A2A + X-Agent-Service-Token"| AG_WEB & AG_CODE & AG_EX & AG_EVAL & AG_REV & AG_VAL
     BE -->|"REST + service_role"| SB
     BE -->|"GitHub App"| GH
     AG_WEB & AG_CODE & AG_EX & AG_EVAL & AG_REV & AG_VAL -->|"OpenAI-compatible + virtual key"| LITE
     AG_WEB --> TAV
     AG_CODE --> GH
+    AG_EVAL & AG_REV -->|"redacción de PII"| PRES
     LITE --> LLM
     LITE --> LAK
     LITE --- LDB
-    LITE --- PRES
-    BE & AG_WEB & AG_CODE & AG_EX & AG_EVAL & AG_REV & AG_VAL -.->|"trazas"| LF
-    AG_WEB & AG_CODE & AG_EX -.->|"memoria"| SB
+    LITE -->|"red de seguridad de PII"| PRES
+    BE & LITE & AG_WEB & AG_CODE & AG_EX & AG_EVAL & AG_REV & AG_VAL -.->|"trazas"| LF
+    AG_WEB & AG_CODE -.->|"memoria"| SB
+    AG_EX & AG_VAL -.->|"lecturas (ejercicios y catálogo)"| SB
 ```
 
-Tres invariantes de la arquitectura, visibles en el diagrama:
+Las líneas continuas trazan el camino crítico —quién pide y quién responde—;
+las discontinuas, los flujos silenciosos que lo sostienen: las trazas, la memoria
+y las lecturas de Postgres, además de la autenticación del navegador contra
+Supabase.
+
+Diez invariantes de la arquitectura:
 
 1. **El frontend solo habla con el backend.** No habla con los agentes, ni con
-   GitHub, ni con la base de datos usando una credencial privilegiada. Su única
-   relación con Supabase es la autenticación.
+   GitHub, ni con la base de datos usando una credencial privilegiada. Con
+   Supabase mantiene una sola conversación: la autenticación. Allí obtiene su
+   JWT con la clave `anon`, y ese token es lo que presenta en cada petición al
+   backend.
 2. **Los agentes son internos.** No publican puertos al host (`expose`, no
    `ports`, en `docker-compose.yml`): solo son alcanzables por nombre de servicio
    dentro de la red privada de Docker.
 3. **Ningún agente conoce a su proveedor de modelo.** Todos hablan con LiteLLM
    contra un alias lógico.
+4. **Dentro de la red privada, nadie es anónimo.** El backend se identifica
+   ante cada agente con `X-Agent-Service-Token`, y cada agente, ante LiteLLM,
+   con su virtual key, restringida al alias que necesita. La clave maestra del
+   proxy no la usa ningún servicio: existe solo para administrar.
+5. **Solo el backend escribe en el negocio.** El backend trabaja con
+   `service_role`; los agentes miran las tablas que les toca (catálogo,
+   ejercicios) con roles de solo lectura, y su caché vive confinada al esquema
+   `memory`. Ninguna tabla de alumnos recibe una escritura que venga de un
+   agente.
+6. **La base de datos también es guardián.** Lo que no debe romperse está
+   escrito además en *triggers*: la copia que se asigna queda congelada, una
+   respuesta no se reescribe y un bloque ya resuelto no se altera. El código
+   puede fallar; la base de datos, no.
+7. **Los agentes no guardan estado: cachean.** Entre tarea y tarea, lo único
+   que un agente recuerda es su caché —con fecha de caducidad y sin datos de
+   alumnos—; el estado de una operación vive en la base de datos, no en un
+   proceso.
+8. **El dato personal se redacta en origen.** La redacción ocurre dentro del
+   agente, antes de que el prompt salga del proceso: al detector de inyección,
+   al proveedor, al respaldo y a las trazas les llega el texto ya limpio. El
+   proxy conserva una red de seguridad, pero no es la que trabaja.
+9. **Una operación, una traza.** El backend abre un `trace_id` por operación y
+   lo propaga a todas sus llamadas A2A; la ejecución entera aparece como un
+   árbol en Langfuse, bajo la misma traza.
+10. **Ninguna capa espera más que la que la envuelve.** Los timeouts van de
+    dentro hacia fuera —15 segundos para una búsqueda, 20 en el proxy, 45 en el
+    cliente del agente, 120 por tarea, 300 por generación—, así que el error que
+    finalmente ve el usuario es el estructurado de la capa interior, nunca una
+    conexión rota en silencio.
 
 ### 2.2 Por qué cada pieza y no otra
 
 | Pieza | Elegido | Alternativas consideradas | Razón de la elección |
 |---|---|---|---|
-| API | **FastAPI** | Django REST, Express | Asincronía nativa, necesaria para orquestar seis agentes en paralelo con `asyncio.gather`; validación por tipos con Pydantic, que aquí no es comodidad sino un control de seguridad (§6.2); OpenAPI generada. |
+| API | **FastAPI** | Django REST, Express | Asincronía nativa, necesaria para orquestar seis agentes —con el web y el de código en paralelo, gracias a `asyncio.gather`—; validación por tipos con Pydantic, que aquí no es comodidad sino un control de seguridad (§6.2); OpenAPI generada. |
 | Frontend | **Angular 22 + Tailwind** | React, Vue | Framework opinado con inyección de dependencias e interceptores HTTP de serie: el JWT se añade en **un único** punto del código, lo que hace auditable que no se filtre a otros destinos. |
 | Datos y auth | **Supabase** | Postgres propio + Auth0, Firebase | Postgres real con **RLS**, que da una segunda capa de autorización en la propia base de datos; autenticación gestionada con invitación por correo; y la posibilidad de crear **roles de base de datos dedicados** para los agentes, que es lo que permite el mínimo privilegio de §6.2. |
 | Pasarela de modelos | **LiteLLM** | SDK del proveedor, OpenRouter directo | Un único punto donde viven proveedores, credenciales, presupuestos, guardarraíles y fallbacks. Es la pieza que hace posible cambiar de modelo sin desplegar y aplicar guardarraíles sin tocar el código de los agentes. |
@@ -312,6 +351,9 @@ Tres invariantes de la arquitectura, visibles en el diagrama:
 | Detección de PII | **Presidio** autoalojado | Servicio gestionado | Autoalojado: el dato personal que se quiere proteger no sale de la infraestructura para ser detectado. Sin coste por llamada. |
 | Detección de inyección | **Lakera Guard** | Solo defensa por instrucción | Añade una capa automatizada a la defensa por prompt. Sus límites reales se discuten en §6.5. |
 | Búsqueda web | **Tavily** | Scraping propio, API de buscador | API pensada para consumo por LLM: devuelve extractos ya recortados, no páginas que haya que limpiar. |
+| Acceso a repositorios | **GitHub App de servicio, solo lectura** | OAuth por tech lead, token personal | Se instala únicamente en los repositorios que lo necesitan; sus tokens de instalación duran cerca de una hora y se renuevan solos, y se revoca desinstalándola. Ninguna credencial de persona ni de alcance amplio repartida por el sistema. |
+| Memoria de agentes | **`AsyncPostgresStore` de LangGraph, caché por clave exacta con TTL de 30 días** | Historial propio del agente, memoria corta por tarea, base vectorial | Vive en el Postgres que ya se opera —sin servicio nuevo—, con caducidad y espacios de nombres propios; la clave es exacta, así que no hacen falta *embeddings*. Los dos intentos previos se retiraron: la memoria corta por tarea no aportaba nada a tareas de una sola respuesta, y el historial de enunciados sin caducidad crecía sin cota sin batir a la lectura directa de los ejercicios guardados. |
+| Estado en vivo | **Long-polling con `asyncio.Event`** | WebSocket, SSE, Supabase Realtime | El backend es un único proceso, así que un evento en memoria basta: no hay conexión permanente que proxies y navegadores deban respetar, y la espera (25 s) queda siempre por debajo de sus límites de tiempo. |
 
 ### 2.3 Los doce servicios
 
@@ -343,8 +385,9 @@ Dos detalles con intención:
 
 ### 2.4 Anatomía de un agente
 
-Los seis agentes comparten exactamente la misma estructura. Entender uno es
-entender los seis; solo cambian la lógica de negocio y las herramientas.
+Los seis agentes comparten la misma estructura —los módulos opcionales son
+exactamente los que cada uno necesita—: entender uno es entender los seis,
+porque solo cambian la lógica de negocio y las herramientas.
 
 ```
 agents/<agente>/
@@ -360,9 +403,11 @@ agents/<agente>/
     service_auth.py  verificación de X-Agent-Service-Token
     rate_limit.py    límite de peticiones
     tracing.py       trazas de Langfuse
-    db.py            conexión a Postgres (solo agentes con memoria)
-    memory.py        memoria de largo plazo (solo agentes con memoria)
-    tools/           herramientas específicas
+    db.py            conexión a Postgres (web, código, ejercicios y validador)
+    memory.py        memoria de largo plazo (solo web y código)
+    redaction.py     redacción de PII en origen (solo evaluador y revisor)
+    tools/           herramientas específicas (web, código, ejercicios y validador)
+  run.py             arranque en local (python run.py, sin contenedor)
   scripts/           verificaciones manuales (verify_*.py)
   Dockerfile
   requirements.txt
@@ -404,7 +449,6 @@ erDiagram
     ASSIGNMENT ||--o{ ASSIGNMENT_EXERCISE : "copia"
     EXERCISE ||--o{ ASSIGNMENT_EXERCISE : "se referencia"
     ASSIGNMENT_EXERCISE ||--o| ANSWER : "recibe"
-    EXERCISE ||--o{ ANSWER : "se responde"
 ```
 
 | Tabla | Qué guarda |
@@ -417,7 +461,7 @@ erDiagram
 | `block_exercise` | Composición ordenada de un bloque. |
 | `assignment` | La asignación de un bloque a un alumno. |
 | `assignment_exercise` | **La copia congelada** de la composición en el momento de asignar. |
-| `answer` | La respuesta del alumno con su veredicto y justificación. |
+| `answer` | La respuesta del alumno con su veredicto y justificación. Apunta a la **copia congelada** (la pareja de `assignment_exercise`), no al ejercicio del catálogo. |
 | `repo_access_log` | Auditoría de cada acceso a un repositorio de GitHub. |
 
 **La copia inmutable es la decisión de modelado más importante.** Cuando el tech
@@ -433,13 +477,17 @@ para que se cumplan aunque el código de la aplicación fallara:
 | Trigger | Garantiza |
 |---|---|
 | `on_auth_user_created` | Crea el `profile` al confirmarse un alta. |
-| `exercise_lock_after_saved` | Un ejercicio guardado solo puede cambiar `deleted_at`. |
-| `block_exercise_requires_saved` | A un bloque solo entran ejercicios guardados y no eliminados. |
+| `exercise_lock_after_saved_trg` | Un ejercicio guardado solo puede cambiar `deleted_at`. |
+| `block_exercise_requires_saved_trg` | A un bloque solo entran ejercicios guardados y no eliminados. |
 | `assignment_exercise_immutable` | La copia asignada no cambia nunca. |
 | `answer_immutable` | Una respuesta no se modifica una vez dada. |
 | `block_set_updated_at` | Mantiene `updated_at`. |
-| `block_lock_after_answered` | No se renombra un bloque ya resuelto. |
-| `block_exercise_lock_after_answered` | No se altera la composición de un bloque ya resuelto. |
+| `block_lock_after_answered_trg` | No se renombra un bloque ya resuelto. |
+| `block_exercise_lock_after_answered_trg` | No se altera la composición de un bloque ya resuelto. |
+
+El sufijo `_trg` distingue el *trigger* de la función que dispara cuando ambas
+comparten nombre: `exercise_lock_after_saved_trg` ejecuta
+`exercise_lock_after_saved`.
 
 El criterio general es **borrado lógico** (`deleted_at`) en `exercise` y `block`,
 y **sin borrado** en `assignment`, `assignment_exercise` y `answer`: el historial
@@ -700,16 +748,11 @@ modelo:
 
 El prompt pide el límite; **el código lo hace cumplir**. Si el modelo se pasa, se
 reintenta **una sola vez** con una corrección explícita y, si vuelve a pasarse, la
-tarea falla en lugar de entregar una salida que incumple el contrato. Dos
-sutilezas del diseño del reintento:
-
-- En el agente de ejercicios, el reintento abarca **toda la petición**, no solo el
-  candidato problemático: mezclar candidatos de dos respuestas distintas reabriría
-  la posibilidad de temas repetidos, que es precisamente lo que el agente intenta
-  evitar.
-- Los enunciados se guardan en el historial de memoria **solo después** de una
-  generación correcta, así que los que incumplían el límite nunca contaminan la
-  lista de «ya propuestos».
+tarea falla en lugar de entregar una salida que incumple el contrato. Una
+sutileza del diseño: en el agente de ejercicios, el reintento abarca **toda la
+petición**, no solo el candidato problemático. Mezclar candidatos de dos
+respuestas distintas reabriría la posibilidad de temas repetidos, que es
+precisamente lo que ese agente intenta evitar.
 
 El límite de 50 palabras está **duplicado a propósito** en evaluador y revisor,
 sin extraerlo a una librería común. Es una decisión consciente, documentada en el
@@ -727,7 +770,7 @@ de modo que un cupo agotado no dispara ninguna llamada de más:
 | Código | rutas elegidas por el modelo | 10 | Ficheros que puede pedir |
 | Código | `_MAX_FILES_IN_LISTING` | 500 | Entradas del listado que recibe el modelo |
 | Ejercicios | `SearchBudget` | 3 | Consultas a `public.exercise` |
-| Ejercicios | `_MAX_RECENT` | 20 | Enunciados que guarda el historial |
+| Ejercicios | `limit` de la consulta | 200 | Ejercicios que recibe como «ya propuestos» |
 
 **Topes de entrada.** Validados con Pydantic antes de tocar nada: 1 a 15
 tecnologías por generación, cada una de ≤60 caracteres; `count` entre 1 y 5; y
@@ -1123,10 +1166,11 @@ flexible y no se puede acotar ni medir igual.
 
 **Agente Ejercicios — el redactor.**
 Redacta exactamente el número de candidatos pedido, de un solo tipo por llamada.
-Para no repetir temas junta dos listas de enunciados a evitar: los ejercicios ya
-guardados del mismo tipo (hasta 10, leídos con el rol `agents_exercise_reader`, que
-solo puede hacer `SELECT` sobre `public.exercise`) y los últimos 20 enunciados que
-él mismo propuso, de su memoria.
+Para no repetir temas, consulta en una sola lectura los 200 ejercicios más
+recientes de ese tipo —guardados o eliminados— con el rol
+`agents_exercise_reader`, que solo puede hacer `SELECT` sobre `public.exercise`:
+un ejercicio retirado no debe volver a proponerse, y el agente no mantiene ningún
+historial propio.
 
 **Acepta un solo `exercise_type` por llamada.** Cuando el tech lead pide «de los dos
 tipos», es el **backend** quien hace dos llamadas y reparte el `count` de forma
@@ -1452,7 +1496,7 @@ porque cada una tiene una política de fallo distinta.
 |---|---|---|---|
 | **0 — Proceso** | RAM | Configuración, clientes de Supabase y Langfuse, token de instalación de GitHub | Hasta el reinicio |
 | **1 — Memoria de agentes** | Esquema `memory` de Supabase | Investigación web y análisis de repositorio | Persistente |
-| **2 — Memoria de lectura** | `public.exercise` | Ejercicios guardados, para no repetir temas | Persistente |
+| **2 — Memoria de lectura** | `public.exercise` | Ejercicios guardados o eliminados, para no repetir temas | Persistente |
 | **3 — Estado y control** | `public.*` y `litellm-db` | Estado de negocio; claves, presupuestos y consumo | Persistente |
 
 Las **dos memorias de contenido** de la capa 1 se implementan con el almacén de
@@ -1466,9 +1510,10 @@ largo plazo de LangGraph (`AsyncPostgresStore`), cada una con su espacio de nomb
 Fueron tres. El agente de ejercicios tenía una tercera, un historial de los
 últimos 20 enunciados propuestos, que el change
 `eliminar-memoria-agente-ejercicios` eliminó: para no repetir temas le basta con
-leer los ejercicios ya guardados de `public.exercise` (la capa 2), que es la
-fuente de verdad de lo que el tech lead aprobó, mientras el historial acumulaba
-también lo que se descartó. Dos memorias y una lectura explican el sistema mejor
+leer de `public.exercise` (la capa 2) los 200 más recientes de ese tipo,
+guardados o eliminados —la fuente de verdad de lo que el tech lead aprobó y de
+lo que retiró después—, mientras que la memoria acumulaba también los candidatos
+descartados en la revisión. Dos memorias y una lectura explican el sistema mejor
 que tres memorias.
 
 Dos detalles de diseño que explican por qué funciona:
@@ -1881,7 +1926,7 @@ juicio de nadie:
 | **Exactitud del veredicto** | Matriz de confusión del `verdict` contra respuestas etiquetadas por un humano; exactitud y **κ de Cohen** | La métrica de calidad más importante del sistema: es lo único que llega al alumno sin supervisión |
 | **Precisión del gate del validador** | Falsos positivos y falsos negativos sobre un set de tecnologías válidas, inválidas y adversarias | Un falso positivo bloquea trabajo legítimo; un falso negativo abre la puerta |
 | **Detección de duplicados** | Precisión y cobertura sobre variantes conocidas («Angular» / «Angular Framework») | Tiene política *default-deny* invertida (§3.6): aquí el falso positivo es el error caro |
-| **No repetición de temas** | Solapamiento entre generaciones consecutivas con las mismas tecnologías, con el índice de Jaccard sobre términos: una aproximación determinista del solapamiento semántico, que exigiría *embeddings* | Es el propósito de la memoria del agente de ejercicios (§4.8) |
+| **No repetición de temas** | Solapamiento entre generaciones consecutivas con las mismas tecnologías, con el índice de Jaccard sobre términos: una aproximación determinista del solapamiento semántico, que exigiría *embeddings* | Es el propósito de la lista de temas a evitar del agente de ejercicios (§4.3, §4.8) |
 | **Falsos positivos de guardarraíl** | % de llamadas benignas rechazadas por un guardarraíl del proxy (solo en modo real). El contenido alterado por Presidio no se mide aquí: el arnés sustituye la redacción y la comprueba `verify_redaction` | Métrica con historia real en este proyecto (§6.5): justificó primero pasar Lakera a monitor y después retirarlo de la ruta de generación |
 | **Presupuestos de operaciones** | Búsquedas del agente web (máx. 5) y lecturas del agente de código (máx. 10), contadas en cada caso | Verifica que el límite de §3.5 se cumple de verdad |
 | **Rutas y fragmentos del agente de código** | % de rutas elegidas por el modelo que existen en el repositorio; % de fragmentos copiados literalmente del fichero y que empiezan en la línea declarada | Es la regla «ningún requisito verificable depende de que el modelo obedezca» aplicada al caso que la originó |
