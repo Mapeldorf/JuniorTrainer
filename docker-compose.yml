@@ -68,9 +68,12 @@ services:
 
   # Redaccion de PII (propuesta litellm-presidio-pii-masking): dos servicios
   # autoalojados, sin credenciales ni coste por llamada (a diferencia de
-  # Lakera). Solo litellm los llama, nunca el host ni otro agente -- expose,
-  # no ports, mismo patron que los agentes. Version fijada (no :latest): ver
-  # hallazgo del SIGSEGV de litellm:main-latest en litellm-lakera-guardrail.
+  # Lakera). Los llaman litellm (red de seguridad global) y, desde el change
+  # guardarrailes-por-capas, el evaluador y el revisor, que redactan en
+  # origen (ver agents/evaluator/app/redaction.py y el gemelo del revisor);
+  # nunca los llama el host -- expose, no ports, mismo patron que los
+  # agentes. Version fijada (no :latest): ver hallazgo del SIGSEGV de
+  # litellm:main-latest en litellm-lakera-guardrail.
   presidio-analyzer:
     image: mcr.microsoft.com/presidio-analyzer:2.2.362
     expose:
