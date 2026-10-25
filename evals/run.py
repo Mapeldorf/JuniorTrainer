@@ -24,7 +24,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from evals import dataset, report
+from evals import dataset, gates, report
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
@@ -94,6 +94,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="maximo de casos por conjunto y agente (0 = todos); util en modo real para acotar el coste")
     parser.add_argument("--reasoning", default="",
                         help="ajuste de razonamiento, solo modo real: off, effort=<nivel> o max-tokens=<N>")
+    parser.add_argument("--gates", action="store_true",
+                        help="aplica los umbrales de evals/thresholds.json (solo modo real): falla si una metrica los incumple")
     args = parser.parse_args(argv)
 
     agents = [a.strip() for a in args.agents.split(",") if a.strip()]
@@ -104,6 +106,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.reasoning and args.mode != "real":
         print("--reasoning solo tiene efecto en modo real (el doble simulado no llama a ningun proveedor)",
               file=sys.stderr)
+        return 2
+    if args.gates and args.mode != "real":
+        print("--gates solo tiene sentido en modo real (el doble simulado no mide calidad)", file=sys.stderr)
         return 2
     overrides = dict(item.split("=", 1) for item in args.python if "=" in item)
 
@@ -131,6 +136,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if result["not_executed"]:
         return 2
+    if args.gates:
+        gate = gates.evaluate(result, gates.load())
+        print("\n" + gates.render_summary(gate))
+        if gate["failures"]:
+            return 1
     if args.mode == "simulated" and result["invariants"]["violations"]:
         return 1
     return 0
