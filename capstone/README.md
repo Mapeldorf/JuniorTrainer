@@ -29,7 +29,7 @@ marcadas como tales dentro del propio documento:
 | Sección | Qué falta | Depende de |
 |---|---|---|
 | §5.2 | Presupuesto de infraestructura | Decidirlo |
-| §5.3 | CI/CD ampliado | Implementarlo |
+| §5.3 | Lint/`mypy`, tests de backend y los `verify_*.py` automatizados (el gate de evals ya existe) | Implementarlo |
 | §5.8 | Montar el cuadro de mando y sus alertas | Infraestructura (los umbrales ya están especificados) |
 | §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 | §6.6 | Trabajo de cumplimiento: RAT, base jurídica, transparencia, acuerdos de encargado y retención | Cumplimiento |
