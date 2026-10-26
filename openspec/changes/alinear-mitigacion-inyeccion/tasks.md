@@ -13,7 +13,7 @@
 ## 3. Verificación
 
 - [x] 3.1 Ejecutar los 168 tests del arnés (`python -m unittest discover -s evals -t . -p "test_*.py"`). Verificar: todos en verde. **Verificado:** Ran 168 tests, OK.
-- [ ] 3.2 Ejecutar la suite simulada completa y el job de CI equivalente en el PR. Verificar: `python -m evals.run --mode simulated` en verde local, y el check `agent-evals` de GitHub Actions en verde en el PR. **Parcial:** local en verde (informe `20261026T103230Z-simulated.json`, invariantes cumplen); el check de GitHub Actions se verificará al crear el PR (5.2).
+- [x] 3.2 Ejecutar la suite simulada completa y el job de CI equivalente en el PR. Verificar: `python -m evals.run --mode simulated` en verde local, y el check `agent-evals` de GitHub Actions en verde en el PR. **Verificado:** local en verde (informe `20261026T103230Z-simulated.json`, invariantes cumplen); en la PR #121 el check `agent-evals` de GitHub Actions quedó en verde (2m3s).
 - [x] 3.3 Ejecutar una medición en modo real del agente de ejercicios (`--limit-per-set` pequeño). Verificar: el informe muestra validez y cardinalidad sin regresión frente a la línea base de §5.7. **Verificado:** informe `20261026T103831Z-real.json` — 2 casos reales, validez 1.000, cardinalidad 1.000, límites 1.000, reintento 0.000, 0 falsos positivos de guardarraíl; sin regresión frente a §5.7.
 
 ## 4. Documentación del capstone
