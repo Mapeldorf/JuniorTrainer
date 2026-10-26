@@ -1757,16 +1757,23 @@ verificado a mano. Para los agentes la brecha se ha empezado a cerrar con el job
 
 ### 5.1 Empaquetado y configuración
 
-El sistema se empaqueta como **doce contenedores** (§2.3), cada uno con su
-`Dockerfile`, orquestados por `docker-compose.yml`. La base de datos, la
-autenticación y las trazas viven en servicios gestionados (Supabase y Langfuse
-Cloud), que no forman parte del Compose.
+El sistema se empaqueta como **doce contenedores** (§2.3) orquestados por
+`docker-compose.yml`: ocho con `Dockerfile` propio —el frontend, el backend y los
+seis agentes— y cuatro sobre imágenes publicadas —LiteLLM, Postgres y los dos
+servicios de Presidio—. La base de datos, la autenticación y las trazas viven en
+servicios gestionados (Supabase y Langfuse Cloud), que no forman parte del
+Compose.
 
-**Toda la configuración entra por entorno.** No hay valores de conexión ni
-credenciales en el código; un único `.env` en la raíz alimenta los doce servicios
-vía `env_file`. El contrato está documentado en `.env.example`, que no es una lista
-de nombres de variable: cada bloque explica qué es el valor, de dónde se obtiene y
-cómo generarlo (`openssl rand -hex 32` donde corresponde). Es el fichero que
+**Toda la configuración entra por entorno.** No hay credenciales ni valores
+privados de conexión en el código; la única excepción son las dos constantes
+públicas por diseño que el frontend compila en el build —la URL de Supabase y su
+clave publicable, protegida por RLS, que no es un secreto
+(`frontend/src/environments/`)—. Todo lo demás entra por un único `.env` en la
+raíz: lo leen por `env_file` los ocho servicios que consumen configuración
+—backend, LiteLLM y los seis agentes—, el Postgres de LiteLLM recibe sus tres
+variables por interpolación y Presidio no necesita ninguna. El `.env` no es una
+lista de nombres de variable: cada bloque explica qué es el valor, de dónde se
+obtiene y cómo generarlo (`openssl rand -hex 32` donde corresponde). Es lo que
 permite que una persona que llega nueva levante el sistema sin preguntar nada.
 
 Tres decisiones de configuración con intención:
@@ -1781,7 +1788,8 @@ Tres decisiones de configuración con intención:
   al `.env` en un entorno desplegado sin cambiar una línea de código.
 
 **Qué secreto ve cada servicio** es parte del diseño de seguridad, no un detalle de
-despliegue. Hoy los doce comparten el mismo `.env` por simplicidad de desarrollo, y
+despliegue. Hoy toda la configuración vive en un único `.env` compartido por los
+servicios que la consumen, por simplicidad de desarrollo, y
 eso es precisamente lo que un despliegue real debe corregir: la clave privada de la
 GitHub App solo la necesitan el agente de código y el backend —que la usa para
 resolver el commit HEAD—; la `SUPABASE_SERVICE_ROLE_KEY`,
@@ -1795,12 +1803,9 @@ el fichero.
 
 ### 5.2 Entornos y topología de despliegue
 
-> **Plataforma decidida.** Un servidor por entorno con **Docker Compose** y un
-> *reverse proxy* que termina el TLS. Queda pendiente el **presupuesto de
-> infraestructura**.
-
-**Dos entornos, idénticos y separados: `develop` y `production`.** Corren el mismo
-`docker-compose.yml` sobre su propia máquina y su propio estado. `develop` es donde
+**Dos entornos, separados y simétricos: `develop` y `production`.** Arrancan del
+mismo `docker-compose.yml`, cada uno sobre su propia máquina y su propio estado;
+`develop` puede reducirse al subconjunto que exige el gate (§5.3). `develop` es donde
 se ejecuta el **modo real** de la suite de §5.5 —el *gate* de evaluación— contra
 modelos reales y sin tocar los datos de producción; `production` es el entorno de los
 clientes. Lo que se mide en `develop` no escribe en la base de datos de la
@@ -1810,7 +1815,7 @@ Los requisitos que la plataforma cumple, derivados del diseño:
 
 | Requisito | Cómo se cumple |
 |---|---|
-| Solo `frontend` y `backend` accesibles desde internet | Un *reverse proxy* con TLS publica solo esos dos servicios; los seis agentes, LiteLLM y Presidio quedan con `expose`, inalcanzables desde el host (§2.1). |
+| Solo `frontend` y `backend` accesibles desde internet | Un *reverse proxy* con TLS publica solo esos dos servicios; los seis agentes, LiteLLM y Presidio quedan con `expose`, inalcanzables desde el host (§2.1). LiteLLM exige hoy un ajuste explícito, abajo |
 | Red privada entre servicios con resolución por nombre | La red interna de Compose: el backend llama a los agentes por nombre de servicio. |
 | Gestor de secretos, no ficheros `.env` | Un gestor de secretos inyecta en cada servicio solo sus variables, como entorno real, que tiene prioridad sobre el `.env` (§5.1). |
 | Postgres persistente para `litellm-db` | Volumen en disco persistente: las claves virtuales y el consumo acumulado no se pierden en un redespliegue. |
@@ -1842,7 +1847,8 @@ planos —los agentes solo hacia LiteLLM, el backend hacia los agentes, los dato
 aislados—; no es imprescindible para el primer despliegue, pero conviene tenerlo
 presente.
 
-**Lo que queda por decidir:** el presupuesto de infraestructura.
+**Lo que queda por decidir:** el presupuesto de infraestructura y el
+aprovisionamiento de `develop` —servidor, red y secretos— (§5.3).
 
 ### 5.3 Integración y despliegue continuos
 
@@ -1855,7 +1861,7 @@ lo que no cambió:
 | `backend` | Instala dependencias y comprueba que `app.main` importa, con variables de entorno de relleno |
 | `frontend` | `npm ci`, `ng build` y `ng test --no-watch` (29 ficheros de especificación) |
 | `litellm-guardrails` | Comprobación estática de `infra/litellm/config.yaml`: que todo deployment de respaldo lleva al menos los guardarraíles de su primario y que existe una redacción de PII activa de forma global, más sus propios casos sintéticos |
-| `agent-evals` | Los 75 tests del propio arnés de evaluación y la suite de §5.5 en **modo simulado** sobre los seis agentes, con un entorno de dependencias por agente. Solo corre si el PR toca `agents/` o `evals/` |
+| `agent-evals` | Los **168** tests del propio arnés de evaluación y la suite de §5.5 en **modo simulado** sobre los seis agentes, con un entorno de dependencias por agente. Solo corre si el PR toca `agents/` o `evals/` |
 | `evals-gate` | A demanda (`workflow_dispatch`): la suite de §5.5 en **modo real con umbrales** (`--gates`) contra el entorno `develop`; falla si una métrica de calidad baja del umbral. No corre en cada PR: necesita modelos y el stack |
 
 El tercero es nuevo (change `guardarrailes-por-capas`) y es el **primer control de
@@ -1880,7 +1886,7 @@ simulados (más abajo). El plan:
 | 2 | Tests de backend: unitarios de los *schemas*, de la orquestación con agentes simulados, y de contrato de los endpoints | Sí |
 | 3 | Los 19 verificadores `verify_*.py` de los agentes, convertidos de scripts manuales a pruebas automatizadas con los modelos simulados. *La suite simulada ya cubre parte de este terreno (§5.4)* | Sí |
 | 4 | La suite de evaluación (§5.5 y §5.6) con **umbrales**, ejecutada contra modelos reales en `develop`. *Hecho el **gate por umbral** (job `evals-gate`, change `evals-umbrales-gate`); falta solo que la protección de rama del repositorio lo haga obligatorio* | Sí, por umbral |
-| 5 | Construcción y publicación de las imágenes de los doce servicios con etiqueta por commit | — |
+| 5 | Construcción y publicación de las imágenes de los **ocho** servicios con `Dockerfile` propio, con etiqueta por commit (las cuatro restantes son imágenes publicadas, §5.1) | — |
 | 6 | Despliegue automático a `develop` y comprobación de salud posterior | — |
 | 7 | Despliegue a producción con aprobación manual | — |
 
@@ -1898,10 +1904,10 @@ hay red, secretos ni coste. Lo que comprueba es el **código** de los agentes
 modelo. El **modo real** (`python -m evals.run --mode real`) existe y **ya tiene gate
 por umbral** (`--gates`, con los umbrales de `evals/thresholds.json` derivados de la
 línea base de §5.7): el job `evals-gate` lo corre a demanda contra `develop` y falla si
-una métrica baja del umbral. El job se pone en rojo cuando una invariante se rompe o un
-umbral se incumple; que además bloquee el merge es un ajuste de protección de rama del
-repositorio, no algo que quede en el código. Pendiente del punto 4: que la protección de
-rama haga obligatorio ese gate.
+una métrica baja del umbral. `agent-evals` se pone en rojo cuando una invariante se
+rompe; `evals-gate`, cuando un umbral se incumple. Que además bloqueen el merge es
+un ajuste de protección de rama del repositorio, no algo que quede en el código.
+Pendiente del punto 4: que la protección de rama haga obligatorio ese gate.
 
 **Lo que necesita el entorno `develop` para el gate.** A diferencia de `production`,
 `develop` no necesita los doce servicios para cumplir su papel de *gate*: la suite de
@@ -1918,7 +1924,8 @@ aislada: permitir en el firewall solo las IPs de GitHub Actions; un túnel o VPN
 
 Los **secretos** que el job necesita en GitHub son: la URL del proxy de `develop`
 (`EVALS_LITELLM_BASE_URL`), las seis virtual keys de los agentes, `TAVILY_API_KEY`, la
-credencial de la GitHub App y `EVALS_REAL_REPO`.
+credencial de la GitHub App y `EVALS_REAL_REPO`; `EVALS_REAL_TECHNOLOGIES` viaja como
+**variable** del repositorio, no como secreto.
 
 **El aprovisionamiento de `develop`** —servidor, red y secretos— **es infraestructura y
 queda pendiente**; aquí queda especificado su alcance y lo que exige.
@@ -1956,6 +1963,7 @@ Los 19 verificadores existentes merecen una nota, porque son el nivel 2 ya escri
 | Verificador | Qué comprueba |
 |---|---|
 | `verify_tavily_search` | La herramienta de búsqueda del agente web |
+| `verify_generator_summary` | El `research()` completo del agente web, con búsqueda real y resumen del modelo |
 | `verify_code_analysis` | El análisis de repositorio de extremo a extremo |
 | `verify_memory_cache` (web y código) | Que el segundo acceso es un acierto de caché |
 | `verify_exercise_generation` | La generación de candidatos |
@@ -1985,13 +1993,6 @@ ejemplo, pero no sustituye a los verificadores: la redacción de PII, el encaden
 de trazas y la memoria real siguen dependiendo de ellos.
 
 ### 5.5 Métricas no subjetivas
-
-> **Implementado; ejecución completa y etiquetas revisadas.** El arnés vive en
-> `evals/` (especificación formal: `openspec/specs/agent-evaluation/`) y calcula las
-> métricas de abajo sobre un dataset de 125 casos. El modo simulado corre en CI; el
-> real se ha ejecutado **completo y repetido** (tres veces, más dos con el modelo de
-> respaldo) y el tech lead **revisó y ratificó las etiquetas** (§5.7). Faltan los
-> umbrales (§5.8).
 
 Sobre un **dataset dorado** versionado en el repositorio —entradas de ejemplo con
 su resultado esperado o su propiedad verificable—, estas métricas no requieren
@@ -2037,9 +2038,12 @@ inventada— y comprobar que el agente reacciona como se especificó.
 | `code` | 11 | 2 / 9 | Dos repositorios de ejemplo; el resto provoca rutas inventadas, análisis incompleto, más de diez rutas, repositorio vacío o memoria |
 | `adversarial` | 24 | 23 / 1 | Evaluador 6, revisor 4, validador 9, web 2, código 3. Es el conjunto de red teaming de §6.5 |
 
-**Cómo se ejecuta.** `python -m evals.run` lanza un proceso por agente —todos
-llaman `app` a su paquete, así que no pueden convivir en uno— con las
-dependencias de ese agente. Sin modificar su código, el arnés sustituye en memoria
+**Cómo se ejecuta.** El arnés vive en `evals/`, con su especificación formal en
+`openspec/specs/agent-evaluation/`; su modo simulado corre en el CI de cada PR
+(§5.3), el real se ha ejecutado completo y repetido (§5.7), y los umbrales del
+gate viven en `evals/thresholds.json` (§5.8). `python -m evals.run` lanza un
+proceso por agente —todos llaman `app` a su paquete, así que no pueden convivir
+en uno— con las dependencias de ese agente. Sin modificar su código, el arnés sustituye en memoria
 los nombres que `app.service` importa de sus dependencias externas (el modelo, la
 redacción de PII, el catálogo de tecnologías, los ejercicios guardados, la memoria,
 la búsqueda web y GitHub). Un envoltorio común del modelo cuenta las llamadas, mide
@@ -2067,25 +2071,18 @@ siguen siendo pocas: el κ de §5.7 se lee con ese margen.
 
 ### 5.6 LLM como juez
 
-> **Implementado y calibrado.** El juez vive en `evals/` (change `juez-contenido`,
-> spec `content-judging`), es un instrumento **offline** —no un agente— y usa un
-> modelo frontier distinto de los de producción (`openrouter/anthropic/claude-sonnet-4.6`,
-> con su propia virtual key) a través de LiteLLM. Se ejecutó sobre 10 ejercicios de
-> Angular y se calibró contra la puntuación a ciegas del tech lead: **κ global 0,475**
-> (acuerdo moderado), con `unicidad` (0,796) y `nivel` (0,677) bien, y
-> `autosuficiencia` (0,286) y `calidad_del_fallo` (−0,091, solo 4 casos) flojos. El
-> primer intento, con una rúbrica laxa, dio 0,312: **anclar los criterios subió el
-> acuerdo**, que es la prueba de que el instrumento mide **el cumplimiento de la
-> especificación** y no su propio gusto.
-
 Para lo único que no admite medición determinista —la calidad pedagógica del
 contenido— el juez LLM **offline** cumple cuatro condiciones de diseño que lo hacen
 defendible:
 
 **1. El juez no es ninguno de los cuatro modelos en producción.** Un modelo que
 juzga su propia salida tiene sesgo de autopreferencia documentado. El juez es un
-modelo frontier distinto, que es además el único uso donde su coste es irrelevante:
-las ejecuciones son contadas y no están en el camino del usuario.
+instrumento **offline** —no es un agente y no vive en el camino del usuario— que
+reside en `evals/` (change `juez-contenido`, spec `content-judging`) y usa un
+modelo frontier distinto de los de producción
+(`openrouter/anthropic/claude-sonnet-4.6`, con su propia virtual key) a través de
+LiteLLM. Es, además, el único uso donde su coste es irrelevante: las ejecuciones
+son contadas.
 
 **2. Rúbrica con criterios puntuados y justificación obligatoria**, no una nota
 global. Cada criterio lleva una **definición operativa por nivel** (0/1/2), y son
@@ -2105,11 +2102,13 @@ hace que el juez mida **el cumplimiento de la especificación** y no sus propias
 preferencias estéticas.
 
 **3. Calibración contra puntuaciones humanas.** El tech lead puntúa la misma muestra
-a ciegas, con las mismas anclas, y se mide la concordancia (κ de Cohen por criterio).
-Un juez sin calibrar es una opinión con formato de métrica. Y cuando la concordancia
-salió baja (0,312), se corrigió **la rúbrica**, no el resultado: redefinir los
-criterios la subió a 0,475. Los dos criterios que siguen flojos (`autosuficiencia` y
-`calidad_del_fallo`, este con muestra mínima) quedan pendientes de una nueva pasada.
+—10 ejercicios de Angular— a ciegas, con las mismas anclas, y se mide la concordancia
+(κ de Cohen por criterio). Un juez sin calibrar es una opinión con formato de
+métrica. Y cuando la concordancia salió baja (0,312), se corrigió **la rúbrica**, no
+el resultado: anclar los criterios la subió a un **κ global de 0,475**, con
+`unicidad` (0,796) y `nivel` (0,677) bien y `autosuficiencia` (0,286) y
+`calidad_del_fallo` (−0,091) flojos; estos dos, el último sobre una muestra de solo
+4 casos, quedan pendientes de una nueva pasada.
 
 **4. Límites declarados.** El juez no sustituye la aprobación del tech lead
 (§4.6): es un **instrumento de regresión** para detectar que un cambio de modelo o de
@@ -2118,13 +2117,9 @@ prompt ha empeorado la calidad, no un control de calidad en producción. Y 0,475
 
 ### 5.7 Resultados de la evaluación
 
-> **Ejecución completa, repetida y con las etiquetas revisadas.** Tres ejecuciones
-> de los seis agentes en modo real (24 de octubre de 2026) sobre los casos de calidad
-> del dataset, más dos con el modelo de respaldo. El tech lead revisó las 22
-> etiquetas de evaluación y las ratificó tal cual. Faltan los umbrales (§5.8), que ya
-> pueden salir de esta línea base.
-
-Los modelos son los de producción a través de LiteLLM; el agente de código analiza
+Los modelos son los de producción a través de LiteLLM; las cifras de abajo salen de
+tres ejecuciones completas de los seis agentes en modo real (24 de octubre de 2026),
+más dos con el modelo de respaldo. El agente de código analiza
 `Mapeldorf/autobot-frontend` en el commit `37cf3b0`. Todo se reproduce con
 `python -m evals.run --mode real` (§5.5), y las cifras de abajo salen de los informes
 que el arnés escribe en `evals/results/`.
@@ -2182,10 +2177,9 @@ las tres ejecuciones; el evaluador —lo único que llega al alumno sin supervis
 coincide con la etiqueta humana en las 22 respuestas; y el respaldo no degradó la
 calidad de forma material.
 
-**Lo que sigue pendiente**: los **umbrales** que conviertan estos valores en alarmas
-(§5.8), que ya tienen línea base; el **juez LLM** (§5.6), que necesita esta misma
-revisión humana para calibrarse; y **ampliar el conjunto de evaluación** —con 22
-respuestas el κ tiene un margen ancho, y es la métrica que más lo nota—.
+**Lo que sigue pendiente: ampliar el conjunto de evaluación** —con 22 respuestas el
+κ tiene un margen ancho, y es la métrica que más lo nota— y **montar el cuadro de
+mando y sus alertas** sobre los umbrales ya fijados (§5.8).
 
 ### 5.8 Monitorización en producción
 
@@ -2205,8 +2199,11 @@ flowchart TB
     A & B & C & D --> LF["Langfuse"]
 ```
 
-Lo que registra cada llamada: modelo real usado, tokens de entrada y salida, coste,
-latencia, éxito o fallo, y si hubo fallback. Lo que **no** registra en claro:
+Lo que las trazas aportan es la **latencia** y el **éxito o fallo** de cada paso,
+dentro del árbol completo de la operación. El **coste, los tokens y el modelo por
+llamada no salen de su API**: las observaciones vienen con esos campos a nulo
+(§3.8), así que esas señales tienen otra fuente —el consumo por clave que registra
+LiteLLM, y lo que captura el arnés en modo real—. Lo que **no** registra en claro:
 contenido de ficheros de repositorio, respuestas de alumnos, contenido de búsquedas
 web ni entrada del validador, todo enmascarado con `mask_input` (§6.6).
 
@@ -2249,17 +2246,18 @@ piezas de terceros: **la observabilidad que una herramienta no emite no se puede
 construir desde fuera**, y la salida no es insistir, es mover la medición al código
 propio.
 
-**El cuadro de mando y los objetivos de servicio (SLO).** Los indicadores están
-disponibles en las trazas; lo que les faltaba era el umbral y la acción que los
-convierten en señales. La tabla los fija:
+**El cuadro de mando y los objetivos de servicio (SLO).** Los indicadores ya se
+producen con la instrumentación de arriba —trazas, base de datos y logs—; lo que
+les faltaba era el umbral y la acción que los convierten en señales. La tabla los
+fija:
 
 | Indicador | Fuente | Umbral | Acción |
 |---|---|---|---|
 | Tasa de error de generación | `generation.status` | aviso **> 5 %**, crítico **> 15 %** en 1 h | Distinguir proveedor (¿hubo fallback?) de fallo de agente: cruzar con la tasa de fallback |
 | p95 de latencia de evaluación | Langfuse | aviso **> 10 s**, crítico **> 30 s** (presupuesto duro **45 s**) | Mirar trazas de evaluador y revisor; si es el proveedor, valorar el fallback |
-| Tasa de uso de fallback | Langfuse | aviso **> 2 %**, crítico **> 10 %** en 1 h | El proveedor primario está degradado: revisarlo |
+| Tasa de uso de fallback | LiteLLM (registro de consumo por deployment) | aviso **> 2 %**, crítico **> 10 %** en 1 h | El proveedor primario está degradado: revisarlo |
 | Coste diario por agente | LiteLLM | aviso al **50 %** del tope de la clave, crítico al **90 %** | Decidir si es uso legítimo (ampliar el tope) o abuso (investigar) |
-| Tasa de rechazo del validador | Trazas del validador | **> 2× la mediana de 7 días** | Distinguir entradas inválidas de un falso positivo nuevo: leer el `reason` |
+| Tasa de rechazo del validador | Trazas del validador | **> 2× la mediana de 7 días** | Distinguir entradas inválidas de un falso positivo nuevo: leer el motivo en `generation.error_message` —la traza del validador solo deja `valid`; el `reason` se persiste en la fila de la generación |
 | Bloqueos de Lakera | Langfuse | aviso si **> 20 %** de las validaciones en 1 h | Muestrear; si son benignas es un falso positivo: subir el umbral en su plataforma (§6.5) |
 | Redacciones aplicadas por el agente | Logs de los agentes | — (debe ser **> 0** con tráfico real) | Si cae a **0** con tráfico real, un agente dejó de redactar: revisar su redacción. Tipos de entidad, nunca valores |
 | Fallos de parseo de JSON | Logs de los agentes | aviso **> 1 %**, crítico **> 5 %** en 1 h | Degradación del modelo: revisar el prompt y el esquema |
@@ -2308,7 +2306,7 @@ el runbook describe hechos y no intenciones.
 | Se cuelga una llamada al modelo | Corta a los 20 s (proxy), 45 s (agente), 120 s (tarea) o 300 s (generación) | Nada. Si es recurrente, revisar latencias en Langfuse |
 | No responde una memoria | Advertencia en log, la generación **continúa** sin caché | Nada urgente. Revisar la conexión a Supabase; el impacto es de coste y latencia, no de función |
 | Se agota el presupuesto de una virtual key | LiteLLM rechaza las llamadas de ese agente | Decidir si es uso legítimo —ampliar presupuesto— o abuso —investigar—. El tope es por agente, así que el resto del sistema sigue |
-| El validador rechaza en masa | Las generaciones pasan a `error` y el tech lead ve el motivo | **Distinguir dos causas**: entradas realmente inválidas, o un falso positivo nuevo. El segundo caso ya ocurrió (§6.5) y se diagnostica leyendo el `reason` del rechazo en las trazas |
+| El validador rechaza en masa | Las generaciones pasan a `error` y el tech lead ve el motivo | **Distinguir dos causas**: entradas realmente inválidas, o un falso positivo nuevo. El segundo caso ya ocurrió (§6.5) y se diagnostica leyendo el motivo en `generation.error_message` —el mismo `reason` que el tech lead ya ve en la generación fallida |
 | Presidio corrompe una salida | No debería: está acotado a entrada y a cinco entidades | Revisar `pii_entities_config`. El historial de este problema está en §7 |
 | Se cae el proceso de LiteLLM | Se reinicia automáticamente (`restart: unless-stopped`) | Revisar por qué cayó: un guardarraíl mal configurado es la causa conocida |
 | Un alumno no puede enviar su respuesta | 502 sin persistir nada; el frontend muestra un mensaje genérico | Revisar la traza de esa evaluación en Langfuse. La respuesta del alumno no se ha perdido: no se guardó, puede reenviarla |
