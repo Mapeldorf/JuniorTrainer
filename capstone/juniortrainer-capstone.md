@@ -1223,8 +1223,8 @@ flowchart LR
 
 Tres observaciones sobre este mapeo, que es donde se decide casi todo:
 
-- **Los pasos 5 y 6 no se delegan.** Son los únicos con consecuencias sobre una
-  persona, y se quedan en el humano. Se desarrolla en §4.6.
+- **Los pasos 5 y 6 no se delegan.** Son los únicos que deciden qué entra y a
+  quién llega, y se quedan en el humano. Se desarrolla en §4.6.
 - **El paso 7 se parte en dos agentes.** Corregir y revisar la corrección son la
   misma actividad para una persona y dos agentes distintos aquí, porque la
   revisión solo vale si es independiente (§3.3).
@@ -1232,8 +1232,9 @@ Tres observaciones sobre este mapeo, que es donde se decide casi todo:
   necesita que nadie le valide que «React» es una tecnología; el sistema sí, y en
   las dos puertas por las que una tecnología entra: el alta en el catálogo —donde
   el validador además detecta duplicados con otro nombre— y la previa a cada
-  generación. Ese campo de texto es una entrada de usuario que llega a tres
-  modelos y a una API externa, y no conviene que lo haga sin pasar por un portero.
+generación. Ese campo de texto es una entrada de usuario que viaja a los prompts
+de los agentes de la generación y a la API del buscador, y no conviene que lo
+haga sin pasar por un portero.
 
 ### 4.3 Los seis agentes, uno a uno
 
