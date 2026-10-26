@@ -2987,9 +2987,9 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
-| Afinar el juez de contenido y montar el cuadro de mando (§5.6, §5.8) | El juez ya funciona y está calibrado (κ 0,475); faltan revisar `autosuficiencia` y `calidad_del_fallo` y construir el cuadro de mando, cuyos umbrales ya están definidos |
-| CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI; faltan el *gate* con el modo real en `develop`, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
-| Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy los doce servicios comparten el mismo `.env` |
+| Afinar el juez de contenido (§5.6) | El juez ya funciona y está calibrado (κ 0,475); faltan revisar `autosuficiencia` y `calidad_del_fallo` con una nueva pasada |
+| CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI y el job `evals-gate` existe; faltan el **aprovisionamiento de `develop`** y la **protección de rama** que haga obligatorio el gate, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
+| Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy toda la configuración vive en un único `.env` compartido por los servicios que la consumen |
 | Cerrar la cobertura del red teaming (§6.5) | El ejercicio ya se ejecutó (informe en `capstone/red-teaming/informe.md`): 0 ataques exitosos. Falta lo que el arnés no mide hoy: la resistencia del **modelo** en web y código —requiere un repositorio de prueba con el fichero envenenado para el de código, y es inviable de controlar en web—, y los objetivos 7 (enunciado con PII o contenido inapropiado) y 9 (envenenar la memoria), que exigen extender el arnés |
 | Montar el cuadro de mando y sus alertas (§5.8) | Los umbrales ya están especificados; falta construirlos (un Grafana o similar) y conectarlos a un canal de aviso |
 
@@ -3000,9 +3000,9 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 | Reconsiderar la duplicación entre los seis agentes | `service_auth.py`, `rate_limit.py`, `tracing.py` y `llm.py` son casi idénticos en seis servicios (§4.4). La decisión de mantenerlos autocontenidos es defendible y conviene revisarla con el código a la vista |
 | Revisión humana opcional de las valoraciones antes de entregarlas | Cerraría el único punto de autonomía sin supervisión (§4.6), a cambio de latencia pedagógica |
 | Análisis de vulnerabilidades de dependencias en CI | LLM03 del mapeo OWASP |
-| Medir la calidad del fallback frente al primario | Riesgo 8: hoy se asume equivalente sin haberlo comprobado. La suite ya lo permite (cambiando la variable de entorno del modelo); falta ejecutarlo |
+| Estimar el coste del respaldo | Riesgo 8: la calidad del respaldo ya está medida (§5.7); su coste queda estimado con los precios publicados, porque Hugging Face no informa coste por llamada (§3.8) |
 | Neutralizar los marcadores de delimitador dentro del contenido no confiable | La suite detecta que una respuesta, un fragmento de búsqueda o un fichero pueden incluir el marcador de fin y cerrar su propio delimitador (§5.7, §6.5). No se ha explotado con éxito, pero hoy solo lo frena la instrucción |
-| Mensaje de error útil cuando el agente de código no encuentra ficheros relevantes | Una generación con tecnologías que el repositorio no usa termina con «no se pudo leer ningún fichero» (§5.7) |
+| Mensaje de error útil cuando el agente de código no encuentra ficheros relevantes | Una generación con tecnologías que el repositorio no usa termina con «no se pudo leer ningún fichero» (`agents/code/app/service.py`) |
 
 **Prioridad baja — producto**
 
