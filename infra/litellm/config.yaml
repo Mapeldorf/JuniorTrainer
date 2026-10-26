@@ -7,12 +7,76 @@
 # paso 2 del plan de trabajo), asi que estos modelos no reciben trafico
 # real todavia. Rellena GENERATOR_MODEL / EVALUATOR_MODEL / REVIEWER_MODEL
 # en .env con el identificador de modelo que entienda LiteLLM para tu
-# proveedor (por ejemplo "anthropic/claude-sonnet-4-5" u "openrouter/...").
+# proveedor. Los cinco primarios (generator, evaluator, reviewer, validator y
+# judge) TIENEN que ser modelos de OpenRouter ("openrouter/..."): todos llevan
+# la politica de enrutado de proveedores de mas abajo, que es un parametro
+# propio de OpenRouter (change `enrutado-proveedores-openrouter`).
 model_list:
+  # Politica de enrutado de proveedores de OpenRouter (change
+  # `enrutado-proveedores-openrouter`, riesgo 11 del capstone). Sin ella,
+  # OpenRouter elige en cada llamada el proveedor de inferencia, y por aqui
+  # viajan el codigo de los repositorios de los clientes y las respuestas de
+  # los alumnos. Se declara UNA vez, como ancla YAML, y los otros cuatro
+  # deployments de OpenRouter la referencian con `*openrouter_provider_policy`.
+  # LiteLLM no tiene parametro propio para el objeto `provider` de OpenRouter,
+  # pero reenvia `extra_body` tal cual.
+  #
+  # Tres restricciones, que OpenRouter exige a la vez:
+  #   - `data_collection: deny`: nada de proveedores que almacenen o entrenen
+  #     con los datos.
+  #   - `zdr: true`: solo endpoints con retencion cero.
+  #   - `only`: lista CERRADA de proveedores con sede en el EEE o en un pais
+  #     con decision de adecuacion de la UE (EE. UU. por el Data Privacy
+  #     Framework), segun la sede que publica `openrouter.ai/api/v1/providers`.
+  #     Sin sede publicada, fuera. Hace falta porque ZDR no cubre la
+  #     jurisdiccion: Z.AI y SiliconFlow (Singapur) tienen endpoints ZDR.
+  #     Son los proveedores que hoy sirven alguno de los modelos configurados
+  #     con ZDR y cumplen el criterio; CAMBIAR UN MODELO OBLIGA A REVISAR LA
+  #     LISTA. Un modelo sin ningun proveedor en ella falla siempre con 404.
+  #
+  # Una politica que no se puede cumplir no se relaja: OpenRouter devuelve 404
+  # sin probar otro proveedor. Pero ese 404 es un fallo del primario, y
+  # LiteLLM aplica el fallback a Hugging Face (`litellm_settings.fallbacks`),
+  # que NO esta cubierto por esta politica: alli el proveedor de inferencia lo
+  # elige Hugging Face. La invariante "todo deployment que no es de Hugging
+  # Face lleva la politica completa" la comprueba en CI
+  # `infra/litellm/verify_guardrail_coverage.py`.
   - model_name: generator
     litellm_params:
       model: os.environ/GENERATOR_MODEL
       api_key: os.environ/GENERATOR_API_KEY
+      extra_body: &openrouter_provider_policy
+        provider:
+          data_collection: "deny"
+          zdr: true
+          only:
+            # EEE
+            - "inceptron"
+            - "nebius"
+            - "nextbit"
+            # EE. UU. (adecuacion por el Data Privacy Framework)
+            - "amazon-bedrock"
+            - "baseten"
+            - "cohere"
+            - "coreweave"
+            - "crusoe"
+            - "decart"
+            - "deepinfra"
+            - "digitalocean"
+            - "fireworks"
+            - "google-vertex"
+            - "inference-net"
+            - "modal"
+            - "modelrun"
+            - "morph"
+            - "novita"
+            - "open-inference"
+            - "parasail"
+            - "phala"
+            - "sail-research"
+            - "together"
+            - "venice"
+            - "wafer"
 
   # Evaluador y revisor ya no vinculan la redaccion de PII aqui (change
   # `guardarrailes-por-capas`). La redaccion la hace ahora el propio agente al
@@ -32,11 +96,19 @@ model_list:
     litellm_params:
       model: os.environ/EVALUATOR_MODEL
       api_key: os.environ/EVALUATOR_API_KEY
+      extra_body: *openrouter_provider_policy
 
+  # Primario del revisor: `openrouter/z-ai/glm-5.3-flash`, no GLM-5.3-FlashX
+  # (change `enrutado-proveedores-openrouter`). FlashX solo lo sirve Z.AI, con
+  # sede en Singapur, que la politica excluye: con FlashX el revisor fallaria
+  # siempre y viviria en el respaldo. GLM-5.3-Flash mantiene la diversidad de
+  # familia con el evaluador (DeepSeek) y su calidad en este rol esta medida
+  # (comparativa primario/respaldo, capstone §5.7).
   - model_name: reviewer
     litellm_params:
       model: os.environ/REVIEWER_MODEL
       api_key: os.environ/REVIEWER_API_KEY
+      extra_body: *openrouter_provider_policy
 
   # Agente validador de tecnologias (change validacion-tecnologias-agente-juez):
   # el juez que decide si las tecnologias de una generacion son tecnologias
@@ -48,6 +120,7 @@ model_list:
       model: os.environ/VALIDATOR_MODEL
       api_key: os.environ/VALIDATOR_API_KEY
       guardrails: ["lakera-guard-block"]
+      extra_body: *openrouter_provider_policy
 
   # Juez offline de calidad pedagogica (capstone §5.6, change juez-contenido):
   # un modelo frontier DISTINTO de los cuatro roles de produccion, para evitar
@@ -59,12 +132,20 @@ model_list:
     litellm_params:
       model: os.environ/JUDGE_MODEL
       api_key: os.environ/JUDGE_API_KEY
+      extra_body: *openrouter_provider_policy
 
   # Fallback automatico a Hugging Face Inference Providers (propuesta
-  # litellm-huggingface-fallback), si el modelo principal falla. Mismos
-  # modelos que ya se usan en OpenRouter cuando existen en HF;
-  # GLM-5.3-FlashX no tiene checkpoint publicado, GLM-5.3-Flash es el
-  # equivalente abierto mas cercano (decision documentada en design.md).
+  # litellm-huggingface-fallback), si el modelo principal falla. Mismo modelo
+  # que el primario, servido por otro proveedor, en los cuatro roles: desde
+  # que el revisor paso de GLM-5.3-FlashX (sin checkpoint publicado) a
+  # GLM-5.3-Flash (change `enrutado-proveedores-openrouter`), su respaldo ya
+  # no es la excepcion.
+  #
+  # Los respaldos NO llevan la politica de enrutado de OpenRouter: es un
+  # parametro de OpenRouter, y Hugging Face elige su propio proveedor de
+  # inferencia. Una llamada desviada aqui -- tambien la que OpenRouter rechaza
+  # por la politica-- sale sin esas garantias de retencion y jurisdiccion.
+  # Riesgo aceptado y documentado en el design.md de ese change.
   - model_name: generator-fallback-hf
     litellm_params:
       model: huggingface/deepseek-ai/DeepSeek-V4.1-Flash
