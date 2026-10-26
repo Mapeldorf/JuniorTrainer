@@ -77,9 +77,9 @@ Validez de salida · adherencia a límites (enunciado ≤ 50 palabras, nombre �
 
 Una métrica sin casos aparece como `n/d`, no como cero.
 
-## Costes (capstone §3.8)
+## Costes (capstone §3.7)
 
-Con el modo real, cada caso guarda los tokens (entrada, salida y razonamiento) y el coste facturado que informa el proveedor. `evals.costs` los convierte en las tablas de §3.8:
+Con el modo real, cada caso guarda los tokens (entrada, salida y razonamiento) y el coste facturado que informa el proveedor. `evals.costs` los convierte en las tablas de §3.7:
 
 ```bash
 python -m evals.run --mode real --agents evaluator,reviewer,validator,exercises,web,code --limit-per-set 10
@@ -94,7 +94,7 @@ python -m evals.update_prices                                                   
 - **Solo costes:** no calcula ahorros, retornos ni puntos de equilibrio.
 - **Limites:** la composicion por agente aproxima la cadena real (en produccion la entrada de un agente depende de la salida del anterior); el coste facturado es el del modelo que respondio, primario o respaldo, y el alias no los distingue; el modelo de referencia es una cota inferior.
 
-## Experimento: coste del razonamiento (§3.3 / §3.8)
+## Experimento: coste del razonamiento (§3.3 / §3.7)
 
 La medición mostró que los modelos razonan aunque §3.3 descartó los de razonamiento: entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, facturados como salida. El flag `--reasoning` (solo modo real) fija el esfuerzo de razonamiento para medir coste **frente a** calidad:
 

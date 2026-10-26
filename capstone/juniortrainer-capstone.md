@@ -71,7 +71,7 @@ programa del máster. Esta tabla localiza cada concepto de la rúbrica.
 | Configuración y forma de consumo | §3.4 |
 | Parametrización | §3.5 |
 | Prompts de sistema empleados y candidatos explorados | §3.6, §4.9, Anexo A |
-| Costes anticipados por nivel de uso | §3.8 |
+| Costes anticipados por nivel de uso | §3.7 |
 | Flujo de acciones diseñado | §4.1, §4.2, §4.5 |
 | Niveles de autonomía e intervención humana | §4.6 |
 | Elección de framework | §4.4 |
@@ -137,7 +137,7 @@ leads y el resto de compañeros pueden desatenderse en buena medida de la formac
 y el acompañamiento de los juniors mientras estos se entrenan con la aplicación, y
 dedicar esas horas a su trabajo. Son premisas del proyecto, no resultados medidos:
 igual que el retorno de formar a un empleado, su valor no se puede expresar en
-cifras. §3.8 da el **coste** de la formación, no su retorno.
+cifras. §3.7 da el **coste** de la formación, no su retorno.
 
 ### 1.2 Usuarios y roles
 
@@ -587,7 +587,8 @@ de lo que se le pidió a una persona y lo que respondió no se reescribe.
 
 Enunciar primero los criterios y sus pesos evita el vicio habitual de justificar
 a posteriori una preferencia. Estos siete son los que se aplicaron, en orden de
-peso, y todos son rastreables a una restricción real del sistema:
+peso, y todos son rastreables a una restricción real del sistema —los requisitos
+no funcionales de §1.4, no una lista genérica de bondades—:
 
 **1. Fiabilidad en salida estructurada (peso máximo).**
 Cinco de los seis agentes exigen al modelo JSON, que el código parsea, valida y,
@@ -610,7 +611,9 @@ las dos del código y una o dos de ejercicios—, y menos aún cuando la memoria
 acierta; una evaluación, dos. El uso llega en ráfagas:
 un tech lead genera diez ejercicios seguidos y luego nada durante dos días. El
 coste por ejercicio tiene que ser despreciable frente al tiempo de senior que
-ahorra, o el producto no tiene razón de ser.
+ahorra, o el producto no tiene razón de ser; y no es una afirmación: el coste
+medido por ejercicio guardado es 0,0014 USD, y una evaluación completa, 0,000679
+(§3.7).
 
 **4. Latencia, con un presupuesto duro.**
 La evaluación es **síncrona**: el alumno envía su respuesta y espera el veredicto
@@ -627,14 +630,46 @@ ningún modelo, y es lo que hace que la elección sea revisable sin coste.
 El sistema procesa código propietario de la empresa cliente. Que el modelo tenga
 pesos publicados significa que la inferencia puede moverse a infraestructura
 propia sin reescribir nada: es un requisito de viabilidad comercial, no una
-preferencia ideológica —el único elegido sin pesos publicados es el primario del
-revisor, con su desviación documentada en §3.3—. Condiciona también el fallback
-(§3.3).
+preferencia ideológica —el único de los modelos en producción sin pesos
+publicados es el primario del revisor, con su desviación documentada en §3.3—.
+Condiciona también el fallback (§3.3).
 
 **7. Calidad en español.**
 Enunciados, nombres, justificaciones y motivos de rechazo se entregan en
 español; el prompt lo exige explícitamente en los cuatro agentes que producen
 texto para una persona (ejercicios, evaluador, revisor y validador).
+
+**Cada criterio, con su comprobación.** Ninguno se quedó en declaración de
+intenciones: cada uno tiene detrás una comprobación concreta.
+
+| Criterio | Cómo se comprueba | Dónde |
+|---|---|---|
+| 1. Salida estructurada | Tasa de reintento correctivo y casos guionizados de formato inválido, con las invariantes del arnés | §5.5 |
+| 2. Diversidad de familia | Comparativa de calidad primario/respaldo con dos ejecuciones completas | §5.7 |
+| 3. Coste por operación | Coste medido por agente y por campaña, y frente al modelo de referencia | §3.7 |
+| 4. Latencia | p50, p95 y p99 por caso, contra el presupuesto síncrono de 45 s | §5.5, §5.7 |
+| 5. Independencia de proveedor | Alias por rol y virtual key por agente; cambiar de modelo no toca el código | §3.2, §3.4 |
+| 6. Open-weight | Respaldo en Hugging Face y ruta de autoalojado; excepción del revisor, documentada | §3.3, §8 |
+| 7. Calidad en español | Exigencia literal en los cuatro prompts que producen texto para una persona | §3.6 |
+
+**Las familias que se sopesaron.** Leído por criterios, el reparto final se
+explica solo: cada familia cayó —o se quedó— por un motivo concreto.
+
+| Familia | Veredicto | Criterio que lo decide |
+|---|---|---|
+| DeepSeek V4.1 Flash | Elegida para `generator` y `evaluator` | 1, 3 y 4: fiable en JSON, barata y rápida |
+| GLM-5.3 FlashX / Flash | Elegida para `reviewer` y `validator` | 2 (segunda familia), y 1 y 4 en el validador |
+| Frontier cerrados | Fuera de producción; cota de coste (§3.7) y juez offline (§5.6) | 3 (coste) y 6 (pesos publicados) |
+| Modelos de razonamiento | Descartados, con el matiz medido de tokens internos (§3.3) | 3: el sobrecoste no compra nada |
+| Inferencia local | Descartada hoy; es la ruta de autoalojado futura (§8) | 4: no cabe en los 45 s síncronos |
+
+**Cuando chocan, el orden desempata.** Los criterios no pesan igual, y las
+decisiones donde se cruzan quedaron así: la autoalojabilidad (6) cedió ante la
+latencia (4) —la inferencia local no cabe en los 45 s del camino síncrono— y se
+conservó como ruta futura; la diversidad de familia (2) se impuso a los pesos
+publicados (6) en un único punto —el primario del revisor—, con la desviación
+documentada; y el coste (3) dejó fuera de producción a los modelos cerrados, que
+siguen midiendo como cota (§3.7) y actuando de juez fuera de línea (§5.6).
 
 ### 3.2 Cuatro roles lógicos, no cuatro modelos
 
@@ -709,9 +744,9 @@ consciente, no un descuido.
 | Alternativa | Por qué no |
 |---|---|
 | Modelos frontier cerrados | Coste por operación entre uno y dos órdenes de magnitud mayor para una tarea que no necesita ese techo de capacidad, y dependencia de un proveedor único para procesar código propietario de clientes. Son, eso sí, los candidatos naturales para el **juez de evaluación offline** (§5.6), donde el coste es irrelevante porque las ejecuciones son contadas. |
-| Inferencia local (Ollama, vLLM en una máquina del equipo) | Incompatible con el presupuesto de 45 s del camino síncrono en hardware razonable. Sigue siendo el destino natural del sistema si un cliente exige que el código no salga de su red, y es precisamente para eso que los modelos elegidos tienen pesos publicados —con la única excepción, ya contada, del primario del revisor—. |
+| Inferencia local (Ollama, vLLM en una máquina del equipo) | Incompatible con el presupuesto de 45 s del camino síncrono en hardware razonable. Sigue siendo el destino natural del sistema si un cliente exige que el código no salga de su red, y es precisamente para eso que los modelos en producción tienen pesos publicados —con la única excepción, ya contada, del primario del revisor—. |
 | Un único modelo para los cuatro roles | Más simple de operar, y pierde lo único que hace fiable la evaluación: la independencia entre las dos pasadas. |
-| Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. **Matiz medido (§3.8):** los modelos elegidos razonan igualmente, y entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, que se facturan como salida. **Experimento (§3.8, apartado 14):** recortar ese razonamiento con `effort` en los GLM (revisor, validador) baja el coste por llamada —a menos de la mitad en el revisor— y la latencia entre un cuarto y la mitad, sin perder calidad en la muestra; DeepSeek solo honra el apagado completo, y `off` es incompatible con el primario GLM (lo tumba y la llamada cae al fallback). |
+| Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. **Matiz medido (§3.7):** los modelos elegidos razonan igualmente, y entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, que se facturan como salida. **Experimento (§3.7, apartado 14):** recortar ese razonamiento con `effort` en los GLM (revisor, validador) baja el coste por llamada —a menos de la mitad en el revisor— y la latencia entre un cuarto y la mitad, sin perder calidad en la muestra; DeepSeek solo honra el apagado completo, y `off` es incompatible con el primario GLM (lo tumba y la llamada cae al fallback). |
 
 ### 3.4 Forma de consumo: LiteLLM como centralita
 
@@ -766,7 +801,7 @@ importe es **configurable por entorno**: `provision_keys.py` lo lee de
 `LITELLM_KEY_MAX_BUDGET_USD`, con **5 USD por defecto** —el que el autor aplica en
 desarrollo como protección personal— y **50 USD en despliegue** (el que exporta
 producción, y el que muestra la tabla), porque 5 se queda corto a escala de
-organización. La campaña de incorporación de §3.8 concentra el gasto en pocas semanas,
+organización. La campaña de incorporación de §3.7 concentra el gasto en pocas semanas,
 y con 30 equipos el pico de una sola clave en 30 días (la del revisor) llega a unos
 16 USD, más de tres veces el valor de desarrollo: con 50 USD queda una holgura de unas
 tres veces sobre ese pico y el tope sigue cumpliendo su función (un bucle a 60
@@ -962,7 +997,7 @@ correctivo— da la misma garantía de formato sin tocar el contenido. Donde sí
 ejemplo es en lo puramente sintáctico: el agente de código muestra un array de dos
 rutas para fijar la forma de la respuesta, no para sugerir qué ficheros elegir.
 
-### 3.8 Costes anticipados por nivel de uso
+### 3.7 Costes anticipados por nivel de uso
 
 **Cómo se mide.** Se partía del supuesto de que Langfuse registraba coste, tokens y modelo por llamada. No por su API: las observaciones traen `inputPrice`, `outputPrice`, `totalPrice` y `modelId` a nulo y ningún campo de tokens. La medición sale de otro sitio: cada respuesta de los agentes trae sus tokens (`usage_metadata`, con los de razonamiento aparte) y OpenRouter devuelve además el **coste facturado** de la llamada en `response_metadata.token_usage.cost`, sin construir ninguna contabilidad nueva. El arnés de §5.5 lo captura en modo real, sin tocar los agentes. Donde el proveedor no informa el coste se calcula con el precio de lista (`evals/prices.json`, con fecha y fuente) y se marca. Los precios se leen de la API pública de OpenRouter y, para el respaldo, de la de Hugging Face.
 
@@ -2084,7 +2119,7 @@ juicio de nadie:
 | **Rutas y fragmentos del agente de código** | % de rutas elegidas por el modelo que existen en el repositorio; % de fragmentos copiados literalmente del fichero y que empiezan en la línea declarada | Es la regla «ningún requisito verificable depende de que el modelo obedezca» aplicada al caso que la originó |
 | **Ausencia de fuentes declarada** | % de tecnologías sin resultados de búsqueda que el resumen del agente web declara explícitamente (heurística por palabras clave) | Mide el cerco anti-alucinación de §3.6 |
 | **Resistencia a inyección** | Casos adversariales en que el modelo cede (`correct` donde no tocaba, `valid=true` donde no debía), y si el contenido no confiable viaja entre delimitadores | Es el único dato empírico sobre LLM01 hasta el red teaming (§6.5) |
-| **Latencia** | p50, p95 y p99 por caso, cronometrados por el propio arnés (solo representativos en modo real). El coste queda fuera (§3.8) | p95 de la evaluación contra el presupuesto de 45 s |
+| **Latencia** | p50, p95 y p99 por caso, cronometrados por el propio arnés (solo representativos en modo real). El coste queda fuera (§3.7) | p95 de la evaluación contra el presupuesto de 45 s |
 
 Dos de estas métricas son, en mi opinión, las que más dicen del sistema y las menos
 habituales: la **tasa de activación del reintento correctivo**, porque distingue un
@@ -2239,7 +2274,7 @@ La conclusión, para el riesgo 8: **la calidad del respaldo es equivalente en lo
 esencial y ligeramente peor en dos cosas concretas** —repite más los temas al generar
 ejercicios y falló un fragmento de código en una de las dos ejecuciones—. No es
 «idéntico»: es medible y algo peor en generación. En **coste** no se mide: Hugging
-Face no informa coste por llamada, así que §3.8 lo estima con los precios publicados
+Face no informa coste por llamada, así que §3.7 lo estima con los precios publicados
 de HF sobre los tokens medidos.
 
 **Lo que esta sección deja claro**: el sistema cumple el contrato de salida (JSON
@@ -2273,7 +2308,7 @@ flowchart TB
 Lo que las trazas aportan es la **latencia** y el **éxito o fallo** de cada paso,
 dentro del árbol completo de la operación. El **coste, los tokens y el modelo por
 llamada no salen de su API**: las observaciones vienen con esos campos a nulo
-(§3.8), así que esas señales tienen otra fuente —el consumo por clave que registra
+(§3.7), así que esas señales tienen otra fuente —el consumo por clave que registra
 LiteLLM, y lo que captura el arnés en modo real—. Lo que **no** registra en claro:
 contenido de ficheros de repositorio, respuestas de alumnos, contenido de búsquedas
 web ni entrada del validador, todo enmascarado con `mask_input` (§6.6).
@@ -2652,7 +2687,7 @@ calidad de un resultado.
 | 5 | Coste descontrolado por abuso o bucle | Baja | Bajo | **Bajo** | **Aceptar.** Presupuesto y ritmo por clave, rate limiting en dos niveles y presupuestos de operaciones (§6.2 controles 13-16); el daño está acotado por el tope de cada clave |
 | 6 | Un alumno accede a asignaciones de otro | Baja | Medio | **Bajo** | **Aceptar.** Doble capa: filtrado explícito por alumno en el código y RLS en la base de datos (§6.2 controles 3-4) |
 | 7 | **Todos los servicios comparten el mismo `.env`** | Alta *(en desarrollo)* | Alto | **Alto** | **Aceptar solo en desarrollo, de momento.** No hay control hoy. Su cierre —un gestor de secretos por servicio, ya requisito de la plataforma (§5.2)— **merece una especificación propia más adelante**; es una postura de desarrollo que un despliegue real no puede heredar |
-| 8 | Degradación silenciosa de calidad del fallback | Media | Medio | **Medio** | **Medido en calidad.** La comparativa primario/respaldo de §5.7 —dos ejecuciones completas con el respaldo— muestra una calidad equivalente en lo esencial (algo más de repetición de temas en ejercicios y un fragmento sin fundamentar en una de las dos ejecuciones); el fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). Lo que sigue **estimado, no medido**, es el coste del respaldo (§3.8) |
+| 8 | Degradación silenciosa de calidad del fallback | Media | Medio | **Medio** | **Medido en calidad.** La comparativa primario/respaldo de §5.7 —dos ejecuciones completas con el respaldo— muestra una calidad equivalente en lo esencial (algo más de repetición de temas en ejercicios y un fragmento sin fundamentar en una de las dos ejecuciones); el fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). Lo que sigue **estimado, no medido**, es el coste del respaldo (§3.7) |
 | 9 | **Falso positivo de guardarraíl que rompe el servicio** | Baja *(tras el arreglo)* | Alto | **Medio** | **Mitigado en origen.** Ya ocurrió dos veces (§7); la redacción por campo elimina la causa raíz en lugar de recortar el alcance, y Lakera salió de la ruta de generación. El residual de reactivar Lakera se traslada a LLM01 (§6.3) y está declarado |
 | 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas en la evaluación (§3.3, §4.6). Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
 
@@ -2687,7 +2722,7 @@ cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
 | 1 | **Mitigar:** reactivar Lakera en evaluador y revisor subiendo el umbral y remidiendo antes de encenderlo (change propio, §6.5) |
 | 3 | Aceptado por diseño; previsto mover la inferencia a infraestructura propia, que lo elimina de raíz |
 | 7 | Aceptado solo en desarrollo, de momento; su cierre merece una especificación propia |
-| 8 | Aceptado: la calidad del respaldo está medida (§5.7); su coste queda estimado con los precios publicados, no medido (§3.8) |
+| 8 | Aceptado: la calidad del respaldo está medida (§5.7); su coste queda estimado con los precios publicados, no medido (§3.7) |
 | 10 | Aceptado a condición de la revisión a posteriori de las valoraciones |
 | 2, 4, 5, 6, 9 | Aceptados como residual bajo o medio con los controles actuales |
 
@@ -3071,7 +3106,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 | Reconsiderar la duplicación entre los seis agentes | `service_auth.py`, `rate_limit.py`, `tracing.py` y `llm.py` son casi idénticos en seis servicios (§4.4). La decisión de mantenerlos autocontenidos es defendible y conviene revisarla con el código a la vista |
 | Revisión humana opcional de las valoraciones antes de entregarlas | Cerraría el único punto de autonomía sin supervisión (§4.6), a cambio de latencia pedagógica |
 | Análisis de vulnerabilidades de dependencias en CI | LLM03 del mapeo OWASP |
-| Estimar el coste del respaldo | Riesgo 8: la calidad del respaldo ya está medida (§5.7); su coste queda estimado con los precios publicados, porque Hugging Face no informa coste por llamada (§3.8) |
+| Estimar el coste del respaldo | Riesgo 8: la calidad del respaldo ya está medida (§5.7); su coste queda estimado con los precios publicados, porque Hugging Face no informa coste por llamada (§3.7) |
 | Neutralizar los marcadores de delimitador dentro del contenido no confiable | La suite detecta que una respuesta, un fragmento de búsqueda o un fichero pueden incluir el marcador de fin y cerrar su propio delimitador (§5.7, §6.5). No se ha explotado con éxito, pero hoy solo lo frena la instrucción |
 | Mensaje de error útil cuando el agente de código no encuentra ficheros relevantes | Una generación con tecnologías que el repositorio no usa termina con «no se pudo leer ningún fichero» (`agents/code/app/service.py`) |
 
@@ -3079,7 +3114,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
-| Inferencia autoalojada como opción de despliegue | Todos los modelos son open-weight precisamente para esto (§3.1); sería la respuesta a un cliente que exija que su código no salga de su red |
+| Inferencia autoalojada como opción de despliegue | Los modelos de producción son open-weight precisamente para esto (§3.1); sería la respuesta a un cliente que exija que su código no salga de su red |
 | Más tipos de ejercicio | `knowledge` y `debug` cubren el caso de uso inicial |
 | Analítica de progreso del alumno | Los datos están; falta el producto |
 
@@ -3420,7 +3455,7 @@ Y una quinta, la del change `costes-por-operacion`: usa ese instrumento y, al
 hacerlo, contradice una decisión del propio diseño. §3.3 descartó los modelos de
 razonamiento y la medición mostró que los modelos elegidos razonan igualmente: entre
 el 72 % y el 81 % de la salida de tres agentes son tokens de razonamiento. No es un
-fallo del proceso, es la razón de medir; y queda escrito en §3.3 y §3.8 en lugar de
+fallo del proceso, es la razón de medir; y queda escrito en §3.3 y §3.7 en lugar de
 corregirse en silencio.
 
 ## Anexo D — Migraciones de base de datos
@@ -3493,8 +3528,8 @@ y la resistencia del modelo en web y código quedan **declarados como no medidos
 | **Dataset dorado** | Conjunto versionado de casos con su resultado esperado o su propiedad verificable, contra el que se mide el sistema (§5.5) |
 | **Modo simulado / modo real** | Las dos formas de ejecutar la suite de evaluación: con un modelo falso guionizado por el caso (verifica el código, sin coste ni red) o con los modelos reales a través de LiteLLM (mide calidad, con coste) |
 | **Invariante (de la suite)** | Lo que el caso declara que debe hacer el código del agente con su guion (resultado y número de llamadas); si no se cumple, el modo simulado falla |
-| **Token de razonamiento** | Token que un modelo escribe como borrador interno antes de responder; no se muestra pero el proveedor lo factura como salida (§3.8) |
-| **Campaña de incorporación** | Patrón de uso en ráfaga con el que se estiman los costes: generación inicial del tech lead, resolución por los juniors en dos semanas y régimen a demanda (§3.8) |
+| **Token de razonamiento** | Token que un modelo escribe como borrador interno antes de responder; no se muestra pero el proveedor lo factura como salida (§3.7) |
+| **Campaña de incorporación** | Patrón de uso en ráfaga con el que se estiman los costes: generación inicial del tech lead, resolución por los juniors en dos semanas y régimen a demanda (§3.7) |
 | **Reintento correctivo** | Segunda llamada al modelo, con la corrección explícita, cuando su salida incumple un límite o el esquema; si vuelve a incumplir, la tarea falla (§3.5) |
 | **κ de Cohen** | Medida de concordancia entre dos clasificaciones —aquí, la etiqueta humana y el veredicto del modelo— que descuenta el acuerdo esperable por azar |
 | **opted_out_global_guardrails** | Metadata que excluía a una virtual key de un guardarraíl global. Existió en la clave del validador y desapareció con el guardarraíl global que la hacía necesaria (§6.2) |
