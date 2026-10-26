@@ -476,7 +476,7 @@ Diez invariantes de la arquitectura:
 | Frontend | **Angular 22 + Tailwind** | React, Vue | Framework opinado con inyección de dependencias e interceptores HTTP de serie: el JWT se añade en **un único** punto del código, lo que hace auditable que no se filtre a otros destinos. |
 | Datos y auth | **Supabase** | Postgres propio + Auth0, Firebase | Postgres real con **RLS**, que da una segunda capa de autorización en la propia base de datos; autenticación gestionada con invitación por correo; y la posibilidad de crear **roles de base de datos dedicados** para los agentes, que es lo que permite el mínimo privilegio de §6.2. |
 | Pasarela de modelos | **LiteLLM** | SDK del proveedor, OpenRouter directo | Un único punto donde viven proveedores, credenciales, presupuestos, guardarraíles y fallbacks. Es la pieza que hace posible cambiar de modelo sin desplegar y aplicar guardarraíles sin tocar el código de los agentes. |
-| Protocolo entre agentes | **A2A** (`a2a-sdk`) | HTTP propio, gRPC, cola de mensajes | Protocolo estándar con *agent card* y JSON-RPC: cada agente declara sus habilidades y se consume igual. Evita inventar un contrato propio y deja la puerta abierta a que un agente sea sustituido por otro de un tercero. |
+| Protocolo entre agentes | **A2A** (`a2a-sdk`) | HTTP propio, gRPC, cola de mensajes | Protocolo estándar (A2A Project, 2025) con *agent card* y JSON-RPC: cada agente declara sus habilidades y se consume igual. Evita inventar un contrato propio y deja la puerta abierta a que un agente sea sustituido por otro de un tercero. |
 | Observabilidad de IA | **Langfuse** | OpenTelemetry puro, LangSmith | Trazas en árbol con coste, latencia y tokens por llamada, y enmascarado de contenido configurable, que es requisito por privacidad (§6.6). |
 | Detección de PII | **Presidio** autoalojado | Servicio gestionado | Autoalojado: el dato personal que se quiere proteger no sale de la infraestructura para ser detectado. Sin coste por llamada. |
 | Detección de inyección | **Lakera Guard** | Solo defensa por instrucción | Añade una capa automatizada a la defensa por prompt. Sus límites reales se discuten en §6.5. |
@@ -484,6 +484,8 @@ Diez invariantes de la arquitectura:
 | Acceso a repositorios | **GitHub App de servicio, solo lectura** | OAuth por tech lead, token personal | Se instala únicamente en los repositorios que lo necesitan; sus tokens de instalación duran cerca de una hora y se renuevan solos, y se revoca desinstalándola. Ninguna credencial de persona ni de alcance amplio repartida por el sistema. |
 | Memoria de agentes | **`AsyncPostgresStore` de LangGraph, caché por clave exacta con TTL de 30 días** | Historial propio del agente, memoria corta por tarea, base vectorial | Vive en el Postgres que ya se opera —sin servicio nuevo—, con caducidad y espacios de nombres propios; la clave es exacta, así que no hacen falta *embeddings*. Los dos intentos previos se retiraron: la memoria corta por tarea no aportaba nada a tareas de una sola respuesta, y el historial de enunciados sin caducidad crecía sin cota sin batir a la lectura directa de los ejercicios guardados. |
 | Estado en vivo | **Long-polling con `asyncio.Event`** | WebSocket, SSE, Supabase Realtime | El backend es un único proceso, así que un evento en memoria basta: no hay conexión permanente que proxies y navegadores deban respetar, y la espera (25 s) queda siempre por debajo de sus límites de tiempo. |
+
+La documentación de cada pieza está en «Referencias», al final de la parte VI.
 
 ### 2.3 Los doce servicios
 
@@ -1466,7 +1468,8 @@ permisivo por omisión.
 ### 4.4 Por qué A2A y no un framework de orquestación
 
 El sistema no es un monolito: son **seis servicios HTTP independientes** que
-hablan el protocolo **A2A** (`a2a-sdk`). Cada agente publica su *agent card* con
+hablan el protocolo **A2A** (A2A Project, 2025), con su SDK oficial de Python
+(`a2a-sdk`). Cada agente publica su *agent card* con
 las habilidades que declara, recibe tareas por JSON-RPC y corre en su propio
 contenedor, con su proceso, su credencial, su rate limit y su virtual key; el
 backend usa solo la parte cliente del SDK. La alternativa —CrewAI, AutoGen o un
@@ -2230,10 +2233,10 @@ juicio de nadie:
 | **Adherencia a límites** | % de enunciados ≤50 palabras, nombres ≤8, justificaciones ≤50 | Verifica el contrato de salida |
 | **Tasa de activación del reintento correctivo** | % de llamadas que necesitaron el reintento de §3.5 | Mide **cuánto trabaja el prompt frente a cuánto lo salva el código**: si es alta, el prompt es débil aunque el resultado final sea correcto |
 | **Conformidad de cardinalidad** | % de generaciones con tantos candidatos como se pidieron | Es un requisito duro del agente de ejercicios |
-| **Exactitud del veredicto** | Matriz de confusión del `verdict` contra respuestas etiquetadas por un humano; exactitud y **κ de Cohen** | La métrica de calidad más importante del sistema: es lo único que llega al alumno sin supervisión |
+| **Exactitud del veredicto** | Matriz de confusión del `verdict` contra respuestas etiquetadas por un humano; exactitud y **κ de Cohen** (Cohen, 1960) | La métrica de calidad más importante del sistema: es lo único que llega al alumno sin supervisión |
 | **Precisión del gate del validador** | Falsos positivos y falsos negativos sobre un set de tecnologías válidas, inválidas y adversarias | Un falso positivo bloquea trabajo legítimo; un falso negativo abre la puerta |
 | **Detección de duplicados** | Precisión y cobertura sobre variantes conocidas («Angular» / «Angular Framework») | Tiene política *default-deny* invertida (§3.6): aquí el falso positivo es el error caro |
-| **No repetición de temas** | Solapamiento entre generaciones consecutivas con las mismas tecnologías, con el índice de Jaccard sobre términos: una aproximación determinista del solapamiento semántico, que exigiría *embeddings* | Es el propósito de la lista de temas a evitar del agente de ejercicios (§4.3, §4.8) |
+| **No repetición de temas** | Solapamiento entre generaciones consecutivas con las mismas tecnologías, con el índice de Jaccard (Jaccard, 1912) sobre términos: una aproximación determinista del solapamiento semántico, que exigiría *embeddings* | Es el propósito de la lista de temas a evitar del agente de ejercicios (§4.3, §4.8) |
 | **Falsos positivos de guardarraíl** | % de llamadas benignas rechazadas por un guardarraíl del proxy (solo en modo real). El contenido alterado por Presidio no se mide aquí: el arnés sustituye la redacción y la comprueba `verify_redaction` | Métrica con historia real en este proyecto (§6.5): justificó primero pasar Lakera a monitor y después retirarlo de la ruta de generación |
 | **Presupuestos de operaciones** | Búsquedas del agente web (máx. 5) y lecturas del agente de código (máx. 10), contadas en cada caso | Verifica que el límite de §3.5 se cumple de verdad |
 | **Rutas y fragmentos del agente de código** | % de rutas elegidas por el modelo que existen en el repositorio; % de fragmentos copiados literalmente del fichero y que empiezan en la línea declarada | Es la regla «ningún requisito verificable depende de que el modelo obedezca» aplicada al caso que la originó |
@@ -2302,7 +2305,9 @@ contenido— el juez LLM **offline** cumple cuatro condiciones de diseño que lo
 defendible:
 
 **1. El juez no es ninguno de los cuatro modelos en producción.** Un modelo que
-juzga su propia salida tiene sesgo de autopreferencia documentado. El juez es un
+juzga su propia salida tiene un sesgo de autopreferencia documentado: tiende a
+puntuar mejor su propio texto (Zheng et al., 2023), y la preferencia crece con su
+capacidad de reconocerlo como propio (Panickssery et al., 2024). El juez es un
 instrumento **offline** —no es un agente y no vive en el camino del usuario— que
 reside en `evals/` (change `juez-contenido`, spec `content-judging`) y usa un
 modelo frontier distinto de los de producción
@@ -2339,7 +2344,9 @@ el resultado: anclar los criterios la subió a un **κ global de 0,475**, con
 **4. Límites declarados.** El juez no sustituye la aprobación del tech lead
 (§4.6): es un **instrumento de regresión** para detectar que un cambio de modelo o de
 prompt ha empeorado la calidad, no un control de calidad en producción. Y 0,475 es
-«moderado», no «bueno»: vale como señal relativa, no como nota.
+«moderado», no «bueno», en la escala habitual de Landis y Koch (1977), que llama
+moderada a la concordancia entre 0,41 y 0,60 y considerable a la que va de 0,61 a
+0,80: vale como señal relativa, no como nota.
 
 ### 5.7 Resultados de la evaluación
 
@@ -2732,7 +2739,8 @@ cuya corrección depende de desactivar otro control está mal colocado.
 ### 6.3 Mapeo OWASP Top 10 para aplicaciones LLM
 
 El OWASP Top 10 para aplicaciones LLM es la lista de referencia de los riesgos
-propios de un sistema construido sobre modelos de lenguaje. Esta sección recorre
+propios de un sistema construido sobre modelos de lenguaje; aquí se usa su edición
+2025 (OWASP GenAI Security Project, 2024). Esta sección recorre
 los diez, uno a uno, con tres cosas por riesgo: los **controles reales** que lo
 mitigan —cada uno rastreable a §6.2, a un change archivado o a un fichero del
 repositorio—, el **veredicto** y, sobre todo, el **riesgo residual declarado**. La
@@ -2890,7 +2898,8 @@ abierto al reducir su alcance.
 **El ejercicio, paso a paso:**
 
 1. **Herramientas.** Se evaluó adoptar un framework de red teaming de LLM
-   —`promptfoo redteam` o `garak`— y **se descartó**: hablan «un prompt entra, un
+   —`promptfoo redteam` (promptfoo, s. f.) o `garak` (Derczynski et al., 2024)— y
+   **se descartó**: hablan «un prompt entra, un
    texto sale», y los agentes hablan JSON-RPC por A2A con campos tipados, así que
    enchufarlos exigiría escribir un *provider* propio por agente. El arnés de §5.5
    ya es ese provider (inyecta contenido no confiable, ejecuta el código real de
@@ -3253,7 +3262,7 @@ demostrado de lo que sigue abierto.
 | # | Resultado | Veredicto |
 |---|---|---|
 | O1 | Contrato de salida cumplido en las tres ejecuciones: cardinalidad 1,000, salida válida y límites al 100 %, solapamiento máximo de temas entre 0,25 y 0,28, y ningún reintento correctivo (§5.7). La calidad pedagógica tiene juez, pero su concordancia con el tech lead es moderada (κ 0,475) y floja en `autosuficiencia` y `calidad_del_fallo` (§5.6). El ejemplo de §1.7 muestra la consecuencia: un ejercicio que pasa todas las comprobaciones y describe un síntoma falso | **Cumplido en el contrato; parcial en la calidad** |
-| O2 | Exactitud 1,000 y κ 1,000 en las 22 respuestas, en las tres ejecuciones; p95 de 2,7 s frente a 45 s (§5.7). La muestra es corta: el intervalo de confianza al 95 % de la exactitud empieza en torno a 0,85, justo en el umbral. Y lo que aporta el revisor sobre el evaluador no está medido (§1.7) | **Cumplido, con una muestra corta** |
+| O2 | Exactitud 1,000 y κ 1,000 en las 22 respuestas, en las tres ejecuciones; p95 de 2,7 s frente a 45 s (§5.7). La muestra es corta: el intervalo de confianza de Wilson (1927) al 95 % de la exactitud empieza en torno a 0,85, justo en el umbral. Y lo que aporta el revisor sobre el evaluador no está medido (§1.7) | **Cumplido, con una muestra corta** |
 | O3 | Guardar, cerrar una generación, componer, eliminar y asignar son acciones solo humanas, y lo refuerzan los roles de base de datos de los agentes y los *triggers* (§4.6, §6.2). La valoración es la única excepción, declarada y con cuatro controles (§4.6) | **Cumplido** |
 | O4 | Veinticinco controles (§6.2); 0 ataques exitosos de 19 medidos en modo real (§6.5); los diez riesgos OWASP mapeados con su residual (§6.3). Quedan sin medir la resistencia del modelo en los agentes web y de código y los objetivos 7 y 9 del red teaming; el bloqueo automático de inyección está apagado en evaluador y revisor, y las dependencias de Python no están fijadas (LLM03) | **Parcial** |
 | O5 | Coste facturado medido por agente: 0,0014 USD por ejercicio guardado, 0,000679 por evaluación y unos 2,20 USD por equipo el primer año (§3.7); tope de gasto por clave (§3.4). La infraestructura no está costeada (§5.2) | **Cumplido en inferencia; falta la infraestructura** |
@@ -3297,6 +3306,65 @@ El sistema cumple su contrato, mide su calidad y su coste con instrumentos que a
 vez se han verificado (§7, lección 8), y declara con la misma precisión lo que
 todavía no sabe. Lo que falta para llevarlo a terceros está identificado y acotado;
 lo que falta para saber si cumple su propósito es ponerlo en manos de un equipo.
+
+## Referencias
+
+Las direcciones web se consultaron en octubre de 2026. Para las herramientas se
+indica, cuando el repositorio la fija, la versión que usa el sistema.
+
+**Normas y especificaciones**
+
+- A2A Project. (2025). *Agent2Agent (A2A) Protocol Specification*. Linux
+  Foundation. <https://a2a-protocol.org/>. SDK de Python (`a2a-sdk` ≥ 1.2):
+  <https://github.com/a2aproject/a2a-python>
+- OWASP GenAI Security Project. (2024). *OWASP Top 10 for LLM Applications 2025*.
+  OWASP Foundation. <https://genai.owasp.org/llm-top-10/>
+
+**Evaluación y estadística**
+
+- Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and
+  Psychological Measurement, 20*(1), 37–46.
+- Jaccard, P. (1912). The distribution of the flora in the alpine zone. *New
+  Phytologist, 11*(2), 37–50.
+- Landis, J. R. y Koch, G. G. (1977). The measurement of observer agreement for
+  categorical data. *Biometrics, 33*(1), 159–174.
+- Panickssery, A., Bowman, S. R. y Feng, S. (2024). LLM evaluators recognize and
+  favor their own generations. En *Advances in Neural Information Processing
+  Systems 37* (NeurIPS 2024). <https://arxiv.org/abs/2404.13076>
+- Wilson, E. B. (1927). Probable inference, the law of succession, and statistical
+  inference. *Journal of the American Statistical Association, 22*(158), 209–212.
+- Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z.,
+  Li, Z., Li, D., Xing, E. P., Zhang, H., Gonzalez, J. E. y Stoica, I. (2023).
+  Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. En *Advances in Neural
+  Information Processing Systems 36* (NeurIPS 2023, Datasets and Benchmarks
+  Track). <https://arxiv.org/abs/2306.05685>
+
+**Seguridad y red teaming**
+
+- Derczynski, L., Galinkin, E., Martin, J., Majumdar, S. e Inie, N. (2024).
+  *garak: A framework for security probing large language models*. arXiv:2406.11036.
+  <https://arxiv.org/abs/2406.11036>
+- Lakera. (s. f.). *Lakera Guard*. <https://www.lakera.ai/>
+- Microsoft. (s. f.). *Presidio: Data protection and de-identification SDK*
+  (imágenes `presidio-analyzer` y `presidio-anonymizer` 2.2.362).
+  <https://microsoft.github.io/presidio/>
+- promptfoo. (s. f.). *Red teaming*. <https://www.promptfoo.dev/docs/red-team/>
+
+**Herramientas del sistema**
+
+- Angular. (s. f.). *Angular* (v22). <https://angular.dev/>
+- BerriAI. (s. f.). *LiteLLM*. <https://github.com/BerriAI/litellm>
+- Fission AI. (s. f.). *OpenSpec*. <https://github.com/Fission-AI/OpenSpec>
+- Hugging Face. (s. f.). *Inference Providers*.
+  <https://huggingface.co/docs/inference-providers>
+- LangChain. (s. f.). *LangGraph* (≥ 0.6; almacén `AsyncPostgresStore`).
+  <https://github.com/langchain-ai/langgraph>
+- Langfuse. (s. f.). *Langfuse: open source LLM engineering platform* (SDK v3).
+  <https://langfuse.com/docs>
+- OpenRouter. (s. f.). *OpenRouter documentation*. <https://openrouter.ai/docs>
+- Ramírez, S. (s. f.). *FastAPI* (0.115). <https://fastapi.tiangolo.com/>
+- Supabase. (s. f.). *Supabase documentation*. <https://supabase.com/docs>
+- Tavily. (s. f.). *Tavily Search API*. <https://docs.tavily.com/>
 
 ---
 
