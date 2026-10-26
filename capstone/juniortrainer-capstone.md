@@ -144,7 +144,7 @@ cifras. §3.8 da el **coste** de la formación, no su retorno.
 El sistema tiene exactamente **dos roles**, y la frontera entre ellos es también
 una frontera de permisos en la base de datos:
 
-- **Tech lead.** Da de alta alumnos, mantiene el catálogo de tecnologías, lanza
+- **Tech lead.** Da de alta alumnos, amplía el catálogo de tecnologías, lanza
   generaciones de ejercicios, **revisa y aprueba** los candidatos, compone
   bloques y los asigna. Ve el progreso de todos.
 - **Alumno.** Ve sus bloques asignados, responde los ejercicios y recibe la
@@ -153,7 +153,8 @@ una frontera de permisos en la base de datos:
 **No hay autorregistro.** El primer tech lead se siembra con un script
 (`backend/scripts/seed_tech_lead.py`) y a partir de ahí invita a los alumnos por
 correo. Es una decisión deliberada: el sistema procesa código propietario, así que
-la entrada es cerrada por diseño, no por configuración.
+el alta pública está desactivada y la entrada tiene solo dos caminos, el script
+inicial y la invitación.
 
 ### 1.3 El producto: qué hace exactamente
 
@@ -164,8 +165,9 @@ El recorrido funcional completo, tal y como está implementado:
    realmente una tecnología de programación y si ya existe en el catálogo con otro
    nombre.
 2. **Generación.** El tech lead elige tecnologías del catálogo, opcionalmente un
-   repositorio de GitHub —sin repositorio solo se puede generar el tipo
-   `knowledge`—, el tipo de ejercicio y cuántos quiere (1 a 5). El sistema
+   repositorio de GitHub, el tipo de generación —`knowledge`, `debug` o `both`,
+   la mezcla de los dos— y cuántos quiere (1 a 5); sin repositorio solo se puede
+   generar el tipo `knowledge`. El sistema
    responde de inmediato y trabaja de fondo: investiga documentación actual, lee
    el repositorio en un commit concreto y redacta los candidatos.
 3. **Revisión humana.** El tech lead ve los candidatos con su nombre, su enunciado,
@@ -245,7 +247,7 @@ Lo que el sistema **no** hace, y por qué:
 | Conversar con el sistema | No hay chat ni diálogo libre: la interacción son formularios, bloques y respuestas. |
 | Analítica de progreso | No hay vista agregada; los datos existen y su producto queda en el trabajo futuro (§8). |
 | Avisar por correo | El único correo es la invitación: asignar un bloque no envía ningún aviso al alumno. |
-| Internacionalización | Todo se entrega en español; el prompt lo exige en los seis agentes (§3.1). |
+| Internacionalización | Todo se entrega en español; el prompt lo exige en los cuatro agentes que producen texto para una persona (§3.1). |
 | Autorregistro de usuarios | La entrada al sistema es por invitación de un tech lead. |
 
 ---
