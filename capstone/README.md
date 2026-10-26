@@ -16,21 +16,27 @@ estructura: contienen al menos tres afirmaciones desactualizadas —número de t
 polling del frontend y lecturas directas del frontend a Supabase— que no se han
 propagado.
 
-Cifras verificadas contra el código el 22 de octubre de 2026: timeouts en capas,
-límites de ritmo, tamaño de cuerpo, presupuestos de operaciones, TTL de memorias,
-presupuestos de las virtual keys, topes de entrada, pre-filtro del validador,
-triggers, modelos por rol y los siete prompts del Anexo A.
+Cifras verificadas contra el código y los informes locales el 26 de octubre de
+2026: timeouts en capas, límites de ritmo, tamaño de cuerpo, presupuestos de
+operaciones, TTL de memorias, presupuestos y ritmo de las virtual keys, topes de
+entrada, pre-filtro del validador, triggers, modelos por rol, los siete prompts del
+Anexo A, los cinco jobs del CI (168 tests del arnés), los 19 verificadores de
+agentes, los umbrales del gate y las cifras de §5.7 y del informe de red teaming.
 
 ## Estado
 
-Redactadas las secciones que se apoyan en lo ya implementado. Quedan pendientes,
-marcadas como tales dentro del propio documento:
+Revisión global completa (portada y resumen, «cómo leer», §1–§8 y Anexos A–G), en
+la rama `docs/capstone-revision-global`. Las cifras de cabecera quedan
+reverificadas: 28 capacidades, 59 cambios, 355 commits alcanzables desde `develop`,
+125 casos del dataset en seis conjuntos más 10 del juez, y 25 controles de
+seguridad. Quedan pendientes, marcadas como tales dentro del propio documento:
 
 | Sección | Qué falta | Depende de |
 |---|---|---|
 | §5.2 | Presupuesto de infraestructura y aprovisionamiento de `develop` | Infraestructura |
-| §5.3 | Lint/`mypy`, tests de backend y los `verify_*.py` automatizados (el gate de evals ya existe) | Implementarlo |
+| §5.3 | Lint/`mypy`, tests de backend y los `verify_*.py` automatizados (el gate de evals ya existe); protección de rama que lo haga obligatorio | Implementarlo |
 | §5.8 | Montar el cuadro de mando y sus alertas | Infraestructura (los umbrales ya están especificados) |
+| §6.4 | Reactivar Lakera en evaluador y revisor (riesgo 1) y gestor de secretos por servicio (riesgo 7) | Change propio / infraestructura |
 | §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 | §6.6 | Trabajo de cumplimiento: RAT, base jurídica, transparencia, acuerdos de encargado y retención | Cumplimiento |
 
