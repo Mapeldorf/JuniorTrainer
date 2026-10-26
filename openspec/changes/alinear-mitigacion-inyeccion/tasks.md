@@ -25,4 +25,4 @@
 ## 5. Cierre
 
 - [x] 5.1 `openspec validate --all` en verde tras todos los cambios. Verificar: el comando sale 0 y no reporta el change. **Verificado:** 29 passed, 0 failed (29 items), incluido el delta del change.
-- [ ] 5.2 Commit de código + artefactos en la rama propia y PR contra `develop`. Verificar: checks del PR en verde y `openspec list` muestra el change `alinear-mitigacion-inyeccion` sin archivar (el archivado es un paso posterior, tras el merge).
+- [x] 5.2 Commit de código + artefactos en la rama propia y PR contra `develop`. Verificar: checks del PR en verde y `openspec list` muestra el change `alinear-mitigacion-inyeccion` sin archivar (el archivado es un paso posterior, tras el merge). **Verificado:** rama `openspec/alinear-mitigacion-inyeccion` subida; PR #121 contra `develop` con `backend`, `frontend`, `litellm-guardrails` y `agent-evals` en verde (el check de CI de la tarea 3.2 queda cubierto aquí); `evals-gate` salta (a demanda, como toca); el change sigue activo en `openspec list`.
