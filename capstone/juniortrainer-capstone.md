@@ -33,7 +33,7 @@ Lo que se ha construido, en cifras:
 | Servicios en ejecución | **12** contenedores |
 | Capacidades especificadas formalmente | **28** |
 | Cambios propuestos, implementados y archivados | **60** |
-| Commits | **378**, alcanzables desde `develop` (26 de octubre de 2026) |
+| Commits | **388**, alcanzables desde `develop` (26 de octubre de 2026) |
 | Controles de seguridad implementados | **25** |
 | Casos del dataset de evaluación (`evals/`) | **126**, en seis conjuntos, más **10** del juez (§5.6) |
 
