@@ -27,8 +27,8 @@ agentes, los umbrales del gate y las cifras de §5.7 y del informe de red teamin
 
 Revisión global completa (portada y resumen, «cómo leer», §1–§8 y Anexos A–G), en
 la rama `docs/capstone-revision-global`. Las cifras de cabecera quedan
-reverificadas: 28 capacidades, 59 cambios, 355 commits alcanzables desde `develop`,
-125 casos del dataset en seis conjuntos más 10 del juez, y 25 controles de
+reverificadas: 28 capacidades, 60 cambios, 378 commits alcanzables desde `develop`,
+126 casos del dataset en seis conjuntos más 10 del juez, y 25 controles de
 seguridad. Quedan pendientes, marcadas como tales dentro del propio documento:
 
 | Sección | Qué falta | Depende de |
