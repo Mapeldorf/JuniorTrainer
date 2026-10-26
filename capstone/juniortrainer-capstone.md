@@ -41,7 +41,7 @@ Tres decisiones articulan el sistema y se defienden a lo largo del documento:
 
 1. **Un agente por fuente de información y nivel de confianza**, no por paso del
    proceso. El agente que lee repositorios privados es el único que habla con
-   GitHub; el que corrige respuestas es el único que ve texto escrito por un
+   GitHub; el corrector y su revisor son los únicos que ven texto escrito por un
    alumno. El reparto es, antes que nada, un reparto de permisos.
 2. **El agente propone y el humano dispone en todo lo que persiste.** La
    generación de ejercicios es completamente autónoma porque es barata y
@@ -113,6 +113,15 @@ típicos. Las dos opciones disponibles son malas:
   repositorio, elegir un fragmento representativo, inventar un fallo plausible y
   redactar el enunciado. Después hay que corregir. Es trabajo de senior, el
   recurso más escaso del equipo.
+
+Hay además una dificultad que el trabajo en remoto ha hecho más grande: la
+supervisión ya no ocurre sola. Cuando el equipo comparte oficina, el junior se
+atasca y pregunta al de al lado; la explicación y la corrección llegan en el
+momento. En remoto, esa conversación informal desaparece: las dudas se agolpan en
+un chat, las respuestas llegan con horas de retraso y el on-boarding queda, en el
+mejor de los casos, en un documento y dos reuniones. No poder tener al tech lead
+ni a los compañeros a mano no es un detalle de comodidad: es lo que convierte la
+rampa en un camino en solitario.
 
 El coste del problema se paga dos veces: en tiempo de rampa del junior y en horas
 de senior dedicadas a formación en lugar de a producto.
@@ -749,7 +758,8 @@ leyendo la documentación de cada parámetro por separado.
 **Salida estructurada.** El validador usa `response_format` con esquema JSON y
 `additionalProperties: false`: el modelo **debe** devolver exactamente
 `{valid, reason, invalid_technologies}` —más `duplicate_technologies` en el
-contexto de alta en catálogo—. Si no cumple el esquema, la tarea se da por
+contexto de alta en catálogo—. Si no cumple el esquema, se reintenta una vez con
+la corrección explícita y, si vuelve a incumplirlo, la tarea se da por
 **fallida**, nunca por «válido» (§4.7).
 
 **Límites de salida garantizados en código.** Esta es la decisión de
@@ -1056,10 +1066,20 @@ python -m evals.update_prices                                                   
 
 ## 4. Del proceso de negocio al sistema de agentes
 
-### 4.1 El proceso, tal y como lo hace una persona
+### 4.1 La situación típica que resuelve el producto
 
-Antes de diseñar nada conviene escribir lo que un tech lead hace hoy, sin IA, para
-poner un ejercicio a un junior:
+Un desarrollador junior se incorpora a un proyecto con un stack que no domina y un
+repositorio de cientos de miles de líneas. Necesita que alguien le explique el
+código con ejemplos y le corrija mientras practica, pero ese alguien —el tech
+lead, el senior— no está disponible: está a lo suyo, y en un equipo en remoto la
+supervisión informal que antes ocurría sola ya no ocurre. Las dudas se agolpan en
+un chat, las respuestas llegan con retraso, y el on-boarding queda reducido a un
+documento y un par de reuniones.
+
+Lo que faltaría es un entrenamiento: ejercicios sobre el propio código del
+proyecto, del nivel exacto de un junior recién incorporado, corregidos con una
+explicación. Si un tech lead se sentara a prepararlo a mano, tendría que hacer
+esto:
 
 1. Mira qué tecnologías usa el proyecto.
 2. Busca documentación actualizada de las que no domina del todo.
@@ -1073,7 +1093,9 @@ poner un ejercicio a un junior:
 
 Siete pasos, cada uno con **una fuente de información distinta** y un coste
 distinto. Los pasos 2 y 3 son los que consumen el tiempo; el 5 es el que requiere
-criterio; el 7 es el que se repite tantas veces como ejercicios haya.
+criterio; el 7 es el que se repite tantas veces como ejercicios haya. Es trabajo
+de senior, el recurso más escaso del equipo, y por eso en la práctica no se hace:
+ahí es donde entra este producto.
 
 ### 4.2 El mapeo a agentes
 
@@ -1082,6 +1104,8 @@ por fuente de información y nivel de confianza**, no un agente por paso.
 
 ```mermaid
 flowchart LR
+    P1["Paso 1<br/>Qué tecnologías"] --> A6["Agente Validador"]
+    ALTA["Alta en el catálogo"] --> A6
     P2["Paso 2<br/>Buscar documentación"] --> A1["Agente Web"]
     P3["Paso 3<br/>Leer repositorio"] --> A2["Agente Código"]
     P4["Paso 4<br/>Redactar"] --> A3["Agente Ejercicios"]
@@ -1089,7 +1113,6 @@ flowchart LR
     P6["Paso 6<br/>Asignar"] --> H2["HUMANO"]
     P7["Paso 7<br/>Corregir"] --> A4["Agente Evaluador"]
     P7 --> A5["Agente Revisor"]
-    P1["Paso 1<br/>Qué tecnologías"] --> A6["Agente Validador"]
 ```
 
 Tres observaciones sobre este mapeo, que es donde se decide casi todo:
@@ -1100,9 +1123,11 @@ Tres observaciones sobre este mapeo, que es donde se decide casi todo:
   misma actividad para una persona y dos agentes distintos aquí, porque la
   revisión solo vale si es independiente (§3.3).
 - **El paso 1 gana un agente que el proceso humano no tiene.** Un tech lead no
-  necesita que nadie le valide que «React» es una tecnología. El sistema sí: ese
-  campo de texto es una entrada de usuario que llega a tres modelos y a una API
-  externa, y el validador existe para que no entre nada que no deba.
+  necesita que nadie le valide que «React» es una tecnología; el sistema sí, y en
+  las dos puertas por las que una tecnología entra: el alta en el catálogo —donde
+  el validador además detecta duplicados con otro nombre— y la previa a cada
+  generación. Ese campo de texto es una entrada de usuario que llega a tres
+  modelos y a una API externa, y no conviene que lo haga sin pasar por un portero.
 
 ### 4.3 Los seis agentes, uno a uno
 
@@ -1190,7 +1215,9 @@ que no, no se ejecuta ningún otro agente. Tres pilares:
 3. **Salida estructurada estricta**, con una degradación defensiva: si el modelo
    dice `valid=true` pero a la vez lista tecnologías inválidas o duplicadas, se
    **degrada a `valid=false`**. La contradicción se resuelve siempre hacia el lado
-   seguro.
+   seguro. Y si la respuesta no cumple el esquema, hay un **único reintento
+   correctivo** —el mismo patrón que los límites de palabras de §3.5— antes de dar
+   la tarea por fallida.
 
 Y **dos contextos de llamada**, que son un caso de estudio sobre lo fácil que es
 que un control de seguridad se convierta en un fallo funcional:
@@ -1212,20 +1239,19 @@ permisivo por omisión.
 
 ### 4.4 Por qué A2A y no un framework de orquestación
 
-La decisión que más conviene defender con honestidad, porque la alternativa es
-legítima y más barata de construir.
-
-**Qué se eligió.** Cada agente es un **servicio HTTP independiente** que habla el
-protocolo **A2A** (`a2a-sdk`): publica una *agent card* con las habilidades que
-declara, recibe tareas por JSON-RPC y corre en su propio contenedor con su propio
-proceso, su credencial, su rate limit y su virtual key. El backend usa solo la
-parte cliente del SDK.
+El sistema no es un monolito: son **seis servicios HTTP independientes** que
+hablan el protocolo **A2A** (`a2a-sdk`). Cada agente publica su *agent card* con
+las habilidades que declara, recibe tareas por JSON-RPC y corre en su propio
+contenedor, con su proceso, su credencial, su rate limit y su virtual key; el
+backend usa solo la parte cliente del SDK. La alternativa —CrewAI, AutoGen o un
+LangGraph monolítico— es legítima y más barata de construir; lo que inclina la
+balanza hacia A2A es esto:
 
 **Qué se gana frente a CrewAI, AutoGen o un LangGraph monolítico:**
 
 | Ventaja | Qué significa concretamente aquí |
 |---|---|
-| **Aislamiento de permisos** | El agente de código es el único proceso con la clave privada de la GitHub App. El evaluador es el único que ve texto del alumno. En un monolito, todas las herramientas viven en el mismo proceso y la separación es una convención, no una frontera. |
+| **Aislamiento de permisos** | La clave privada de la GitHub App la tienen solo dos procesos —el agente de código, que es el único que lee repositorios, y el backend, que la usa únicamente para resolver el commit HEAD—; y los dos agentes de evaluación, evaluador y revisor, son los únicos que ven texto del alumno. En un monolito, todas las herramientas viven en el mismo proceso y la separación es una convención, no una frontera. |
 | **Aislamiento de red** | Los agentes no publican puertos. Un agente comprometido no puede ser alcanzado desde fuera. |
 | **Límite de fallo** | Si el agente web entra en un estado malo, los otros cinco siguen funcionando, y la orquestación lo trata como un fallo parcial con política propia (§4.5). |
 | **Presupuesto por agente** | Cada uno tiene su virtual key con su tope de gasto y de ritmo. Un bucle en un agente no puede consumir el presupuesto de otro. |
@@ -1278,12 +1304,13 @@ elegido para quedar por debajo del timeout de cualquier proxy o navegador
 razonable y que sea siempre el propio endpoint el que responda. Sin ninguna
 generación en curso responde al instante, porque no hay nada que esperar.
 
-Dos detalles de este diseño que merecen mención. La respuesta es **siempre una
-consulta fresca**, nunca el listado que se leyó antes de empezar a esperar: de
-otro modo la espera podría devolver un estado ya caducado. Y una generación cuya
-espera se resolvió por plazo agotado debe seguir compartiendo el mismo evento en
-la petición encadenada siguiente; crear un evento nuevo haría que la
-notificación se perdiera en el hueco entre ambas peticiones.
+Dos detalles del diseño impiden que la espera mienta. La respuesta es **siempre
+una consulta fresca** del estado —nunca el listado que se leyó al empezar a
+esperar—, para no devolver algo ya caducado. Y cuando una espera termina por
+plazo agotado, la siguiente petición **reutiliza el mismo evento**: si cada
+espera creara uno nuevo, un cambio de estado que llegara en el hueco entre las
+dos peticiones no encontraría a nadie escuchando, y la espera siguiente no
+tendría forma de enterarse.
 
 ```mermaid
 sequenceDiagram
@@ -1297,20 +1324,27 @@ sequenceDiagram
     participant DB as Supabase
 
     TL->>BE: POST /generations
+    BE->>DB: validar tecnologías contra el catálogo (si no, 422)
     BE->>DB: INSERT generation (status=generating)
     BE-->>TL: 201 {id}
-    Note over BE: trace_id de Langfuse (uno por generación)
+    Note over BE: una traza de Langfuse por generación, con límite global de 300 s (y 120 s por tarea)
     BE->>AV: validar tecnologías (context=generation)
     alt Rechazo o fallo
         BE->>DB: UPDATE status=error
-        Note over BE: no se ejecuta ningún otro agente
+        Note over BE: fail-closed: no se ejecuta ningún otro agente
     else Válidas
         alt Hay repositorio
             BE->>GH: resolver commit HEAD
-            BE->>DB: INSERT repo_access_log
-            par
-                BE->>AW: investigar tecnologías
-                BE->>AC: analizar repo en commit_sha
+            alt No se puede resolver
+                BE->>DB: repo_access_log (error)
+                BE->>DB: UPDATE status=error
+            else Commit resuelto
+                BE->>DB: repo_access_log (ok)
+                par
+                    BE->>AW: investigar tecnologías
+                    BE->>AC: analizar repo en commit_sha
+                end
+                Note over BE: si el web falla, se sigue sin fuentes de internet, y el fallo del código o del de ejercicios pasa la generación a error
             end
         else Sin repositorio
             BE->>AW: investigar tecnologías (imprescindible)
@@ -1319,6 +1353,7 @@ sequenceDiagram
         BE->>DB: INSERT exercise (saved=false)
         BE->>DB: UPDATE status=ready
     end
+    Note over TL,BE: el frontend sigue el estado con espera larga<br/>(GET /generations/pending/wait): el cambio de estado<br/>despierta la respuesta (o se renueva a los 25 s)
 ```
 
 Las decisiones que gobiernan este flujo:
@@ -1368,15 +1403,21 @@ sequenceDiagram
     participant RV as Revisor
 
     AL->>BE: POST /assignments/{aid}/exercises/{eid}/answer
-    BE->>DB: verificar asignación propia + ejercicio en su copia
+    BE->>DB: verificar asignación propia + ejercicio en su copia (si no, 404)
     BE->>DB: pre-check "ya respondido" (si sí, 409)
     BE->>DB: leer enunciado, código y expected_answer de la copia
+    Note over BE: una traza de Langfuse por evaluación, marcada con su resultado al terminar, y todo ocurre en esta misma petición
+    Note over BE: el evaluador y el revisor redactan la respuesta del alumno (Presidio) antes de llamar al modelo
     BE->>EV: evaluar
     EV-->>BE: verdict + justification
     BE->>RV: revisar justificación (veredicto fijo)
     RV-->>BE: justification final
-    BE->>DB: INSERT answer (UNIQUE assignment_id, exercise_id)
-    BE-->>AL: 201 {verdict, justification}
+    alt Cualquier agente falla o responde sin los campos esperados
+        BE-->>AL: 502 (nada se persiste)
+    else Evaluación completa
+        BE->>DB: INSERT answer (UNIQUE → 409 si hubo carrera)
+        BE-->>AL: 201 {verdict, justification}
+    end
 ```
 
 Si cualquiera de los dos agentes falla o responde sin los campos esperados, se
@@ -1398,7 +1439,9 @@ defensiva de contradicciones. Se detalla en §4.7 y §6.2.
 | Leer repositorio | Total, en solo lectura | El tech lead elige repositorio y referencia |
 | Redactar candidatos | Total | **Bloqueante**: nada se guarda sin aprobación |
 | Guardar un ejercicio en el catálogo | **Nula** | Solo humano |
+| Cerrar una generación revisada | **Nula** | Solo humano |
 | Componer un bloque | **Nula** | Solo humano |
+| Eliminar un ejercicio guardado | **Nula** | Solo humano |
 | Asignar un bloque a un alumno | **Nula** | Solo humano |
 | Evaluar una respuesta | Total | Ninguna en el momento |
 | Revisar la evaluación | Total (otro agente, no un humano) | Ninguna |
@@ -1452,9 +1495,10 @@ incumplido ⇒ **error de tarea**. En ningún caso se intenta rescatar una respu
 malformada, y en ningún caso una respuesta inválida se interpreta como la opción
 permisiva.
 
-**3. Reintento correctivo único.** Un reintento sobre los límites de palabras, con
-la corrección explícita en el mensaje. Uno, no tres: si el modelo no cumple un
-contrato tan simple a la segunda, el problema no es la aleatoriedad.
+**3. Reintento correctivo único.** Un reintento sobre los límites de palabras o el
+esquema incumplido, con la corrección explícita en el mensaje. Uno, no tres: si
+el modelo no cumple un contrato tan simple a la segunda, el problema no es la
+aleatoriedad.
 
 **4. Presupuestos de operaciones.** Un agente no puede entrar en bucle de llamadas
 a herramientas: el cupo se consume **antes** de cada operación (§3.5).
@@ -1476,18 +1520,25 @@ pero evita que el usuario trate como válido algo que no se completó.
 
 ### 4.8 Memoria y estado
 
-El sistema tiene **cuatro capas de memoria**, y la distinción entre ellas importa
-porque cada una tiene una política de fallo distinta.
+El estado del sistema vive en **cuatro capas**: dos memorias de contenido
+propiamente dichas y el estado que las sostiene. La distinción importa porque
+cada una se pierde —y se recupera— a su manera.
 
 | Capa | Dónde vive | Qué guarda | Persistencia |
 |---|---|---|---|
-| **0 — Proceso** | RAM | Configuración, clientes de Supabase y Langfuse, token de instalación de GitHub | Hasta el reinicio |
+| **0 — Proceso** | RAM | Configuración, clientes de Supabase y Langfuse, tokens de instalación de la GitHub App, el registro de esperas largas y los contadores del límite de peticiones | Hasta el reinicio |
 | **1 — Memoria de agentes** | Esquema `memory` de Supabase | Investigación web y análisis de repositorio | Persistente |
 | **2 — Memoria de lectura** | `public.exercise` | Ejercicios guardados o eliminados, para no repetir temas | Persistente |
 | **3 — Estado y control** | `public.*` y `litellm-db` | Estado de negocio; claves, presupuestos y consumo | Persistente |
 
+Solo cuenta como memoria lo que sobrevive **entre tareas** para no repetir
+trabajo. Una lectura suelta dentro de una tarea —como la del catálogo que hace
+el validador en cada alta— no es memoria, aunque salga de Postgres.
+
 Las **dos memorias de contenido** de la capa 1 se implementan con el almacén de
-largo plazo de LangGraph (`AsyncPostgresStore`), cada una con su espacio de nombres:
+largo plazo de LangGraph (`AsyncPostgresStore`), dentro del esquema `memory`
+—con su propio rol, aislado del negocio (§6.2)—, cada una con su espacio de
+nombres (`web_research` y `code_analysis`):
 
 | Agente | Clave | TTL | Qué guarda |
 |---|---|---|---|
@@ -1503,17 +1554,25 @@ lo que retiró después—, mientras que la memoria acumulaba también los candi
 descartados en la revisión. Dos memorias y una lectura explican el sistema mejor
 que tres memorias.
 
-Dos detalles de diseño que explican por qué funciona:
+Tres detalles de diseño que explican por qué funciona:
 
 - **La clave del web normaliza.** `["React", "FastAPI"]` y `["fastapi", " React"]`
   comparten entrada de caché. Sin normalización, el acierto sería anecdótico.
 - **La clave del código incluye el commit exacto.** El mismo repositorio en otro
   commit no comparte caché, porque el código ha cambiado. Es lo que hace que la
   caché sea correcta y no solo rápida.
-**La política ante fallos es la misma para las dos: una memoria caída no bloquea la
+- **El TTL se renueva con cada lectura.** Una tecnología que se sigue pidiendo se
+  sigue sirviendo de caché; una que deja de pedirse caduca sola a los 30 días.
+  La caché se vacía por desuso, no por reloj.
+
+**La política ante fallos es la misma en las tres: una caída no bloquea la
 generación.** Un error al leer o escribir se registra como advertencia y la tarea
-continúa. La memoria es una optimización, y tratarla como un requisito convertiría
-una indisponibilidad de Supabase en una caída total del producto.
+continúa —también cuando falla la lectura de ejercicios de la capa 2, que sigue
+sin su lista de temas a evitar—. Y ninguna guarda datos de alumnos: las de
+contenido, resúmenes de fuentes públicas y del repositorio; la de lectura,
+enunciados que un humano aprobó. Es un requisito de `agent-memory`, no una
+casualidad. La memoria es una optimización, y tratarla como un requisito
+convertiría una indisponibilidad de Supabase en una caída total del producto.
 
 ### 4.9 La cadena de desarrollo: copilotos bajo control
 
@@ -1657,7 +1716,8 @@ apareció una desviación: `openspec/specs/litellm-agent-keys/spec.md` hablaba d
 Se escribió antes de que existiera el validador, y el change que lo introdujo
 (`validacion-tecnologias-agente-juez`) actualizó `technology-validation` y
 `agent-auth` —que sí lista los seis— pero no esa. El código siempre fue correcto:
-`infra/litellm/provision_keys.py` aprovisiona **seis** claves.
+`infra/litellm/provision_keys.py` aprovisiona las **seis** claves de agente
+—siete, con la del juez offline (§3.4)—.
 
 La auditoría destapó además un hueco más serio que el recuento: la metadata
 `opted_out_global_guardrails` de la clave del validador **no estaba especificada
@@ -1668,14 +1728,16 @@ mecanismo solo existía para deshacer un valor por defecto, y el change
 `guardarrailes-por-capas` lo eliminó entero, con su requisito y su verificación
 (§6.2).
 
-Las dos cosas están corregidas: la capacidad refleja ya los seis agentes y recoge
-la exclusión del guardarraíl global como requisito con sus tres escenarios, y las
-26 capacidades de entonces validaban con el CLI de OpenSpec (hoy son 27 y
-validan). El episodio es exactamente el modo
-en que un proceso de especificación se degrada —no por abandonarlo, sino por
-archivar un cambio actualizando las capacidades obvias y olvidando una
-colateral— y confirma la regla: **la fuente de verdad es el código, y la
-especificación solo lo es mientras el archivado la mantenga al día.** La duplicación de código entre los seis agentes (§4.4) es una
+De aquello queda esto: la capacidad refleja ya los seis agentes; el mecanismo sin
+requisito corrió la suerte que cuenta el epílogo —desapareció con el guardarraíl
+global que lo hacía necesario—; y las 28 capacidades vigentes validan con el CLI
+de OpenSpec. El episodio es exactamente el modo en que un proceso de
+especificación se degrada —no por abandonarlo, sino por archivar un cambio
+actualizando las capacidades obvias y olvidando una colateral— y confirma la
+regla: **la fuente de verdad es el código, y la especificación solo lo es
+mientras el archivado la mantenga al día.**
+
+La duplicación de código entre los seis agentes (§4.4) es una
 consecuencia directa de decidir cada agente por separado, cada vez con su propio
 diseño autocontenido: cada decisión individual es defendible y el resultado
 agregado es repetitivo. Y el CI del backend (§5.3) no está a la altura del resto
@@ -1721,7 +1783,8 @@ Tres decisiones de configuración con intención:
 **Qué secreto ve cada servicio** es parte del diseño de seguridad, no un detalle de
 despliegue. Hoy los doce comparten el mismo `.env` por simplicidad de desarrollo, y
 eso es precisamente lo que un despliegue real debe corregir: la clave privada de la
-GitHub App solo la necesita el agente de código; la `SUPABASE_SERVICE_ROLE_KEY`,
+GitHub App solo la necesitan el agente de código y el backend —que la usa para
+resolver el commit HEAD—; la `SUPABASE_SERVICE_ROLE_KEY`,
 solo el backend; cada virtual key, solo su agente. Está anotado como riesgo en §6.4.
 
 **Las migraciones de base de datos están versionadas** en
