@@ -91,6 +91,10 @@ de una respuesta, en §1.7.
 | Red teaming | §6.5 |
 | Privacidad y datos personales | §6.6 |
 | Ética y marco regulatorio (Reglamento de IA, decisiones automatizadas, transferencias) | §6.7 |
+| Estado del arte y posicionamiento (*workflow* frente a agente) | §1.8 |
+| Costes de infraestructura | §3.7, apartado 15 |
+| Qué hacer cuando falla | §5.9 |
+| Puesta en marcha desde cero | Anexo H |
 
 **Convenciones.** Las referencias a archivos son rutas del repositorio
 (`backend/app/orchestrator.py`). Las referencias entre comillas simples a un
@@ -369,6 +373,46 @@ correcto que la respuesta esperada no pedía. Lo que la suite no mide hoy es lo 
 el revisor añade sobre la justificación del propio evaluador, y su coste es casi
 ocho veces el del evaluador en este caso, por los 416 tokens de razonamiento que
 gasta (§3.7).
+
+### 1.8 Estado del arte y posicionamiento
+
+JuniorTrainer no inventa ninguna de sus piezas. Lo que aporta es la combinación, y
+para verlo hay que ponerlo junto a lo que ya existe. Hay cuatro familias de
+soluciones cerca del problema de §1.1:
+
+| Familia | Ejemplos | Qué resuelve | Qué no resuelve |
+|---|---|---|---|
+| Plataformas de práctica de programación | Exercism, plataformas de retos y cursos | Práctica guiada con corrección automática, sobre ejercicios genéricos | No conocen el código del proyecto: enseñan la tecnología, no cómo la usa este equipo |
+| Documentación ligada al código | Swimm, recorridos guiados por el repositorio | Explican el código real y se mantienen sincronizados con él | Explican, pero no entrenan: no hay ejercicio, ni respuesta, ni corrección |
+| Asistentes de código con chat sobre el repositorio | GitHub Copilot y herramientas similares | Responden en el momento a preguntas sobre el código | Resuelven la duda en lugar de entrenar a quien la tiene: es justo la dependencia de la IA que §1.1 quiere reducir |
+| Investigación en enseñanza de la programación con LLM | Generación de ejercicios (Sarsa et al., 2022), asistentes con guardarraíles que no dan la solución (Liffiton et al., 2023), comparación de LLM con tutores humanos (Phung et al., 2023) | Muestran que un LLM genera ejercicios útiles y da ayuda razonable sin regalar la respuesta | Trabajan en el aula y con ejercicios de curso, no con el código privado de una empresa, y no abordan su puesta en producción |
+
+De la investigación salen dos resultados que este diseño asume. Sarsa et al. (2022)
+encontraron que la mayoría de los ejercicios generados eran nuevos y razonables, y
+que aun así necesitaban supervisión antes de llegar al alumno: es la aprobación
+humana de §4.6. Y Phung et al. (2023) encontraron que incluso el modelo que más se
+acercaba a los tutores humanos seguía fallando en algunas tareas. Por eso aquí el
+veredicto se mide frente a una etiqueta humana (§5.5), en lugar de darlo por bueno.
+
+**Dónde encaja JuniorTrainer.** En la intersección que ninguna de las cuatro cubre:
+ejercicios **sobre el código privado del propio proyecto**, con **corrección en el
+momento** y con la **decisión pedagógica en manos del tech lead**. Lo que aporta no
+es una técnica nueva, sino la ingeniería que hace posible esa combinación en una
+empresa: que el código privado lo lea un único agente, con una credencial de solo
+lectura; que el texto del alumno se redacte antes de salir; y que el coste y la
+calidad estén medidos.
+
+**Agentes o *workflow*.** Conviene decirlo con la terminología del sector. Anthropic
+(2024) separa los *workflows*, en los que el código decide el camino y el modelo
+ejecuta pasos acotados, de los agentes, en los que el modelo decide sus propios
+pasos y herramientas. Con esa definición, JuniorTrainer es un ***workflow***: el
+orquestador fija el orden, el agente de código hace exactamente dos llamadas en
+lugar de un bucle (§4.3) y ningún modelo elige qué herramienta usar. Es una decisión,
+no una carencia, y responde al consejo del mismo texto de empezar por lo más simple
+que funcione. Este documento llama «agentes» a los seis servicios porque cada uno
+tiene su modelo, sus herramientas, su credencial y su presupuesto, y se presenta como
+agente en el protocolo A2A (§4.4). Pero la autonomía que tienen es la de un paso de
+*workflow*, y es la que hace acotables su coste, su tiempo y su comportamiento.
 
 ---
 
@@ -1274,6 +1318,58 @@ python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator 
 python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 20 --reasoning effort=low
 ```
 
+**15. Infraestructura: el coste que de verdad pesa.** Hasta aquí, la sección ha
+medido la inferencia. El sistema necesita además un servidor y varios servicios
+gestionados, y su coste es fijo: no depende de cuántos ejercicios se generen.
+
+*Qué servidor hace falta.* Medido con `docker stats` sobre el stack completo en
+reposo, los doce contenedores ocupan unos **2,1 GiB de RAM**. Casi todo es de dos
+servicios: el analizador de Presidio, con 752 MiB, y LiteLLM, con 613 MiB. Cada
+agente ocupa entre 87 y 101 MiB. Las imágenes suman unos 9 GB de disco. Con
+**8 GB de RAM y 4 vCPU** hay holgura para picos y para el sistema operativo; con 4
+GB se va justo. El consumo bajo carga no se ha medido.
+
+*Qué cuesta cada pieza.* Precios de lista consultados en octubre de 2026. Los de
+la tabla son en USD y, los que vienen en euros, se convierten a la par, porque lo
+que importa es el orden de magnitud:
+
+| Pieza | Plan | Coste mensual (USD) | Por qué ese plan |
+|---|---|---|---|
+| Servidor de `production` | 4 vCPU y 8 GB | 15–70 | El extremo bajo es un proveedor europeo de servidores económico; el alto, una instancia equivalente bajo demanda en una gran nube. Los proveedores económicos subieron precios en 2026, así que conviene confirmarlo al contratar |
+| Servidor de `develop` | 4 vCPU y 4–8 GB | 10–70 | Solo necesita LiteLLM, los agentes y Presidio para el gate (§5.3). Puede apagarse fuera de las ejecuciones |
+| Supabase | Pro | 25 | El plan gratuito pausa los proyectos inactivos, inaceptable en producción. Incluye 10 USD de créditos de cómputo, que cubren la instancia más pequeña |
+| Langfuse Cloud | Hobby (gratis) o Core (29 + 8 por cada 100.000 unidades extra) | 0–45 | Ver el cálculo de abajo |
+| Lakera Guard | Plan gratuito | 0 | Solo actúa en el validador: unas 130 validaciones por equipo en el mes de la generación inicial. Guías de terceros sitúan el plan gratuito en unas 10.000 peticiones al mes; hay que confirmarlo en su página |
+| Tavily | Researcher (gratis) | 0 | Alcanza en los tres niveles (apartado 7) |
+| GitHub App | — | 0 | Sin coste |
+| Dominio y certificado | — | ~1 | El certificado TLS puede ser gratuito (Let's Encrypt) |
+
+*El cálculo de Langfuse.* Una unidad es una traza, una observación o una
+puntuación. Por el código de trazas, una evaluación genera unas 8 unidades —la
+traza, una observación del backend, una por agente y las que añade LiteLLM por cada
+llamada al modelo y cada guardarraíl— y una generación, unas 20. Es una estimación
+leída del código, no una medición. Con ella, un equipo en su mes de resolución gasta
+unas 8.000 unidades, y el plan gratuito de 50.000 basta en el piloto y en el nivel de
+equipo. Con 30 equipos, el mes de resolución sube a unas 240.000, y hace falta el
+plan Core: 29 USD más unos 16 por las unidades extra. El plan gratuito guarda los
+datos 30 días, justo el plazo de retención que propone §6.6.
+
+*El resultado.*
+
+| | Piloto | Equipo | Organización |
+|---|---|---|---|
+| Infraestructura al mes (USD) | 50–165 | 50–165 | 80–210 |
+| Infraestructura el primer año (USD) | 600–2.000 | 600–2.000 | 950–2.500 |
+| Inferencia el primer año (USD, apartado 4: campaña más régimen) | 2,20 | 11,02 | 66,12 |
+| Peso de la infraestructura en el total | > 99 % | > 98 % | > 93 % |
+
+La conclusión corrige el énfasis del resto de la sección. **El coste de JuniorTrainer
+es la infraestructura, no la inferencia**: los modelos open-weight elegidos dejan la
+inferencia en el ruido. Y como la infraestructura es fija, el coste por junior cae
+con la escala: en el piloto, con dos juniors, sale a varios cientos de dólares por
+junior el primer año; con treinta equipos y sesenta juniors, a unos 15–45. El sistema
+solo es barato si se comparte entre muchos equipos.
+
 **Cómo reproducirlo**, desde la raíz del repositorio y con el stack levantado:
 
 ```bash
@@ -2077,8 +2173,9 @@ planos —los agentes solo hacia LiteLLM, el backend hacia los agentes, los dato
 aislados—; no es imprescindible para el primer despliegue, pero conviene tenerlo
 presente.
 
-**Lo que queda por decidir:** el presupuesto de infraestructura y el
-aprovisionamiento de `develop` —servidor, red y secretos— (§5.3).
+**Lo que queda por decidir:** el proveedor concreto —el presupuesto de
+infraestructura está estimado en §3.7, apartado 15— y el aprovisionamiento de
+`develop`: servidor, red y secretos (§5.3).
 
 ### 5.3 Integración y despliegue continuos
 
@@ -2546,6 +2643,12 @@ el runbook describe hechos y no intenciones.
 | Se cae el proceso de LiteLLM | Se reinicia automáticamente (`restart: unless-stopped`) | Revisar por qué cayó: un guardarraíl mal configurado es la causa conocida |
 | Un alumno no puede enviar su respuesta | 502 sin persistir nada; el frontend muestra un mensaje genérico | Revisar la traza de esa evaluación en Langfuse. La respuesta del alumno no se ha perdido: no se guardó, puede reenviarla |
 | Una generación se queda en `generating` | El límite de 300 s la pasa a `error` | Nada. Si se repite, es síntoma de latencia alta en algún agente |
+| Cae Supabase | El backend verifica cada JWT contra Supabase, así que **todas** las peticiones responden `401`, como si la sesión hubiera caducado: la caída se presenta como un cierre de sesión general. Las memorias de los agentes fallan y la generación sigue sin caché | Comprobar el estado de Supabase antes de investigar la autenticación. Mientras dure, no hay servicio: base de datos y autenticación son el mismo proveedor |
+| Se agota la cuota de Tavily | El plan gratuito no admite excedente (§3.7, apartado 7). La búsqueda falla, el agente web falla y, como en cualquier otro fallo suyo, la generación **sin repositorio** pasa a `error` y la **con repositorio** sigue sin fuentes de internet (§4.5) | Pasar al plan de pago o esperar al mes siguiente. El síntoma es que fallan solo las generaciones sin repositorio |
+| Cae Presidio | La redacción es *fail-closed*: si el detector no responde, el evaluador y el revisor no envían el texto, y la evaluación devuelve `502` sin guardar nada | Reiniciar `presidio-analyzer`, el contenedor más pesado del stack (§3.7, apartado 15). El alumno puede volver a enviar su respuesta |
+| La GitHub App deja de tener acceso a un repositorio (desinstalada, clave revocada o repositorio movido) | La resolución del commit falla: queda una fila de error en `repo_access_log` y la generación pasa a `error` antes de llamar a ningún agente | Revisar la instalación de la App en ese repositorio y la clave privada del `.env`. El registro de accesos dice qué repositorio y a petición de quién |
+| Cae Lakera | Solo afecta al validador, el único que lo usa (§6.2). El comportamiento de LiteLLM ante un guardarraíl que no responde **no se ha verificado**: lo esperable es que la llamada falle y, como el validador es *fail-closed*, la generación pase a `error` | Comprobar el estado de Lakera. Verificar este escenario es una tarea pendiente: si LiteLLM dejara pasar la llamada sin el guardarraíl, el validador perdería una capa sin avisar |
+| Cae Langfuse | Se ignora: un fallo al escribir trazas no interrumpe la operación (§5.8) | Nada urgente. Mientras dure, faltan las trazas de ese periodo |
 
 ---
 
@@ -3486,7 +3589,7 @@ demostrado de lo que sigue abierto.
 | O2 | Exactitud 1,000 y κ 1,000 en las 22 respuestas, en las tres ejecuciones; p95 de 2,7 s frente a 45 s (§5.7). La muestra es corta: el intervalo de confianza de Wilson (1927) al 95 % de la exactitud empieza en torno a 0,85, justo en el umbral. Y lo que aporta el revisor sobre el evaluador no está medido (§1.7) | **Cumplido, con una muestra corta** |
 | O3 | Guardar, cerrar una generación, componer, eliminar y asignar son acciones solo humanas, y lo refuerzan los roles de base de datos de los agentes y los *triggers* (§4.6, §6.2). La valoración es la única excepción, declarada y con cuatro controles (§4.6) | **Cumplido** |
 | O4 | Veinticinco controles (§6.2); 0 ataques exitosos de 19 medidos en modo real (§6.5); los diez riesgos OWASP mapeados con su residual (§6.3). Quedan sin medir la resistencia del modelo en los agentes web y de código y los objetivos 7 y 9 del red teaming; el bloqueo automático de inyección está apagado en evaluador y revisor, y las dependencias de Python no están fijadas (LLM03) | **Parcial** |
-| O5 | Coste facturado medido por agente: 0,0014 USD por ejercicio guardado, 0,000679 por evaluación y unos 2,20 USD por equipo el primer año (§3.7); tope de gasto por clave (§3.4). La infraestructura no está costeada (§5.2) | **Cumplido en inferencia; falta la infraestructura** |
+| O5 | Coste facturado medido por agente: 0,0014 USD por ejercicio guardado, 0,000679 por evaluación y unos 2,20 USD por equipo el primer año (§3.7); tope de gasto por clave (§3.4). La infraestructura está estimada con precios de lista y RAM medida, no facturada: entre 600 y 2.500 USD el primer año según el nivel, más del 93 % del coste total (§3.7, apartado 15) | **Cumplido; la infraestructura, estimada** |
 | O6 | Política de fallo por agente implementada (§4.3); respaldo medido, equivalente en lo esencial y algo peor en repetición de temas (§5.7); una traza por operación y umbrales de alerta fijados (§5.8). El cuadro de mando no está montado y el CI del backend solo comprueba que arranca (§5.3) | **Cumplido en diseño; parcial en operación** |
 | O7 | Sesenta cambios con sus cuatro artefactos y veintiocho capacidades que validan con el CLI; la auditoría del propio proceso encontró una desincronización y se corrigió (§4.9, Anexo C) | **Cumplido** |
 
@@ -3569,6 +3672,29 @@ indica, cuando el repositorio la fija, la versión que usa el sistema.
 - OWASP GenAI Security Project. (2024). *OWASP Top 10 for LLM Applications 2025*.
   OWASP Foundation. <https://genai.owasp.org/llm-top-10/>
 
+**Enseñanza de la programación con LLM y diseño de agentes**
+
+- Anthropic. (2024, diciembre). *Building effective agents*.
+  <https://www.anthropic.com/research/building-effective-agents>
+- Liffiton, M., Sheese, B., Savelka, J. y Denny, P. (2023). CodeHelp: Using large
+  language models with guardrails for scalable support in programming classes. En
+  *Proceedings of the 23rd Koli Calling International Conference on Computing
+  Education Research*. <https://arxiv.org/abs/2308.06921>
+- Phung, T., Pădurean, V.-A., Cambronero, J., Gulwani, S., Kohn, T., Majumdar, R.,
+  Singla, A. y Soares, G. (2023). *Generative AI for programming education:
+  Benchmarking ChatGPT, GPT-4, and human tutors*. Versión completa del póster de
+  ICER 2023. <https://arxiv.org/abs/2306.17156>
+- Sarsa, S., Denny, P., Hellas, A. y Leinonen, J. (2022). Automatic generation of
+  programming exercises and code explanations using large language models. En
+  *Proceedings of the 2022 ACM Conference on International Computing Education
+  Research (ICER '22)*, vol. 1, 27–43. <https://doi.org/10.1145/3501385.3543957>
+
+**Productos citados en el estado del arte**
+
+- Exercism. (s. f.). <https://exercism.org/>
+- GitHub. (s. f.). *GitHub Copilot documentation*. <https://docs.github.com/en/copilot>
+- Swimm. (s. f.). <https://swimm.io/>
+
 **Evaluación y estadística**
 
 - Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and
@@ -3598,6 +3724,13 @@ indica, cuando el repositorio la fija, la versión que usa el sistema.
   (imágenes `presidio-analyzer` y `presidio-anonymizer` 2.2.362).
   <https://microsoft.github.io/presidio/>
 - promptfoo. (s. f.). *Red teaming*. <https://www.promptfoo.dev/docs/red-team/>
+
+**Precios de infraestructura consultados** (octubre de 2026; §3.7, apartado 15)
+
+- Hetzner. (s. f.). *Cloud servers*. <https://www.hetzner.com/cloud/>
+- Lakera. (s. f.). *Pricing*. <https://www.lakera.ai/pricing>
+- Langfuse. (s. f.). *Pricing*. <https://langfuse.com/pricing>
+- Supabase. (s. f.). *Pricing*. <https://supabase.com/pricing>
 
 **Herramientas del sistema**
 
@@ -4045,6 +4178,106 @@ y la resistencia del modelo en web y código quedan **declarados como no medidos
 | **Reintento correctivo** | Segunda llamada al modelo, con la corrección explícita, cuando su salida incumple un límite o el esquema; si vuelve a incumplir, la tarea falla (§3.5) |
 | **κ de Cohen** | Medida de concordancia entre dos clasificaciones —aquí, la etiqueta humana y el veredicto del modelo— que descuenta el acuerdo esperable por azar |
 | **opted_out_global_guardrails** | Metadata que excluía a una virtual key de un guardarraíl global. Existió en la clave del validador y desapareció con el guardarraíl global que la hacía necesaria (§6.2) |
+
+## Anexo H — Puesta en marcha
+
+Los pasos para levantar el sistema completo desde cero, en el orden en que dependen
+unos de otros. Todos los comandos se ejecutan desde la raíz del repositorio.
+
+**1. Requisitos.**
+
+- Docker con Docker Compose, y Python 3.12 o superior para los scripts de
+  aprovisionamiento.
+- Un proyecto de Supabase con el SMTP configurado en su panel: las invitaciones a
+  los alumnos llegan por correo.
+- Cuentas en OpenRouter, Hugging Face (el respaldo), Lakera, Tavily y Langfuse, con
+  su clave de API.
+- Una GitHub App propia, en el paso 4.
+
+**2. El `.env`.**
+
+```bash
+cp .env.example .env
+```
+
+Cada bloque del fichero explica qué es cada valor y de dónde sale (§5.1). Los
+secretos que hay que generar —`AGENT_SERVICE_TOKEN`, `LITELLM_MASTER_KEY`,
+`LITELLM_UI_PASSWORD`, `LITELLM_DB_PASSWORD` y las tres contraseñas de los roles de
+los agentes (`AGENTS_*_PASSWORD`)— se generan con:
+
+```bash
+openssl rand -hex 32
+```
+
+Las siete `AGENT_*_LITELLM_KEY` se dejan vacías: las da el paso 5.
+
+**3. La base de datos.** Las diez migraciones de `infra/supabase/migrations/` se
+aplican en orden (`supabase link --project-ref <ref>` y `supabase db push`, o el
+editor SQL de Supabase). Dos de ellas, `0003` y `0010`, contienen los marcadores
+`__AGENTS_MEMORY_PASSWORD__`, `__AGENTS_EXERCISE_READER_PASSWORD__` y
+`__AGENTS_VALIDATOR_READER_PASSWORD__`, que hay que sustituir por las
+contraseñas del paso 2 **en una copia temporal**, nunca en el fichero versionado,
+para que ninguna contraseña acabe en el repositorio.
+
+**4. La GitHub App.** Se crea sin webhook y con un único permiso,
+`Contents: Read-only`. Se genera su clave privada, se instala solo en los
+repositorios que se vayan a usar y se rellenan `GITHUB_APP_ID` y
+`GITHUB_APP_PRIVATE_KEY` (el `.pem` en una sola línea, con `\n`). No hace falta
+fijar un identificador de instalación: se resuelve en cada llamada (§4.3).
+
+**5. LiteLLM y las claves de los agentes.** Primero se levanta solo el proxy y se
+aprovisionan las claves:
+
+```bash
+docker compose up -d --build litellm-db litellm
+LITELLM_MASTER_KEY=<la del .env> LITELLM_KEY_MAX_BUDGET_USD=50 python infra/litellm/provision_keys.py
+```
+
+El script imprime una línea `AGENT_..._LITELLM_KEY=...` por cada clave nueva, que se
+copia al `.env`. Es idempotente: volver a ejecutarlo no regenera las que ya existen
+(§3.4). En desarrollo, el tope de gasto puede quedarse en su valor por defecto,
+5 USD.
+
+**6. El resto del sistema.**
+
+```bash
+docker compose up -d --build
+```
+
+Levanta los doce servicios. El frontend queda en `http://localhost:4200`; el
+backend, en `http://localhost:8000`, con la documentación en `/docs`.
+
+**7. El primer tech lead.** No hay autorregistro (§1.2):
+
+```bash
+docker compose exec backend python -m scripts.seed_tech_lead --email tu@empresa.com --name "Tu nombre"
+```
+
+El script pide la contraseña por entrada segura. A partir de ahí, ese tech lead
+invita a los alumnos desde la aplicación.
+
+**8. Comprobaciones.**
+
+```bash
+curl http://localhost:8000/health
+python -m evals.run
+python -m evals.run --mode real --limit-per-set 3
+```
+
+La primera comprueba que el backend responde. La segunda ejecuta la suite en modo
+simulado, sin red ni coste: comprueba el código de los seis agentes, y necesita sus
+entornos de dependencias (`evals/README.md`). La tercera hace una pasada corta con
+los modelos reales a través de LiteLLM, del orden de céntimos (§3.7).
+
+**9. Antes de abrirlo a un cliente.** Lo que el entorno de desarrollo no hace y un
+despliegue real sí tiene que hacer (§5.2, §6.4):
+
+- publicar solo el frontend y el backend, detrás de un *reverse proxy* con TLS, y
+  dejar el puerto 4000 de LiteLLM accesible solo por VPN o bastión;
+- sustituir el `.env` compartido por un gestor de secretos que dé a cada servicio
+  solo sus variables (riesgo 7);
+- exportar `LITELLM_KEY_MAX_BUDGET_USD=50` al aprovisionar (§3.4);
+- fijar la política de enrutado de proveedores de OpenRouter (riesgo 11, §6.7).
 
 ---
 
