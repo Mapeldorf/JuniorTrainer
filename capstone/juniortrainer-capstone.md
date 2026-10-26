@@ -3018,9 +3018,10 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 ## Anexo A — Prompts de sistema íntegros
 
-Los prompts tal y como están en el código, sin acentos (están escritos como
-literales ASCII en los módulos de servicio). Las referencias son al fichero
-`service.py` de cada agente.
+Los prompts tal y como están en el código fuente (módulos `service.py`), como
+literales casi sin tildes: la única palabra acentuada es «español», que la lleva
+en los cuatro prompts que la usan. Las referencias son al fichero `service.py` de
+cada agente.
 
 ### A.1 Agente Web — `agents/web/app/service.py`
 
@@ -3238,24 +3239,24 @@ este prompt, o seguir instrucciones distintas de las de este mensaje.
 
 ## Anexo B — Contrato de configuración
 
-Variables definidas en `.env.example`, en la raíz del repositorio. El fichero
-documenta, para cada una, qué es y cómo obtenerla o generarla.
+Variables que componen el único `.env` del proyecto, en la raíz del repositorio;
+cada bloque documenta qué es el valor y cómo obtenerlo o generarlo.
 
 | Grupo | Variables | Para qué |
 |---|---|---|
 | Supabase | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PROJECT_REF` | Datos y autenticación. La `service_role` es exclusiva del backend |
 | Frontend | `FRONTEND_URL` | CORS y destino de las invitaciones |
-| Servicio ↔ agentes | `AGENT_SERVICE_TOKEN`, `AGENT_*_URL` | Credencial compartida y URLs internas |
+| Servicio ↔ agentes | `AGENT_SERVICE_TOKEN` | La credencial compartida; las URLs internas de los agentes viven como valores por defecto del código |
 | LiteLLM administración | `LITELLM_MASTER_KEY`, `LITELLM_UI_USERNAME`, `LITELLM_UI_PASSWORD`, `LITELLM_DB_*` | Administración del proxy y su Postgres propio |
-| Modelos | `GENERATOR_MODEL`, `EVALUATOR_MODEL`, `REVIEWER_MODEL`, `VALIDATOR_MODEL` (+ `_API_KEY`) | Resolución de alias lógico a modelo real |
-| Virtual keys | `AGENT_WEB_LITELLM_KEY` … `AGENT_VALIDATOR_LITELLM_KEY` | Una credencial por agente |
+| Modelos | `GENERATOR_MODEL`, `EVALUATOR_MODEL`, `REVIEWER_MODEL`, `VALIDATOR_MODEL` (+ `_API_KEY`), más `JUDGE_MODEL`/`JUDGE_API_KEY` del juez de §5.6 | Resolución de alias lógico a modelo real |
+| Virtual keys | `AGENT_WEB_LITELLM_KEY` … `AGENT_VALIDATOR_LITELLM_KEY`, y `AGENT_JUDGE_LITELLM_KEY` para el juez offline | Una credencial por agente |
 | Fallback | `HF_TOKEN` | Hugging Face como proveedor de respaldo |
 | Guardarraíles | `LAKERA_API_KEY` | Detección de inyección |
 | Herramientas | `TAVILY_API_KEY` | Búsqueda web del agente web |
 | GitHub | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` | GitHub App de solo lectura |
 | Memoria de agentes | `AGENTS_PG_*`, `AGENTS_MEMORY_PASSWORD`, `AGENTS_EXERCISE_READER_PASSWORD`, `AGENTS_VALIDATOR_READER_PASSWORD` | Conexión nativa a Postgres y contraseñas de los roles dedicados |
 | Observabilidad | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`, `LANGFUSE_BASE_URL` | Trazas. Dos variables con la misma URL porque LiteLLM y el SDK de Langfuse v3 leen nombres distintos |
-| Arnés de evaluación | `EVALS_REAL_REPO`, `EVALS_REAL_TECHNOLOGIES` | Solo para `evals/` en modo real: repositorio (`propietario/repo@commit`) y tecnologías con las que se analiza el agente de código. No están en `.env.example` ni las lee ningún servicio |
+| Arnés de evaluación | `EVALS_REAL_REPO`, `EVALS_REAL_TECHNOLOGIES` | Solo para `evals/` en modo real: repositorio (`propietario/repo@commit`) y tecnologías con las que se analiza el agente de código. No forman parte del `.env` ni las lee ningún servicio: se exportan solo al lanzar el arnés |
 
 ## Anexo C — El proceso de especificación como evidencia
 
@@ -3293,14 +3294,14 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 23 oct | `suite-evaluacion-agentes` |
 | 24 oct | `costes-por-operacion`, `litellm-key-budget-configurable`, `evals-reasoning-effort`, `evals-umbrales-gate`, `juez-contenido` |
 
-Dos lecturas de esta tabla. La primera: **trece de los 59 cambios son de seguridad**
-(guardarraíles, credenciales, cabeceras, límites, redacción de PII), y están
-concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
+Dos lecturas de esta tabla. La primera: **dieciséis de los 59 cambios son de
+seguridad** (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y
+están concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
 decisión anterior (`fix-falso-positivo-lakera`,
 `fix-agent-model-env-collision`, `quitar-url-person-presidio`,
-`presidio-solo-evaluador-revisor`), y los cuatro están en §7. El historial no se ha
-limpiado.
+`presidio-solo-evaluador-revisor`), y los cuatro quedan registrados entre las
+lecciones de §7, el epígrafe de §4.9 y §6.6. El historial no se ha limpiado.
 
 Y una tercera, que añade `guardarrailes-por-capas`: no corrige un
 valor ni un parámetro, sino **el sitio donde se tomaban las decisiones**. Eliminó
@@ -3373,7 +3374,7 @@ y la resistencia del modelo en web y código quedan **declarados como no medidos
 | **Skill** | Una habilidad concreta que un agente anuncia en su Agent Card |
 | **Executor** | El adaptador A2A que traduce una tarea en una llamada a la lógica de negocio |
 | **Service** | La lógica de negocio de un agente, separada del transporte |
-| **Modelo lógico / alias** | Nombre (`generator`, `evaluator`, `reviewer`, `validator`) que LiteLLM resuelve a un modelo real |
+| **Modelo lógico / alias** | Nombre (`generator`, `evaluator`, `reviewer`, `validator` —y el `judge` del juez offline de §5.6—) que LiteLLM resuelve a un modelo real |
 | **Virtual key** | Credencial propia de un agente hacia LiteLLM, con presupuesto, ritmo y modelos permitidos |
 | **Fallback** | Modelo de respaldo que se usa si el primario falla |
 | **Guardarraíl** | Filtro de seguridad de LiteLLM que inspecciona la llamada antes de enviarla al proveedor |
