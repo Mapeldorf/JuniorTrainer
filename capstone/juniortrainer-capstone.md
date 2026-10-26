@@ -219,10 +219,11 @@ resolvería el problema funcional y crearía cuatro problemas de ingeniería:
 - **No habría degradación parcial.** Hoy, si la investigación web falla pero hay
   repositorio, la generación continúa con menos material. En un monolito, el fallo
   es total.
-- **No habría diversidad de modelo.** El control de calidad de la corrección
-  consiste en que **otro modelo de otra familia** revise la justificación. Con un
-  solo modelo, la segunda pasada correlaciona sus errores con la primera y el
-  control es decorativo.
+- **No habría diversidad de modelo.** La justificación que lee el alumno la
+  revisa **otro modelo de otra familia**. Con un solo modelo, la segunda lectura
+  heredaría los sesgos de la primera y tendería a dar por buena su propia
+  explicación. El alcance de este control es la explicación, no el veredicto: el
+  revisor no puede cambiarlo, y lo que eso deja sin cubrir se discute en §3.3.
 
 El reparto en agentes no es, por tanto, una decisión de arquitectura de software:
 es la forma de hacer cumplibles unos requisitos de seguridad, coste y resiliencia
@@ -599,11 +600,13 @@ que envuelve el JSON en prosa explicativa no es un modelo mediocre para este
 sistema: es un modelo que no funciona.
 
 **2. Diversidad de familia donde hay doble pasada.**
-La evaluación tiene dos pasadas, y la segunda solo vale si es independiente: la
-misma familia en ambas correlaciona los errores y convierte el control en
-decoración. La lista de modelos tiene que ofrecer, por tanto, dos familias de
-precio y latencia comparables —DeepSeek y GLM—, y las dos elecciones se deciden
-juntas, no una a una.
+La evaluación tiene dos pasadas: el evaluador decide el veredicto y el revisor
+reescribe la justificación. La segunda lectura solo aporta algo si no comparte
+los sesgos de la primera, y la misma familia en ambas tendería a confirmar su
+propia explicación. La lista de modelos tiene que ofrecer, por tanto, dos familias
+de precio y latencia comparables —DeepSeek y GLM—, y las dos elecciones se deciden
+juntas, no una a una. Lo que esa independencia protege es la justificación, no el
+veredicto (§3.3).
 
 **3. Coste por operación.**
 Una generación encadena entre tres y seis llamadas al modelo —validador, web,
@@ -645,7 +648,7 @@ intenciones: cada uno tiene detrás una comprobación concreta.
 | Criterio | Cómo se comprueba | Dónde |
 |---|---|---|
 | 1. Salida estructurada | Tasa de reintento correctivo y casos guionizados de formato inválido, con las invariantes del arnés | §5.5 |
-| 2. Diversidad de familia | Comparativa de calidad primario/respaldo con dos ejecuciones completas | §5.7 |
+| 2. Diversidad de familia | Evaluador y revisor resueltos a familias distintas en `config.yaml`; lo que aporta el revisor está pendiente de medir | §3.3, §8 |
 | 3. Coste por operación | Coste medido por agente y por campaña, y frente al modelo de referencia | §3.7 |
 | 4. Latencia | p50, p95 y p99 por caso, contra el presupuesto síncrono de 45 s | §5.5, §5.7 |
 | 5. Independencia de proveedor | Alias por rol y virtual key por agente; cambiar de modelo no toca el código | §3.2, §3.4 |
@@ -703,22 +706,43 @@ deployment a deployment.
 |---|---|---|---|
 | `generator` | `openrouter/deepseek/deepseek-v4.1-flash` | `huggingface/deepseek-ai/DeepSeek-V4.1-Flash` | Es el rol de volumen alto y contexto grande: recibe resúmenes de documentación y fragmentos de repositorio, y devuelve JSON con varios candidatos. Buena adherencia al contrato de salida con coste por token muy bajo. Al ser asíncrono, tolera el percentil alto de latencia. |
 | `evaluator` | `openrouter/deepseek/deepseek-v4.1-flash` | `huggingface/deepseek-ai/DeepSeek-V4.1-Flash` | Camino síncrono con el alumno esperando. La tarea es acotada: clasificar en tres categorías y justificar en ≤50 palabras. No pide un modelo grande, pide uno rápido y obediente al formato. |
-| `reviewer` | `openrouter/z-ai/glm-5.3-flashx` | `huggingface/zai-org/GLM-5.3-Flash` | Segunda pasada sobre la justificación del evaluador: contexto pequeño y sensible a latencia, como él, y una tarea igual de acotada —revisar y reescribir una justificación de ≤50 palabras—, que no pide capacidad extra. Su restricción propia es de familia: **tiene que ser otro modelo** que el evaluador para no correlacionar errores, y GLM es la familia comparable en precio y latencia. |
+| `reviewer` | `openrouter/z-ai/glm-5.3-flashx` | `huggingface/zai-org/GLM-5.3-Flash` | Segunda pasada sobre la justificación del evaluador: contexto pequeño y sensible a latencia, como él, y una tarea igual de acotada —revisar y reescribir una justificación de ≤50 palabras—, que no pide capacidad extra. Su restricción propia es de familia: **tiene que ser otro modelo** que el evaluador, para que su lectura de la justificación no herede los sesgos de quien la escribió, y GLM es la familia comparable en precio y latencia. |
 | `validator` | `openrouter/z-ai/glm-5.3-flash` | `huggingface/zai-org/GLM-5.3-Flash` | Clasificación binaria con prompt corto y salida de esquema fijo. Se necesita rapidez y consistencia, no capacidad de razonamiento largo. Está en el camino crítico: ninguna generación arranca sin su veredicto. |
 
 Dos decisiones de esta tabla merecen explicación propia, porque son las que
 convierten la elección de modelos en una decisión de arquitectura.
 
-**La diversidad de familia entre evaluador y revisor.**
-El revisor existe para ser una segunda opinión sobre la justificación del
-evaluador. Si ambos fueran el mismo modelo, sus errores estarían correlacionados:
-el revisor confirmaría con entusiasmo el mismo malentendido que acaba de cometer
-el evaluador, y el doble paso sería un gasto sin control añadido. Por eso el
-evaluador es DeepSeek y el revisor es GLM. No es una decisión de coste —ambos
-están en el mismo orden de precio—, es la condición para que el control sirva de
-algo. Es, además, el único punto del sistema donde una salida llega al alumno sin
-pasar por un humano (§4.6), lo que hace que la independencia de las dos pasadas
-sea especialmente importante.
+**La diversidad de familia entre evaluador y revisor, y lo que protege.**
+El revisor es una segunda opinión sobre la **justificación** del evaluador, no
+sobre su veredicto. Recibe el veredicto como «ya decidido», solo puede devolver
+`justification`, y su prompt le pide confirmarla o corregirla si es vaga, incorrecta
+o incoherente con ese veredicto (Anexo A.6). Para esa tarea la diversidad de familia
+tiene sentido: el mismo modelo tendería a dar por buena una explicación escrita con
+sus propias palabras y desde su propia lectura de la respuesta, y otro modelo es una
+lectura independiente. Por eso el evaluador es DeepSeek y el revisor es GLM. No es
+una decisión de coste: por token están en el mismo orden de precio, aunque el
+revisor, que razona más, cuesta unas tres veces y media por llamada (§3.7).
+
+**Lo que la doble pasada no protege es el veredicto.** Que el revisor no pueda
+cambiarlo es deliberado, porque evita que dos agentes compitan por la misma decisión
+(§4.3). Pero tiene una consecuencia que conviene decir sin rodeos: si el evaluador
+se equivoca de veredicto, el revisor no lo corrige. Al contrario, la instrucción de
+hacer la justificación coherente con el veredicto le lleva a explicar bien una
+decisión equivocada. Que dos familias distintas «descorrelacionen errores» vale para
+la explicación, no para la decisión. Al veredicto lo sostienen otras cosas: la
+exactitud medida del evaluador (22 de 22 frente a la etiqueta humana, §5.7, con un
+intervalo de confianza al 95 % que empieza en torno a 0,85), la restricción a tres
+valores y la revisión a posteriori del tech lead (§4.6). Y como es el único punto
+del sistema donde una salida llega al alumno sin pasar por un humano, el hueco no es
+menor.
+
+Hay una forma de que la diversidad de familia proteja también el veredicto sin que
+los dos agentes compitan por él: que el revisor, además de la justificación,
+**señale su desacuerdo** con el veredicto, sin poder cambiarlo, y que esa señal
+marque la respuesta para que el tech lead la revise primero. Queda como trabajo
+futuro (§8), junto con medir lo que el revisor aporta de verdad: hoy la suite mide
+las dos pasadas por separado —el revisor recibe una justificación fija del dataset,
+no la del evaluador—, y el revisor es el 77 % del coste de cada evaluación (§3.7).
 
 **El fallback es el mismo modelo en otro proveedor.**
 La regla es esa, y la cumplen los tres roles cuyo primario tiene checkpoint
@@ -745,7 +769,7 @@ consciente, no un descuido.
 |---|---|
 | Modelos frontier cerrados | Coste por operación entre uno y dos órdenes de magnitud mayor para una tarea que no necesita ese techo de capacidad, y dependencia de un proveedor único para procesar código propietario de clientes. Son, eso sí, los candidatos naturales para el **juez de evaluación offline** (§5.6), donde el coste es irrelevante porque las ejecuciones son contadas. |
 | Inferencia local (Ollama, vLLM en una máquina del equipo) | Incompatible con el presupuesto de 45 s del camino síncrono en hardware razonable. Sigue siendo el destino natural del sistema si un cliente exige que el código no salga de su red, y es precisamente para eso que los modelos en producción tienen pesos publicados —con la única excepción, ya contada, del primario del revisor—. |
-| Un único modelo para los cuatro roles | Más simple de operar, y pierde lo único que hace fiable la evaluación: la independencia entre las dos pasadas. |
+| Un único modelo para los cuatro roles | Más simple de operar, y pierde la independencia de la segunda lectura de la justificación, que es lo que justifica pagar el revisor. |
 | Modelos de razonamiento (*reasoning*) | Ninguna de las seis tareas es un problema de razonamiento de varios pasos. El sobrecoste en tokens de razonamiento y en latencia no compra nada aquí. **Matiz medido (§3.7):** los modelos elegidos razonan igualmente, y entre el 72 % y el 81 % de la salida del revisor, el validador y el agente de ejercicios son tokens de razonamiento, que se facturan como salida. **Experimento (§3.7, apartado 14):** recortar ese razonamiento con `effort` en los GLM (revisor, validador) baja el coste por llamada —a menos de la mitad en el revisor— y la latencia entre un cuarto y la mitad, sin perder calidad en la muestra; DeepSeek solo honra el apagado completo, y `off` es incompatible con el primario GLM (lo tumba y la llamada cae al fallback). |
 
 ### 3.4 Forma de consumo: LiteLLM como centralita
@@ -1227,7 +1251,8 @@ Tres observaciones sobre este mapeo, que es donde se decide casi todo:
   quién llega, y se quedan en el humano. Se desarrolla en §4.6.
 - **El paso 7 se parte en dos agentes.** Corregir y revisar la corrección son la
   misma actividad para una persona y dos agentes distintos aquí, porque la
-  revisión solo vale si es independiente (§3.3).
+  revisión de la explicación solo vale si es independiente. La decisión, en
+  cambio, se queda en el primero (§3.3).
 - **El paso 1 gana un agente que el proceso humano no tiene.** Un tech lead no
   necesita que nadie le valide que «React» es una tecnología; el sistema sí, y en
   las dos puertas por las que una tecnología entra: el alta en el catálogo —donde
@@ -1308,7 +1333,8 @@ devuelve la justificación final. **Solo puede devolver `justification`: no camb
 el veredicto.** El veredicto que se persiste es siempre el del evaluador; la
 justificación que se persiste es siempre la del revisor. Es lo que evita que dos
 agentes compitan por la misma decisión, y lo que hace que el resultado sea
-determinista en cuanto a responsabilidad.
+determinista en cuanto a responsabilidad. El precio de esa claridad es que la
+segunda pasada no protege el veredicto (§3.3).
 
 **Agente Validador — el portero.**
 Decide si **todas** las cadenas recibidas son tecnologías de programación. Si dice
@@ -1574,9 +1600,11 @@ una respuesta. El alumno lee el veredicto y la justificación en el momento, sin
 revisión previa del tech lead. Esa es la autonomía más alta que se concede, y está
 compensada con cuatro controles:
 
-1. **Doble pasada con modelos de familia distinta** (§3.3).
+1. **Doble pasada con modelos de familia distinta** sobre la justificación
+   (§3.3): protege la explicación que lee el alumno, no el veredicto.
 2. **El revisor no puede cambiar el veredicto**, solo mejorar su explicación: la
-   segunda pasada no puede introducir un error nuevo en la decisión.
+   segunda pasada no puede introducir un error nuevo en la decisión, aunque
+   tampoco corregir uno que ya traiga.
 3. **El veredicto está restringido a tres valores** y una respuesta fuera de ese
    conjunto hace fallar la tarea, no se interpreta.
 4. **El tech lead ve todas las respuestas y sus valoraciones a posteriori**, así que
@@ -1610,7 +1638,8 @@ aleatoriedad.
 **4. Presupuestos de operaciones.** Un agente no puede entrar en bucle de llamadas
 a herramientas: el cupo se consume **antes** de cada operación (§3.5).
 
-**5. Doble pasada con modelos independientes** en la evaluación (§3.3).
+**5. Doble pasada con modelos independientes** sobre la justificación de la
+evaluación; el veredicto lo decide solo el evaluador (§3.3).
 
 **6. Validación de rutas contra el árbol real** del commit en el agente de código:
 el modelo no puede hacer que se lea un fichero que no existe en el repositorio
@@ -2630,7 +2659,7 @@ red teaming (§6.5) se dice así en lugar de darlo por hecho.
 | **LLM06** Agencia excesiva | Ningún agente tiene herramientas de escritura —el de código solo lee, el de ejercicios solo hace `SELECT`, evaluador y revisor no tienen herramientas (§6.2)—; presupuestos de operaciones consumidos antes de actuar (§6.2 control 16); número fijo de llamadas al modelo en lugar de bucle agéntico; aprobación humana de todo lo que persiste (§4.6) | **Mitigado por diseño.** La autonomía está acotada por la arquitectura, no por la confianza en el modelo: aunque un agente fuera manipulado, no dispone de ninguna acción con efecto fuera de devolver texto |
 | **LLM07** Fuga del prompt de sistema | Instrucción explícita de no revelar el prompt, incluida en los cinco agentes que la llevan (§3.6) | **Parcial, con impacto bajo.** La instrucción no es una garantía y su extracción es un objetivo del red teaming (objetivo 3, §6.5). Pero el impacto es bajo por una razón de diseño: los prompts íntegros están publicados en el Anexo A, así que su divulgación no entrega ningún secreto operativo —no contienen credenciales ni lógica oculta— |
 | **LLM08** Debilidades de vectores y *embeddings* | No se usan *embeddings*, ni base de datos vectorial, ni RAG | **No aplica.** La memoria es una caché por clave exacta (§4.8), no una búsqueda por similitud, de modo que no hay un espacio de *embeddings* que envenenar o consultar de forma adversaria |
-| **LLM09** Desinformación | Doble pasada con **modelos de familias distintas** en la evaluación —evaluador DeepSeek, revisor GLM (§3.3)—; cerco anti-alucinación en los prompts, con declaración explícita de las tecnologías sin fuentes (§3.6); aprobación humana de todos los ejercicios antes de que entren al catálogo (§4.6) | **Parcial.** El contenido generado pasa por un humano, pero la **valoración que llega al alumno no** (§4.6): es el único punto donde una salida del modelo llega a una persona sin revisión, y el alumno es, por definición, quien menos criterio tiene para detectar un error (riesgo 10, §6.4) |
+| **LLM09** Desinformación | Doble pasada con **modelos de familias distintas** sobre la justificación de la evaluación —evaluador DeepSeek, revisor GLM (§3.3)—; cerco anti-alucinación en los prompts, con declaración explícita de las tecnologías sin fuentes (§3.6); aprobación humana de todos los ejercicios antes de que entren al catálogo (§4.6) | **Parcial.** El contenido generado pasa por un humano, pero la **valoración que llega al alumno no** (§4.6): es el único punto donde una salida del modelo llega a una persona sin revisión, y el alumno es, por definición, quien menos criterio tiene para detectar un error (riesgo 10, §6.4). Además, la doble pasada protege la justificación, no el veredicto: el revisor no puede cambiarlo, así que un veredicto equivocado del evaluador llega al alumno con una explicación bien escrita (§3.3) |
 | **LLM10** Consumo ilimitado | Presupuesto y ritmo de 60 rpm por virtual key (§6.2 control 15); rate limiting en dos niveles, por usuario y por agente (§6.2 controles 13-14); presupuestos de operaciones por tarea (§6.2 control 16); límite de cuerpo HTTP de 1 MiB (§6.2 control 17); timeouts encadenados en capas (§3.5) | **Mitigado.** El gasto está acotado por clave, de modo que un bucle o un abuso en un agente no puede consumir el presupuesto de otro ni, en el peor caso, pasar del tope de su propia clave |
 
 **Dónde está de verdad el riesgo residual, en una frase por caso que lo merece.**
@@ -2690,7 +2719,7 @@ calidad de un resultado.
 | 7 | **Todos los servicios comparten el mismo `.env`** | Alta *(en desarrollo)* | Alto | **Alto** | **Aceptar solo en desarrollo, de momento.** No hay control hoy. Su cierre —un gestor de secretos por servicio, ya requisito de la plataforma (§5.2)— **merece una especificación propia más adelante**; es una postura de desarrollo que un despliegue real no puede heredar |
 | 8 | Degradación silenciosa de calidad del fallback | Media | Medio | **Medio** | **Medido en calidad.** La comparativa primario/respaldo de §5.7 —dos ejecuciones completas con el respaldo— muestra una calidad equivalente en lo esencial (algo más de repetición de temas en ejercicios y un fragmento sin fundamentar en una de las dos ejecuciones); el fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). Lo que sigue **estimado, no medido**, es el coste del respaldo (§3.7) |
 | 9 | **Falso positivo de guardarraíl que rompe el servicio** | Baja *(tras el arreglo)* | Alto | **Medio** | **Mitigado en origen.** Ya ocurrió dos veces (§7); la redacción por campo elimina la causa raíz en lugar de recortar el alcance, y Lakera salió de la ruta de generación. El residual de reactivar Lakera se traslada a LLM01 (§6.3) y está declarado |
-| 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas en la evaluación (§3.3, §4.6). Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
+| 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas sobre la justificación de la evaluación (§3.3, §4.6); el veredicto lo decide solo el evaluador, y la doble pasada no lo corrige. Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
 
 **Los tres riesgos de nivel Alto concentran lo que de verdad hay que decidir**, y
 ninguno se cierra con un control más:
@@ -3106,6 +3135,8 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 |---|---|
 | Reconsiderar la duplicación entre los seis agentes | `service_auth.py`, `rate_limit.py`, `tracing.py` y `llm.py` son casi idénticos en seis servicios (§4.4). La decisión de mantenerlos autocontenidos es defendible y conviene revisarla con el código a la vista |
 | Revisión humana opcional de las valoraciones antes de entregarlas | Cerraría el único punto de autonomía sin supervisión (§4.6), a cambio de latencia pedagógica |
+| Señal de desacuerdo del revisor | Que el revisor pueda marcar que no comparte el veredicto, sin cambiarlo, y que esas respuestas sean las primeras en la revisión del tech lead. Es lo que haría que la diversidad de familia protegiera también la decisión, y no solo la explicación (§3.3) |
+| Medir lo que aporta el revisor | Una ablación —evaluador solo frente a evaluador y revisor encadenados como en producción— valorada por el juez o por el tech lead. El revisor es el 77 % del coste de cada evaluación (§3.7) y hoy la suite lo mide por separado, sobre una justificación fija |
 | Análisis de vulnerabilidades de dependencias en CI | LLM03 del mapeo OWASP |
 | Estimar el coste del respaldo | Riesgo 8: la calidad del respaldo ya está medida (§5.7); su coste queda estimado con los precios publicados, porque Hugging Face no informa coste por llamada (§3.7) |
 | Neutralizar los marcadores de delimitador dentro del contenido no confiable | La suite detecta que una respuesta, un fragmento de búsqueda o un fichero pueden incluir el marcador de fin y cerrar su propio delimitador (§5.7, §6.5). No se ha explotado con éxito, pero hoy solo lo frena la instrucción |
