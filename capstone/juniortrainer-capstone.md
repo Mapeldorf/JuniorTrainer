@@ -428,7 +428,63 @@ La separación entre `executor.py` y `service.py` es la que permite probar la
 lógica sin levantar un servidor A2A, y es también la que mantiene las reglas de
 negocio fuera del transporte. `input.py` valida **antes** de invocar al modelo o
 de abrir una conexión a la base de datos: una entrada inválida no cuesta ni un
-token.
+token. Además, cada agente incorpora lo estrictamente suyo: el de código añade
+`github_app.py` y `github_ref.py` —la credencial de la App de GitHub y la
+validación anti-SSRF de `owner/repo`—, y el validador, `pii.py` —el pre-filtro
+determinista de datos personales antes del modelo—.
+
+**El esqueleto A2A.** Los seis agentes comparten algo más que carpetas: comparten
+contrato. Cada uno publica un *agent card* —nombre, descripción, la URL por la que
+se anuncia dentro de la red y **una** skill, con sus etiquetas y su ejemplo— y
+atiende peticiones JSON-RPC en la raíz de su servicio; el SDK oficial pone las dos
+mitades del protocolo, con los agentes en el lado servidor y el backend en el
+cliente (la elección frente a un framework, en §4.4). Las tareas se declaran **sin
+*streaming*** (`streaming=False`) y sin cancelación, que el *executor* rechaza de
+forma explícita: ninguna skill produce resultados parciales que merezca la pena ir
+soltando, así que una petición vuelve siempre como **un único mensaje de datos**.
+
+**Una petición, por dentro.** Una llamada del backend a un agente recorre siempre
+el mismo camino:
+
+```mermaid
+sequenceDiagram
+    participant BE as Backend (a2a_client.py)
+    participant MW as Middlewares del agente
+    participant H as Manejador A2A
+    participant EX as Executor
+    participant SV as Service (lógica)
+    participant LM as LiteLLM → proveedor
+
+    BE->>MW: JSON-RPC + X-Agent-Service-Token
+    MW->>MW: 1) límite de aforo   2) comprobar el token
+    MW-->>BE: 401 / 429, solo si alguna puerta falla
+    MW->>H: pasa la petición A2A
+    H->>EX: execute(context)
+    EX->>EX: parsear la entrada y resolver el trace_id
+    EX->>SV: llamada a la función de negocio
+    SV->>LM: prompt al modelo (si hace falta)
+    LM-->>SV: respuesta del modelo
+    SV-->>EX: resultado
+    EX->>H: mensaje de datos con el resultado
+    H-->>BE: respuesta DATA (JSON)
+```
+
+El *executor* hace de traductor: parsea la entrada, recupera el `trace_id` que el
+backend dejó en los metadatos del mensaje —o genera uno si el agente corre en
+solitario— y llama al *service*. El *service* hace el trabajo —herramientas,
+prompt al modelo—, devuelve un resultado, y el *executor* lo convierte en la
+respuesta, cerrando la misma tarea con la que llegó la petición. Nada de eso
+empieza hasta que aforo y credencial han dado paso.
+
+**El arranque.** El `main.py` de cada agente hace siempre lo mismo: construye su
+*agent card*, la entrega junto al *executor* a un manejador A2A con un almacén de
+tareas en memoria, crea la aplicación FastAPI, le añade los dos *middlewares*
+—credencial y aforo—, registra las rutas del protocolo —la tarjeta y el JSON-RPC—
+y responde 429 con un mensaje genérico cuando el aforo corta. En Docker, el
+contenedor arranca `uvicorn app.main:app` con su puerto; en local, `python run.py`,
+que existe por un matiz de Windows: el ajuste del bucle de eventos que necesita la
+memoria asíncrona tiene que fijarse antes de que Uvicorn cree el suyo, y el CLI
+importa la aplicación demasiado tarde para aplicarlo a tiempo.
 
 **Un detalle no obvio del arranque.** En Starlette, `add_middleware` inserta cada
 capa al principio de la lista interna, así que **la última añadida es la más
@@ -439,6 +495,17 @@ incluso si fueran válidas. En el backend, el mismo mecanismo se usa al revés: 
 cabeceras de seguridad se añaden en último lugar para que envuelvan también las
 respuestas de error de las capas interiores (413, 429) y estas no salgan sin
 cabeceras.
+
+**La configuración común.** Los seis leen el **mismo `.env`** de la raíz del
+repositorio, por ruta absoluta: así, lanzados desde la carpeta del agente, leen lo
+mismo que reciben dentro del contenedor por `env_file`. Cada uno declara lo suyo
+—puerto y URL con que se anuncia, su *virtual key* hacia LiteLLM, las credenciales
+de sus herramientas y, donde aplica, la conexión a Postgres y las URLs de
+Presidio—, y hay una ausencia deliberada: **el nombre lógico del modelo no es
+configuración**, es una constante del código (`llm.py`). `GENERATOR_MODEL` es una
+variable que solo debe leer LiteLLM, y el `.env` llega también al contenedor del
+agente; un ajuste con ese nombre acabaría resolviendo el nombre real del proveedor
+en vez del alias lógico (§4.9).
 
 ### 2.5 Modelo de datos
 
