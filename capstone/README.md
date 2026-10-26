@@ -35,7 +35,8 @@ seguridad. Quedan pendientes, marcadas como tales dentro del propio documento:
 
 | Sección | Qué falta | Depende de |
 |---|---|---|
-| §5.2 | Presupuesto de infraestructura y aprovisionamiento de `develop` | Infraestructura |
+| §5.2 | Elegir proveedor (el presupuesto está estimado en §3.7, apartado 15) y aprovisionar `develop` | Infraestructura |
+| §5.9 | Verificar qué hace LiteLLM cuando Lakera no responde (el runbook lo declara sin verificar) | Probarlo contra el stack |
 | §5.3 | Lint/`mypy`, tests de backend y los `verify_*.py` automatizados (el gate de evals ya existe); protección de rama que lo haga obligatorio | Implementarlo |
 | §5.8 | Montar el cuadro de mando y sus alertas | Infraestructura (los umbrales ya están especificados) |
 | §6.4 | Reactivar Lakera en evaluador y revisor (riesgo 1) y gestor de secretos por servicio (riesgo 7) | Change propio / infraestructura |
