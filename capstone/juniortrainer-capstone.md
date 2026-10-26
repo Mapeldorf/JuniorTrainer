@@ -10,7 +10,7 @@
 | **Versión** | 1.0 |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
 | **Especificación formal** | `openspec/specs/` — 28 capacidades |
-| **Historial de cambios** | `openspec/changes/archive/` — 59 cambios |
+| **Historial de cambios** | `openspec/changes/archive/` — 60 cambios |
 
 ---
 
@@ -32,10 +32,10 @@ Lo que se ha construido, en cifras:
 | Modelos lógicos | **4** roles sobre 2 familias de modelos y 2 proveedores |
 | Servicios en ejecución | **12** contenedores |
 | Capacidades especificadas formalmente | **28** |
-| Cambios propuestos, implementados y archivados | **59** |
-| Commits | **355**, alcanzables desde `develop` (25 de octubre de 2026) |
+| Cambios propuestos, implementados y archivados | **60** |
+| Commits | **378**, alcanzables desde `develop` (26 de octubre de 2026) |
 | Controles de seguridad implementados | **25** |
-| Casos del dataset de evaluación (`evals/`) | **125**, en seis conjuntos, más **10** del juez (§5.6) |
+| Casos del dataset de evaluación (`evals/`) | **126**, en seis conjuntos, más **10** del juez (§5.6) |
 
 Tres decisiones articulan el sistema y se defienden a lo largo del documento:
 
@@ -1592,7 +1592,7 @@ control de versiones:
 openspec/
   specs/      28 capacidades vigentes — la normativa actual del sistema
   changes/
-    archive/  59 cambios implementados y archivados, con fecha
+    archive/  60 cambios implementados y archivados, con fecha
   config.yaml reglas del proceso (idioma, estilo de los artefactos)
 ```
 
@@ -1651,7 +1651,7 @@ en el control de versiones, se revisan en los PR y evolucionan con el proyecto.
 
 #### La evidencia de que el proceso funcionó
 
-No es una afirmación de intenciones: hay 59 cambios archivados y el historial
+No es una afirmación de intenciones: hay 60 cambios archivados y el historial
 muestra el proceso atrapando errores. Cuatro ejemplos, todos reales:
 
 - **`litellm-huggingface-fallback`.** Al verificar la tarea 4.1 se descubrió que el
@@ -2023,7 +2023,7 @@ prompt que funciona de un prompt rescatado por el código; y la **tasa de falsos
 positivos de guardarraíl**, porque es la que mide el coste real de un control de
 seguridad en lugar de solo su beneficio teórico.
 
-El dataset dorado (`evals/datasets/*.jsonl`, una línea JSON por caso) tiene hoy 125
+El dataset dorado (`evals/datasets/*.jsonl`, una línea JSON por caso) tiene hoy 126
 casos en seis conjuntos. Hay dos tipos de caso, y la distinción es la clave del
 diseño: los **casos de calidad** valen en los dos modos; los **casos guionizados**
 llevan las respuestas crudas que dará un modelo falso (`sim`) y lo que debe hacer
@@ -2035,7 +2035,7 @@ inventada— y comprobar que el agente reacciona como se especificó.
 |---|---|---|---|
 | `evaluation` | 31 | 22 / 9 | Respuestas de alumno etiquetadas como correcta, incompleta o incorrecta sobre cinco ejercicios, con casos límite (correcta mal expresada, plausible pero equivocada). Alimenta evaluador y revisor |
 | `validation` | 39 | 34 / 5 | Tecnologías válidas, cadenas no técnicas, datos personales, variantes duplicadas y no duplicadas, en los dos contextos de §3.6 |
-| `generation` | 11 | 7 / 4 | Combinaciones de tecnologías y tipos, con generaciones consecutivas para medir repetición |
+| `generation` | 12 | 8 / 4 | Combinaciones de tecnologías y tipos, con generaciones consecutivas para medir repetición |
 | `web` | 9 | 5 / 4 | Tecnologías con y sin resultados de búsqueda, más de cinco tecnologías para agotar el presupuesto, y memoria |
 | `code` | 11 | 2 / 9 | Dos repositorios de ejemplo; el resto provoca rutas inventadas, análisis incompleto, más de diez rutas, repositorio vacío o memoria |
 | `adversarial` | 24 | 23 / 1 | Evaluador 6, revisor 4, validador 9, web 2, código 3. Es el conjunto de red teaming de §6.5 |
@@ -3303,7 +3303,7 @@ cada bloque documenta qué es el valor y cómo obtenerlo o generarlo.
 | Integraciones | `github-repo-access` |
 | Frontend | `frontend-security-headers`, `frontend-ui-theme`, `confirm-dialog` |
 
-### C.2 Los 59 cambios archivados (`openspec/changes/archive/`)
+### C.2 Los 60 cambios archivados (`openspec/changes/archive/`)
 
 Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 `design.md`, `tasks.md` y los deltas de especificación.
@@ -3321,11 +3321,14 @@ Cronología del proyecto. Cada entrada es una carpeta con `proposal.md`,
 | 22 oct | `acortar-requisitos-largos`, `eliminar-memoria-agente-ejercicios`, `guardarrailes-por-capas` |
 | 23 oct | `suite-evaluacion-agentes` |
 | 24 oct | `costes-por-operacion`, `litellm-key-budget-configurable`, `evals-reasoning-effort`, `evals-umbrales-gate`, `juez-contenido` |
+| 26 oct | `alinear-mitigacion-inyeccion` |
 
-Dos lecturas de esta tabla. La primera: **dieciséis de los 59 cambios son de
-seguridad** (guardarraíles, credenciales, cabeceras, límites, redacción de PII), y
-están concentrados entre el 14 y el 16 de octubre: hubo una fase deliberada de
-endurecimiento. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
+Dos lecturas de esta tabla. La primera: **diecisiete de los 60 cambios son de
+seguridad** (guardarraíles, credenciales, cabeceras, límites, redacción de PII):
+dieciséis están concentrados entre el 14 y el 16 de octubre —hubo una fase
+deliberada de endurecimiento— y el último, `alinear-mitigacion-inyeccion`, alinea
+la especificación con lo implementado y añade la mitigación por instrucción al
+prompt del redactor. La segunda: cuatro cambios empiezan por `fix-` o corrigen una
 decisión anterior (`fix-falso-positivo-lakera`,
 `fix-agent-model-env-collision`, `quitar-url-person-presidio`,
 `presidio-solo-evaluador-revisor`), y los cuatro quedan registrados entre las
@@ -3344,7 +3347,7 @@ añade ni corrige funcionalidad, sino que construye un instrumento para medir el
 resto. Y su primera ejecución real obligó a corregir cinco fallos del propio
 instrumento (§7, lección 8): un sistema que se mide tiene que medirse a sí mismo.
 
-Y una quinta, la del último cambio: `costes-por-operacion` usa ese instrumento y, al
+Y una quinta, la del change `costes-por-operacion`: usa ese instrumento y, al
 hacerlo, contradice una decisión del propio diseño. §3.3 descartó los modelos de
 razonamiento y la medición mostró que los modelos elegidos razonan igualmente: entre
 el 72 % y el 81 % de la salida de tres agentes son tokens de razonamiento. No es un
