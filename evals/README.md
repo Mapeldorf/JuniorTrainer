@@ -100,9 +100,9 @@ La medición mostró que los modelos razonan aunque §3.3 descartó los de razon
 
 ```bash
 # Baseline (sin ajuste) y cada nivel, sobre los tres agentes que mas razonan (+ evaluador como control):
-python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 10
-python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 10 --reasoning effort=low
-python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 10 --reasoning off
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 20
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 20 --reasoning effort=low
+python -m evals.run --mode real --agents reviewer,validator,exercises,evaluator --limit-per-set 20 --reasoning off
 # tambien: --reasoning effort=medium|high|minimal|none  o  --reasoning max-tokens=256
 ```
 
