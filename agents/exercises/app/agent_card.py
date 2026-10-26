@@ -41,8 +41,8 @@ def build_agent_card() -> AgentCard:
                 description=(
                     "Dado exercise_type (knowledge|debug), count (1-5) y el "
                     "resultado del agente web y/o del agente de codigo, "
-                    "consulta hasta 10 ejercicios ya guardados de ese tipo y "
-                    "los ultimos 20 enunciados ya propuestos, y devuelve "
+                    "consulta hasta 200 ejercicios de ese tipo ya guardados o "
+                    "eliminados (para no repetir sus temas) y devuelve "
                     "exactamente count candidatos (nombre de maximo 8 "
                     "palabras, enunciado de nivel junior de maximo 50 "
                     "palabras, codigo de apoyo acotado, respuesta "
