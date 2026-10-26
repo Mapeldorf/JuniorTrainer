@@ -33,11 +33,12 @@ reverificadas: 28 capacidades, 60 cambios, 126 casos del dataset en seis conjunt
 más 10 del juez, y 25 controles de seguridad.
 
 **Versión 1.1, condensada** (rama `docs/capstone-condensado`): de unas 48.000 a unas
-22.600 palabras, unas 41 páginas A4 a 10 pt. Los capítulos de la materia del máster
-—modelos, agentes, evaluación y seguridad de LLM— conservan el mayor peso; el
-contexto, el despliegue y el cumplimiento se resumen. Los prompts del Anexo A y las
-referencias se conservan íntegros. Quedan unas 9 páginas para las capturas de la
-aplicación. Quedan pendientes, marcadas como tales dentro del propio documento:
+22.600 palabras de texto. Los capítulos de la materia del máster —modelos, agentes,
+evaluación y seguridad de LLM— conservan el mayor peso; el contexto, el despliegue y
+el cumplimiento se resumen. Los prompts del Anexo A y las referencias se conservan
+íntegros. El Anexo G es la guía de uso con diez capturas de la aplicación
+(`img/`). En total, unas **45 páginas** A4 a 10 pt. Quedan pendientes, marcadas como
+tales dentro del propio documento:
 
 | Sección | Qué falta | Depende de |
 |---|---|---|
@@ -55,11 +56,13 @@ aplicación. Quedan pendientes, marcadas como tales dentro del propio documento:
 Con [Pandoc](https://pandoc.org/) y un motor LaTeX instalado. Los diagramas
 Mermaid requieren el filtro `mermaid-filter` (`npm i -g mermaid-filter`). El cuerpo va
 a 10 pt con márgenes de 2 cm, y `pdf-header.tex` reduce tablas y código a
-`\footnotesize`; con esa maqueta el documento ronda las 41 páginas. Las secciones ya
+`\footnotesize`; con esa maqueta el documento ronda las 45 páginas. Las capturas
+de `img/` se resuelven en relación con el documento, así que el comando se lanza
+con `--resource-path=capstone`. Las secciones ya
 llevan su número en el título, así que no se usa `--number-sections`:
 
 ```bash
-pandoc capstone/juniortrainer-capstone.md -o capstone/juniortrainer-capstone.pdf --toc --toc-depth=2 -V fontsize=10pt -V geometry:margin=2cm -V linkcolor=blue -H capstone/pdf-header.tex -F mermaid-filter
+pandoc capstone/juniortrainer-capstone.md -o capstone/juniortrainer-capstone.pdf --toc --toc-depth=2 -V fontsize=10pt -V geometry:margin=2cm -V linkcolor=blue -H capstone/pdf-header.tex --resource-path=capstone -F mermaid-filter
 ```
 
 Sin el filtro de Mermaid, los diagramas salen como bloques de código. Alternativa

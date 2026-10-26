@@ -68,6 +68,7 @@ ver primero el sistema funcionando tiene un ejemplo real en §1.7.
 | Monitorización y operación | §5.8, §5.9 |
 | Controles de seguridad, análisis de riesgos y red teaming | §6.1–§6.5 |
 | Privacidad, ética y marco regulatorio | §6.6, §6.7 |
+| Cómo se usa la aplicación, con capturas | Anexo G |
 
 **Convenciones.** Las rutas son del repositorio (`backend/app/orchestrator.py`).
 Los nombres con guiones entre comillas simples (`litellm-huggingface-fallback`)
@@ -124,7 +125,8 @@ los alumnos entran por invitación, porque el sistema procesa código propietari
    da el veredicto y otro revisa su justificación.
 
 Un ejercicio `knowledge` es una pregunta sobre un único concepto; uno `debug` es un
-fragmento de código con exactamente **un** fallo introducido a propósito.
+fragmento de código con exactamente **un** fallo introducido a propósito. El
+recorrido completo, con capturas de la aplicación, está en el Anexo G.
 
 ### 1.4 Por qué este problema pide agentes
 
@@ -2345,6 +2347,71 @@ Desde la raíz del repositorio, en orden de dependencias:
 9. **Antes de abrirlo a un cliente**: publicar solo frontend y backend tras un *proxy*
    con TLS y cerrar el puerto 4000; un gestor de secretos por servicio; el tope de 50
    USD por clave; y la política de enrutado de OpenRouter (§6.7).
+
+## Anexo G — Guía de uso, con capturas
+
+Capturas de la aplicación en local, del 26 de octubre de 2026, con datos de prueba.
+El correo del alumno de prueba está difuminado.
+
+**1. Dar de alta al primer tech lead.** No hay autorregistro ni pantalla de alta: el
+primer tech lead se crea desde el servidor con el script del backend, que pide la
+contraseña por entrada segura y crea el usuario en Supabase con el rol en sus
+metadatos; el *trigger* `on_auth_user_created` crea su perfil. Con datos de ejemplo:
+
+```
+$ docker compose exec backend python -m scripts.seed_tech_lead --email tech.lead@example.com --name "Tech Lead Demo"
+Contrasena del tech lead:
+tech_lead creado: tech.lead@example.com (id …)
+```
+
+Desde ese momento, el tech lead entra por la pantalla de inicio de sesión y el resto
+del recorrido ocurre en la aplicación.
+
+**2. Mantener el catálogo de tecnologías.** Cada alta pasa por el agente validador
+antes de guardarse.
+
+![El validador rechaza «Paella valenciana»: no es una tecnología de programación. Las tecnologías aceptadas forman el catálogo del que se eligen las de cada generación.](img/01-validador-rechaza.png){width=85%}
+
+**3. Generar ejercicios.** El tech lead elige tecnologías del catálogo y,
+opcionalmente, un repositorio de GitHub; con repositorio se habilitan los ejercicios
+de depuración. La generación trabaja de fondo y la lista se actualiza sola cuando
+termina, en algo más de un minuto en este caso.
+
+![Formulario de generación: Signals Angular sobre `Mapeldorf/autobot-frontend`, de los dos tipos, tres candidatos.](img/02-generar.png){width=48%}
+
+![La generación aparece «Generando» mientras trabajan los agentes, y pasa a «Por revisar» cuando los candidatos están listos.](img/03-generando.png){width=85%}
+
+**4. Revisar los candidatos y guardar los que valen.** El tech lead ve el enunciado,
+el código y la respuesta esperada de cada candidato; puede editar el nombre y la
+respuesta esperada, y marca los que se guardan. Nada entra al catálogo sin este paso.
+
+![Un candidato de depuración con un fragmento real del repositorio y un fallo introducido: el campo declarado como `Signal`, de solo lectura, sobre el que luego se llama a `set`.](img/04-revisar-candidato.png){width=70%}
+
+**5. Componer un bloque y asignarlo.** Los ejercicios guardados se agrupan en
+bloques, y al asignar un bloque se crea la copia congelada para el alumno. El detalle
+del bloque muestra el progreso de cada alumno asignado: es la revisión a posteriori
+de §4.6.
+
+![Nuevo bloque con los tres ejercicios generados.](img/05-nuevo-bloque.png){width=85%}
+
+![El bloque asignado a un alumno, con su progreso y el reparto de veredictos.](img/06-bloque-asignado.png){width=85%}
+
+**6. Invitar a un alumno.** El tech lead escribe su nombre y su correo, y el alumno
+recibe un enlace para elegir su contraseña. En la captura, el formulario está
+relleno con datos de ejemplo y no se ha enviado.
+
+![Formulario de invitación y lista de alumnos.](img/07-invitar-alumno.png){width=85%}
+
+**7. El alumno responde y recibe la valoración en el momento.** Ve sus bloques
+pendientes y hechos, y resuelve los ejercicios en orden: cada uno se desbloquea al
+responder el anterior. Al enviar, el evaluador decide el veredicto y el revisor
+reescribe la justificación, en la misma petición.
+
+![Los bloques del alumno, pendientes y hechos.](img/08-mis-bloques.png){width=70%}
+
+![Una respuesta correcta al ejercicio de conocimiento sobre `.update()`, con su justificación.](img/09-valoracion-correcta.png){width=70%}
+
+![Una respuesta incompleta al ejercicio de depuración: identifica la causa, pero no la corrige, y la justificación dice exactamente qué falta.](img/10-valoracion-incompleta.png){width=70%}
 
 ---
 
