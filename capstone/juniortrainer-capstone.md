@@ -161,7 +161,7 @@ inicial y la invitación.
 El recorrido funcional completo, tal y como está implementado:
 
 1. **Catálogo de tecnologías.** El tech lead da de alta las tecnologías del
-   proyecto. Cada alta pasa por un agente juez que decide si la cadena es
+   proyecto. Cada alta pasa por el agente validador, que decide si la cadena es
    realmente una tecnología de programación y si ya existe en el catálogo con otro
    nombre.
 2. **Generación.** El tech lead elige tecnologías del catálogo, opcionalmente un
@@ -1485,7 +1485,8 @@ Las decisiones que gobiernan este flujo:
 - **Auditoría antes del acceso.** Cada intento de leer un repositorio deja fila en
   `repo_access_log` —con éxito o sin él— **antes** de pasar nada al agente de
   código.
-- **Una traza por generación**, propagada a las cuatro llamadas A2A.
+- **Una traza por generación**, propagada a todas sus llamadas A2A: validador,
+  web, código y una o dos de ejercicios.
 
 ```mermaid
 stateDiagram-v2
@@ -2628,7 +2629,7 @@ red teaming (§6.5) se dice así en lugar de darlo por hecho.
 | **LLM04** Envenenamiento de datos | El sistema **no entrena ni ajusta** modelos, lo que descarta el vector clásico. El único vector real es la **memoria** de los agentes web y de código: el resumen que se cachea deriva de contenido no confiable (web o repositorio). Lo acotan el aislamiento de la memoria en el rol `agents_memory`, sin `USAGE` sobre `public` (§6.2 control 11); los delimitadores en el prompt que produce ese resumen; y una clave de caché por repositorio y tecnologías, que limita el alcance de un envenenamiento a esa clave | **Parcial, y es el riesgo menos obvio.** Una entrada manipulada que entre en la caché persiste su TTL de **30 días** (`agents/*/app/memory.py`), y como el TTL se **refresca en cada lectura** (`refresh_on_read=True`), una clave que se consulte a menudo puede no caducar nunca. Es el objetivo 9 del red teaming (§6.5), específico de esta arquitectura |
 | **LLM05** Manejo inadecuado de la salida | Parseo estricto y esquema JSON con `additionalProperties: false` (§3.5); veredicto restringido a tres valores; límites de palabras comprobados en código con un reintento correctivo (§3.5); validación de rutas contra el árbol real del commit (§6.2 control 24); degradación defensiva ante contradicciones | **Mitigado. Es el riesgo mejor cubierto del sistema**, porque es la aplicación directa del principio «lo que el prompt pide, el código lo garantiza»: ninguna salida llega al usuario sin parsear, validar y, si no cuadra, rechazar |
 | **LLM06** Agencia excesiva | Ningún agente tiene herramientas de escritura —el de código solo lee, el de ejercicios solo hace `SELECT`, evaluador y revisor no tienen herramientas (§6.2)—; presupuestos de operaciones consumidos antes de actuar (§6.2 control 16); número fijo de llamadas al modelo en lugar de bucle agéntico; aprobación humana de todo lo que persiste (§4.6) | **Mitigado por diseño.** La autonomía está acotada por la arquitectura, no por la confianza en el modelo: aunque un agente fuera manipulado, no dispone de ninguna acción con efecto fuera de devolver texto |
-| **LLM07** Fuga del prompt de sistema | Instrucción explícita de no revelar el prompt, incluida en los cinco agentes que la llevan (§3.6) | **Parcial, con impacto bajo.** La instrucción no es una garantía y su extracción es un objetivo del red teaming (objetivo 3, §6.5). Pero el impacto es bajo por una razón de diseño: los prompts íntegros están publicados en el Anexo A, así que su divulgación no entrega ningún secreto operativo —no contienen credenciales ni lógica oculta— |
+| **LLM07** Fuga del prompt de sistema | Instrucción explícita de no revelar el prompt, incluida en el prompt de los seis agentes (§3.6, Anexo A) | **Parcial, con impacto bajo.** La instrucción no es una garantía y su extracción es un objetivo del red teaming (objetivo 3, §6.5). Pero el impacto es bajo por una razón de diseño: los prompts íntegros están publicados en el Anexo A, así que su divulgación no entrega ningún secreto operativo —no contienen credenciales ni lógica oculta— |
 | **LLM08** Debilidades de vectores y *embeddings* | No se usan *embeddings*, ni base de datos vectorial, ni RAG | **No aplica.** La memoria es una caché por clave exacta (§4.8), no una búsqueda por similitud, de modo que no hay un espacio de *embeddings* que envenenar o consultar de forma adversaria |
 | **LLM09** Desinformación | Doble pasada con **modelos de familias distintas** en la evaluación —evaluador DeepSeek, revisor GLM (§3.3)—; cerco anti-alucinación en los prompts, con declaración explícita de las tecnologías sin fuentes (§3.6); aprobación humana de todos los ejercicios antes de que entren al catálogo (§4.6) | **Parcial.** El contenido generado pasa por un humano, pero la **valoración que llega al alumno no** (§4.6): es el único punto donde una salida del modelo llega a una persona sin revisión, y el alumno es, por definición, quien menos criterio tiene para detectar un error (riesgo 10, §6.4) |
 | **LLM10** Consumo ilimitado | Presupuesto y ritmo de 60 rpm por virtual key (§6.2 control 15); rate limiting en dos niveles, por usuario y por agente (§6.2 controles 13-14); presupuestos de operaciones por tarea (§6.2 control 16); límite de cuerpo HTTP de 1 MiB (§6.2 control 17); timeouts encadenados en capas (§3.5) | **Mitigado.** El gasto está acotado por clave, de modo que un bucle o un abuso en un agente no puede consumir el presupuesto de otro ni, en el peor caso, pasar del tope de su propia clave |
@@ -2751,10 +2752,12 @@ contenido completamente benigno: rutas de repositorio que contienen la palabra
 *role* (`src/app/core/role.guard.ts` y similares). Con el guardarraíl en modo
 bloqueo, la generación se rompía. La decisión fue **pasar a `monitor`**: registrar y
 no bloquear. Es una decisión defendible —un control que rompe el producto no se
-puede mantener— y tiene una consecuencia que hay que declarar: **la detección
-automatizada de inyección quedó sin bloquear en ningún punto del sistema**. La
-protección efectiva
-contra LLM01 es la defensa por instrucción y la ausencia de herramientas peligrosas.
+puede mantener— y tuvo una consecuencia que hay que declarar: **durante ese
+periodo, la detección automatizada de inyección no bloqueaba en ningún punto del
+sistema**, y la protección efectiva contra LLM01 era la defensa por instrucción y
+la ausencia de herramientas peligrosas. El change `guardarrailes-por-capas` la
+devolvió al modo bloqueo, pero solo en el validador y su respaldo (§6.2); en el
+resto de agentes sigue siendo así hoy.
 
 El segundo, con Presidio. Con las entidades `URL` y `PERSON` activas, el detector
 destrozaba contenido de código: `X.service.ts` se convertía en `<URL>rvice.ts` y
@@ -3518,6 +3521,7 @@ y la resistencia del modelo en web y código quedan **declarados como no medidos
 | **PII** | Información personal identificable |
 | **Presidio** | Sistema autoalojado de detección y redacción de PII |
 | **Lakera Guard** | Servicio de detección de inyección de prompts |
+| **Juez** | Dos usos distintos en este documento: el **validador**, que actúa como juez LLM *default-deny* en el camino de entrada (§4.3), y el **juez de contenido**, un instrumento de evaluación offline fuera del camino del usuario (§5.6) |
 | **Default-deny** | Política conservadora: solo se aprueba lo claramente reconocible; ante la duda, se rechaza |
 | **Fail-closed** | Ante un fallo o una duda, se opta por el resultado seguro |
 | **RLS** | *Row Level Security*: filtrado de filas por reglas en la propia base de datos |
