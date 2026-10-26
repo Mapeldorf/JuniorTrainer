@@ -1,0 +1,9 @@
+% Maqueta compacta del capstone (ver capstone/README.md, «Generar el PDF»):
+% tablas y bloques de código a \footnotesize sobre un cuerpo de 10 pt.
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize}
+\usepackage{fancyvrb}
+\fvset{fontsize=\footnotesize}
+\makeatletter
+\def\verbatim@font{\footnotesize\ttfamily}
+\makeatother
