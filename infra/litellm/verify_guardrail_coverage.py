@@ -12,7 +12,7 @@ rompe nada visible, porque el fallback solo entra en juego cuando el proveedor
 principal falla -- justo el momento en el que nadie esta mirando. Esta
 comprobacion convierte ese "hay que acordarse" en una invariante verificada.
 
-Las dos invariantes:
+Las tres invariantes:
 
   1. **Cobertura del fallback.** Todo deployment de fallback lleva vinculados
      al menos los mismos guardarrailes explicitos que su deployment primario,
@@ -22,6 +22,14 @@ Las dos invariantes:
      modo de sustitucion por marcador (`MASK`), de modo que cualquier
      deployment -- incluido uno que se anada en el futuro sin vincularle nada
      -- nazca con redaccion de PII.
+  3. **Politica de enrutado de proveedores** (requisito "Verificacion estatica
+     de la politica de enrutado" de `specs/llm-provider-routing/spec.md`,
+     change `enrutado-proveedores-openrouter`). Todo deployment que no es de
+     Hugging Face lleva en `extra_body.provider` las tres restricciones de
+     OpenRouter: `data_collection: "deny"`, `zdr: true` y una lista `only` no
+     vacia. Los deployments con `model: os.environ/...` se tratan como de
+     OpenRouter, que es la convencion de `.env.example`; los de
+     `huggingface/...` quedan fuera porque el parametro es de OpenRouter.
 
 Solo se comparan los guardarrailes **explicitos** (los de
 `model_list[].litellm_params.guardrails`). Los globales (`default_on: true`)
@@ -141,8 +149,80 @@ def check_global_redaction(config: dict) -> list[str]:
     ]
 
 
+def check_provider_routing(config: dict) -> list[str]:
+    """Invariante 3: todo deployment que no es de Hugging Face lleva la politica."""
+    problems: list[str] = []
+    for entry in config.get("model_list") or []:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("model_name") or "<sin model_name>"
+        params = entry.get("litellm_params") or {}
+        if str(params.get("model") or "").startswith("huggingface/"):
+            continue
+
+        provider = (params.get("extra_body") or {}).get("provider")
+        if not isinstance(provider, dict):
+            problems.append(
+                f"el deployment '{name}' no lleva politica de enrutado de proveedores "
+                "(extra_body.provider): OpenRouter podria asignarlo a cualquier proveedor"
+            )
+            continue
+
+        missing = []
+        if provider.get("data_collection") != "deny":
+            missing.append('data_collection: "deny"')
+        if provider.get("zdr") is not True:
+            missing.append("zdr: true")
+        only = provider.get("only")
+        if not isinstance(only, list) or not only:
+            missing.append("una lista `only` no vacia")
+        if missing:
+            problems.append(
+                f"la politica de enrutado del deployment '{name}' no exige {missing}"
+            )
+    return problems
+
+
 def check(config: dict) -> list[str]:
-    return check_fallback_coverage(config) + check_global_redaction(config)
+    return (
+        check_fallback_coverage(config)
+        + check_global_redaction(config)
+        + check_provider_routing(config)
+    )
+
+
+_SELF_TEST_POLICY = {
+    "provider": {"data_collection": "deny", "zdr": True, "only": ["nebius"]}
+}
+
+_SELF_TEST_REDACTION = [
+    {
+        "guardrail_name": "presidio-pii",
+        "litellm_params": {
+            "guardrail": "presidio",
+            "default_on": True,
+            "pii_entities_config": {"EMAIL_ADDRESS": "MASK"},
+        },
+    }
+]
+
+
+def _routing_case(extra_body: dict | None) -> dict:
+    """Configuracion por lo demas coherente cuyo primario lleva `extra_body`."""
+    params: dict = {"model": "os.environ/EVALUATOR_MODEL"}
+    if extra_body is not None:
+        params["extra_body"] = extra_body
+    return {
+        "model_list": [
+            {"model_name": "evaluator", "litellm_params": params},
+            {
+                "model_name": "evaluator-fallback-hf",
+                "litellm_params": {"model": "huggingface/org/modelo"},
+            },
+        ],
+        "litellm_settings": {"fallbacks": [{"evaluator": ["evaluator-fallback-hf"]}]},
+        "guardrails": _SELF_TEST_REDACTION,
+    }
 
 
 _SELF_TEST_CASES: list[tuple[str, dict, int]] = [
@@ -150,10 +230,19 @@ _SELF_TEST_CASES: list[tuple[str, dict, int]] = [
         "configuracion coherente",
         {
             "model_list": [
-                {"model_name": "evaluator", "litellm_params": {"guardrails": ["lakera-block"]}},
+                {
+                    "model_name": "evaluator",
+                    "litellm_params": {
+                        "guardrails": ["lakera-block"],
+                        "extra_body": _SELF_TEST_POLICY,
+                    },
+                },
                 {
                     "model_name": "evaluator-fallback-hf",
-                    "litellm_params": {"guardrails": ["lakera-block"]},
+                    "litellm_params": {
+                        "model": "huggingface/org/modelo",
+                        "guardrails": ["lakera-block"],
+                    },
                 },
             ],
             "litellm_settings": {"fallbacks": [{"evaluator": ["evaluator-fallback-hf"]}]},
@@ -174,8 +263,17 @@ _SELF_TEST_CASES: list[tuple[str, dict, int]] = [
         "fallback descubierto",
         {
             "model_list": [
-                {"model_name": "evaluator", "litellm_params": {"guardrails": ["lakera-block"]}},
-                {"model_name": "evaluator-fallback-hf", "litellm_params": {}},
+                {
+                    "model_name": "evaluator",
+                    "litellm_params": {
+                        "guardrails": ["lakera-block"],
+                        "extra_body": _SELF_TEST_POLICY,
+                    },
+                },
+                {
+                    "model_name": "evaluator-fallback-hf",
+                    "litellm_params": {"model": "huggingface/org/modelo"},
+                },
             ],
             "litellm_settings": {"fallbacks": [{"evaluator": ["evaluator-fallback-hf"]}]},
             "guardrails": [
@@ -194,7 +292,9 @@ _SELF_TEST_CASES: list[tuple[str, dict, int]] = [
     (
         "sin red global de redaccion",
         {
-            "model_list": [{"model_name": "evaluator", "litellm_params": {}}],
+            "model_list": [
+                {"model_name": "evaluator", "litellm_params": {"extra_body": _SELF_TEST_POLICY}}
+            ],
             "litellm_settings": {"fallbacks": []},
             "guardrails": [
                 {
@@ -212,7 +312,9 @@ _SELF_TEST_CASES: list[tuple[str, dict, int]] = [
     (
         "red global en BLOCK no sirve como red de redaccion",
         {
-            "model_list": [{"model_name": "evaluator", "litellm_params": {}}],
+            "model_list": [
+                {"model_name": "evaluator", "litellm_params": {"extra_body": _SELF_TEST_POLICY}}
+            ],
             "litellm_settings": {"fallbacks": []},
             "guardrails": [
                 {
@@ -225,6 +327,25 @@ _SELF_TEST_CASES: list[tuple[str, dict, int]] = [
                 }
             ],
         },
+        1,
+    ),
+    ("politica de enrutado completa", _routing_case(_SELF_TEST_POLICY), 0),
+    ("deployment sin politica de enrutado", _routing_case(None), 1),
+    (
+        "politica que permite la recoleccion de datos",
+        _routing_case(
+            {"provider": {"data_collection": "allow", "zdr": True, "only": ["nebius"]}}
+        ),
+        1,
+    ),
+    (
+        "politica sin retencion cero",
+        _routing_case({"provider": {"data_collection": "deny", "only": ["nebius"]}}),
+        1,
+    ),
+    (
+        "politica con lista de proveedores vacia",
+        _routing_case({"provider": {"data_collection": "deny", "zdr": True, "only": []}}),
         1,
     ),
 ]
