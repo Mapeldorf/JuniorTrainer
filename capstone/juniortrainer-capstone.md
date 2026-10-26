@@ -63,7 +63,9 @@ trabajo futuro (parte VI).
 
 El documento está escrito como un documento de ingeniería, no como un examen: las
 partes siguen el orden en que un lector necesita la información, no el orden del
-programa del máster. Esta tabla localiza cada concepto de la rúbrica.
+programa del máster. Esta tabla localiza cada concepto de la rúbrica. Quien
+prefiera ver primero el sistema funcionando tiene un ejemplo real, de la
+generación de un ejercicio a la valoración de una respuesta, en §1.6.
 
 | Lo que se pide | Dónde está |
 |---|---|
@@ -249,6 +251,94 @@ Lo que el sistema **no** hace, y por qué:
 | Avisar por correo | El único correo es la invitación: asignar un bloque no envía ningún aviso al alumno. |
 | Internacionalización | Todo se entrega en español; el prompt lo exige en los cuatro agentes que producen texto para una persona (§3.1). |
 | Autorregistro de usuarios | La entrada al sistema es por invitación de un tech lead. |
+
+### 1.6 Un ejemplo real
+
+Antes de entrar en la arquitectura, el producto en funcionamiento. Lo que sigue
+son salidas reales de los modelos de producción, copiadas sin retocar del informe
+versionado `evals/baseline/primario/20261024T135007Z-real.json` (§5.7). Las
+entradas son casos del dataset dorado (`evals/datasets/`) y no datos de un
+cliente: así el ejemplo se puede reproducir y no expone código propietario.
+
+**1. Generación.** El tech lead pide dos ejercicios `debug` sobre FastAPI y
+Pydantic, sin repositorio. El agente de ejercicios recibe un resumen de
+documentación —el que daría el agente web; en la suite lo fija el caso— y devuelve
+los dos candidatos en una sola llamada, en 5,4 s y por 0,00085 USD.
+El primero:
+
+> **Nombre:** Nombre de parametro de ruta incorrecto
+>
+> **Enunciado:** Al arrancar la aplicación, FastAPI avisa de que falta un parámetro
+> de ruta declarado en el decorador. Localiza el fallo en el código y explica cómo
+> corregirlo.
+
+```python
+# main.py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+def read_item(id: int):
+    return {"item_id": id}
+```
+
+> **Respuesta esperada:** El nombre del parámetro de la función no coincide con el
+> nombre declarado entre llaves en la ruta: la ruta define `{item_id}` pero la
+> función recibe `id`. FastAPI busca un parámetro llamado `item_id` y no lo
+> encuentra, por lo que falla al registrar la ruta. La corrección es renombrar el
+> parámetro de la función para que coincida: `def read_item(item_id: int):` (o,
+> alternativamente, cambiar la ruta a `/items/{id}`).
+
+El candidato cumple todo lo que el código comprueba: un único fallo, un solo
+fichero, un enunciado de 27 palabras y un nombre de 6. Y tiene un error que
+ninguna de esas comprobaciones ve: **el síntoma que describe es falso.** FastAPI
+no avisa de nada al arrancar ni falla al registrar la ruta: trata `id` como un
+parámetro de consulta, y una petición a `/items/5` responde `422` con
+`"loc": ["query", "id"]` y `"Field required"`. Comprobado ejecutándolo con FastAPI
+0.115.14, la versión del backend. El fallo está bien elegido y la corrección es la
+buena; lo que está mal es cómo se manifiesta, y un junior que se quedara con esa
+explicación aprendería algo que no es cierto.
+
+Es exactamente el riesgo 10 de §6.4, y la razón por la que la aprobación es humana
+(§4.6). Como en la revisión el enunciado no se edita (§1.5), lo que procede es
+descartar este candidato. El segundo de la misma llamada —una dependencia declarada
+como `settings=get_settings`, sin `Depends`— es correcto en lo esencial: la ruta
+responde `{}` en lugar de `{"debug": true}`, y la corrección propuesta,
+`Depends(get_settings)`, es la buena. El ejemplo ilustra también por qué
+`calidad_del_fallo` es el criterio en el que el juez de contenido concuerda peor con
+el humano (§5.6): juzgarlo exige saber cómo se comporta el código de verdad, no solo
+leerlo.
+
+**2. Valoración.** Un alumno responde a un ejercicio `knowledge`:
+
+> **Enunciado:** En FastAPI, ¿qué hace el decorador `@app.post('/items')` sobre una
+> función que recibe un parámetro `item: Item`?
+>
+> **Respuesta esperada:** Registra una ruta POST en /items; FastAPI valida el body
+> de la petición contra el modelo Pydantic Item antes de llamar a la función.
+>
+> **Respuesta del alumno:** Es una ruta POST en /items.
+
+| Paso | Salida | Tiempo | Coste (USD) |
+|---|---|---|---|
+| Evaluador | `incomplete` — «Indica correctamente que registra una ruta POST en /items, pero omite lo esencial: FastAPI valida el body de la petición contra el modelo Pydantic Item antes de llamar a la función.» | 1,7 s | 0,000080 |
+| Revisor | «La respuesta identifica correctamente la ruta POST en /items, pero omite que FastAPI valida el cuerpo de la petición contra el modelo Item y pasa la instancia validada a la función.» | 3,9 s | 0,000619 |
+
+La etiqueta humana del caso es `incomplete`, así que el veredicto coincide. La
+justificación dice qué falta en lugar de explicar teoría, que es lo que pide el
+prompt (§3.6, caso 5 de §4.9). Lo que el alumno vería es el veredicto del evaluador
+con la justificación del revisor.
+
+Una precisión necesaria para leer la tabla: la suite mide las dos pasadas **por
+separado**. El revisor no recibe la justificación del evaluador, sino una
+propuesta fija del dataset («Falta decir que FastAPI valida el cuerpo contra el
+modelo Item.»). Su versión es más precisa que esa propuesta, y añade un detalle
+correcto que la respuesta esperada no pedía. Lo que la suite no mide hoy es lo que
+el revisor añade sobre la justificación del propio evaluador, y su coste es casi
+ocho veces el del evaluador en este caso, por los 416 tokens de razonamiento que
+gasta (§3.7).
 
 ---
 
