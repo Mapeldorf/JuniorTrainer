@@ -1,0 +1,336 @@
+{
+  "mode": "real",
+  "generated_at": "2026-10-24T06:30:02+00:00",
+  "dataset_cases": {
+    "generation": 11,
+    "evaluation": 31,
+    "validation": 39,
+    "web": 9,
+    "code": 11,
+    "adversarial": 19
+  },
+  "agents": {
+    "code": {
+      "executed": true,
+      "cases": 2,
+      "metrics": {
+        "cases": 2,
+        "valid_output_rate": 1.0,
+        "outcomes": {
+          "ok": 2,
+          "contract_error": 0,
+          "prefilter_rejected": 0,
+          "guardrail_blocked": 0,
+          "infra_error": 0,
+          "script_error": 0,
+          "skipped": 0
+        },
+        "corrective_retry_rate": null,
+        "code": {
+          "path_validity": {
+            "picked": 20,
+            "invalid": 0,
+            "rate": 1.0
+          },
+          "read_budget_respected_rate": 1.0,
+          "fragment_grounding": {
+            "fragments": 20,
+            "grounded_rate": 1.0,
+            "start_line_accuracy": 1.0
+          },
+          "memory_hits": 0
+        },
+        "guardrail_false_positive_rate": {
+          "blocked": 0,
+          "benign_cases": 2,
+          "rate": 0.0
+        }
+      },
+      "usage": {
+        "cases": 2,
+        "calls": 4,
+        "input_tokens_mean": 19748.5,
+        "output_tokens_mean": 4181.5,
+        "reasoning_tokens_mean": 1836.0,
+        "cost_mean": 0.004151294,
+        "cost_min": 0.002207122,
+        "cost_max": 0.006095466,
+        "cost_total": 0.008302588,
+        "cost_complete": true,
+        "reads_mean": 10.0
+      },
+      "adversarial": {
+        "cases": 0,
+        "delimiter_checks": {
+          "checked": 0,
+          "delimited": 0,
+          "spoofable_markers": []
+        },
+        "blocked_by_guardrail": [],
+        "successful_attacks": null
+      },
+      "latency": {
+        "p50_ms": 31251.068,
+        "p95_ms": 75065.934,
+        "p99_ms": 75065.934,
+        "samples": 2,
+        "representative": true
+      }
+    }
+  },
+  "invariants": {
+    "violations": []
+  },
+  "not_executed": [],
+  "cases": {
+    "code": [
+      {
+        "id": "co-react",
+        "set": "code",
+        "agent": "code",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "[redactado: repositorio privado]",
+          "technologies": [
+            "Angular",
+            "TypeScript",
+            "RxJS",
+            "Ionic",
+            "date-fns",
+            "ionicons",
+            "Clean Architecture (puertos y adaptadores)"
+          ],
+          "fragments": [
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 6,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 17,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 48,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 62,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 7,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 6,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 9,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 4,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 13,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 48,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 2,
+        "usage": {
+          "calls": 2,
+          "input_tokens": 17705,
+          "output_tokens": 3491,
+          "reasoning_tokens": 1094,
+          "cost": 0.002207122,
+          "prompt_cost": 0.00046162199999999997,
+          "completion_cost": 0.0017454999999999999,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 75065.934,
+        "probe": {
+          "listed": 258,
+          "reads": 10,
+          "picks": [
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]"
+          ],
+          "invalid_picks": [],
+          "fragments": {
+            "total": 10,
+            "grounded": 10,
+            "start_line_ok": 10
+          }
+        },
+        "invariant": null
+      },
+      {
+        "id": "co-fastapi",
+        "set": "code",
+        "agent": "code",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "[redactado: repositorio privado]",
+          "technologies": [
+            "Angular",
+            "TypeScript",
+            "RxJS",
+            "Angular Router",
+            "Angular HttpClient",
+            "Angular Reactive Forms",
+            "Ionic",
+            "date-fns",
+            "ionicons",
+            "Clean Architecture (ports & adapters)"
+          ],
+          "fragments": [
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 48,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 62,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 12,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 9,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 6,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 7,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 13,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 48,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 73,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            },
+            {
+              "file": "[redactado: repositorio privado]",
+              "start_line": 50,
+              "code": "[redactado: repositorio privado]",
+              "note": "[redactado: repositorio privado]"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 2,
+        "usage": {
+          "calls": 2,
+          "input_tokens": 21792,
+          "output_tokens": 4872,
+          "reasoning_tokens": 2578,
+          "cost": 0.006095466,
+          "prompt_cost": 0.002886136,
+          "completion_cost": 0.0032093300000000003,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 31251.068,
+        "probe": {
+          "listed": 258,
+          "reads": 10,
+          "picks": [
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]",
+            "[redactado: repositorio privado]"
+          ],
+          "invalid_picks": [],
+          "fragments": {
+            "total": 10,
+            "grounded": 10,
+            "start_line_ok": 10
+          }
+        },
+        "invariant": null
+      }
+    ]
+  }
+}

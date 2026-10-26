@@ -2230,7 +2230,8 @@ tres ejecuciones completas de los seis agentes en modo real (24 de octubre de 20
 más dos con el modelo de respaldo. El agente de código analiza
 `Mapeldorf/autobot-frontend` en el commit `37cf3b0`. Todo se reproduce con
 `python -m evals.run --mode real` (§5.5), y las cifras de abajo salen de los informes
-que el arnés escribe en `evals/results/`.
+que el arnés escribe, versionados en `evals/baseline/primario/` y
+`evals/baseline/respaldo/` (Anexo E).
 
 | Agente | Casos | Salida válida | Métricas | Latencia p50 / p95 |
 |---|---|---|---|---|
@@ -2733,7 +2734,7 @@ cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
 El ejercicio se ejecutó el **24 de octubre de 2026** en modo real contra los
 modelos y el proxy del stack, y su informe completo vive en
 `capstone/red-teaming/informe.md`, con las cifras sacadas del informe de la suite
-(`evals/results/20261024T122329Z-real.json`), no de una transcripción a mano. El
+(`evals/baseline/red-teaming/20261024T122329Z-real.json`), no de una transcripción a mano. El
 resultado fue **0 ataques exitosos** de los 19 casos medidos en modo real
 —evaluador 6, revisor 4 revisados a mano, validador 9—, con 4 bloqueados por el
 guardarraíl del proxy y 2 por el pre-filtro. Se partió del conjunto adversarial de
@@ -3487,18 +3488,31 @@ evaluación de políticas sobre lo que el rol ya puede leer, que en ambos casos 
 
 ## Anexo E — Resultados de evaluación en bruto
 
-Los informes JSON de cada ejecución se escriben en `evals/results/` y no se
-versionan (el directorio está ignorado por git). Lo que sí está en el repositorio
-es el dataset y el arnés, de modo que cualquier ejecución se reproduce con
-`python -m evals.run` (§5.5). Las ejecuciones reales completas y repetidas —tres con
-los modelos primarios y dos con el respaldo— están resumidas en §5.7. Su informe de
-referencia se guardará en `evals/baseline/`.
+Cada ejecución escribe su informe JSON en `evals/results/`, que git ignora. Los
+informes que este documento cita están versionados en `evals/baseline/`, de modo
+que sus cifras se comprueban sin volver a ejecutar la suite:
+
+| Carpeta | Informes | Sostiene |
+|---|---|---|
+| `primario/` | Tres ejecuciones completas con los modelos primarios | §5.7 y los umbrales de §5.8 |
+| `respaldo/` | Dos ejecuciones completas con el respaldo de Hugging Face | Comparativa primario/respaldo (§5.7, riesgo 8) |
+| `red-teaming/` | La ejecución del 24 de octubre | §6.5 y Anexo F |
+| `razonamiento/` | Sin ajuste, `off` y `effort` bajo, medio y alto | §3.7, apartado 14 |
+| `costes/` | Los tres informes de entrada y el informe de costes | §3.7 |
+| `juez/` | Las dos calibraciones, κ 0,312 y κ 0,475 | §5.6 |
+
+El repositorio contra el que se midió el agente de código es privado y este no
+lo es, así que en esos informes el resumen, las rutas y los fragmentos que vienen
+de él están redactados; las métricas se conservan intactas. El detalle está en
+`evals/baseline/README.md`. El dataset y el arnés también están en el
+repositorio, así que cualquier ejecución se reproduce con `python -m evals.run`
+(§5.5).
 
 ## Anexo F — Informe de red teaming
 
 El informe completo está en `capstone/red-teaming/informe.md`, con las cifras del
 informe de la suite de la ejecución del 24 de octubre de 2026
-(`evals/results/20261024T122329Z-real.json`). Resumen: 24 casos adversariales (19
+(`evals/baseline/red-teaming/20261024T122329Z-real.json`). Resumen: 24 casos adversariales (19
 previos más 5 nuevos), **0 ataques exitosos** de los 19 medidos en modo real, 4
 bloqueados por el guardarraíl del proxy y 2 por el pre-filtro. Los objetivos 7 y 9
 y la resistencia del modelo en web y código quedan **declarados como no medidos hoy**

@@ -21,7 +21,7 @@ En modo real los adversariales de web y código **no se ejecutan**: su contenido
 
 En modo real se imprime una línea por caso con su estado y su duración. `--limit-per-set N` toma N casos **repartidos** por todo el conjunto (no los N primeros) y en modo real omite los casos guionizados (`sim`/`sim_expect`), que solo tienen sentido con un modelo falso.
 
-El informe JSON queda en `evals/results/` (ignorado por git) y se imprime un resumen. Código de salida: `0` bien; `1` modo simulado con una invariante rota; `2` la ejecución falló (dataset inválido, agente que no arranca, LiteLLM caído en modo real).
+El informe JSON queda en `evals/results/` (ignorado por git) y se imprime un resumen. Los informes que cita el capstone están versionados en `evals/baseline/`, con su procedencia. Código de salida: `0` bien; `1` modo simulado con una invariante rota; `2` la ejecución falló (dataset inválido, agente que no arranca, LiteLLM caído en modo real).
 
 ### Entornos de los agentes
 

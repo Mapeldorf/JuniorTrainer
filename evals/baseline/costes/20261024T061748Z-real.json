@@ -1,0 +1,557 @@
+{
+  "mode": "real",
+  "generated_at": "2026-10-24T06:17:48+00:00",
+  "dataset_cases": {
+    "generation": 11,
+    "evaluation": 31,
+    "validation": 39,
+    "web": 9,
+    "code": 11,
+    "adversarial": 19
+  },
+  "agents": {
+    "web": {
+      "executed": true,
+      "cases": 5,
+      "metrics": {
+        "cases": 5,
+        "valid_output_rate": 1.0,
+        "outcomes": {
+          "ok": 5,
+          "contract_error": 0,
+          "prefilter_rejected": 0,
+          "guardrail_blocked": 0,
+          "infra_error": 0,
+          "script_error": 0,
+          "skipped": 0
+        },
+        "corrective_retry_rate": null,
+        "web": {
+          "search_budget_respected_rate": 1.0,
+          "full_technology_coverage_rate": 1.0,
+          "no_source_disclosure": {
+            "technologies_without_sources": 2,
+            "declared": 2,
+            "rate": 1.0,
+            "method": "palabras clave en la seccion de la tecnologia (heuristica)"
+          },
+          "non_empty_summary_rate": 1.0,
+          "memory_hits": 0
+        },
+        "guardrail_false_positive_rate": {
+          "blocked": 0,
+          "benign_cases": 5,
+          "rate": 0.0
+        }
+      },
+      "usage": {
+        "cases": 5,
+        "calls": 5,
+        "input_tokens_mean": 3604.2,
+        "output_tokens_mean": 869.6,
+        "reasoning_tokens_mean": 319.0,
+        "cost_mean": 0.0007851184104,
+        "cost_min": 0.0001931052,
+        "cost_max": 0.0017706,
+        "cost_total": 0.003925592052,
+        "cost_complete": true,
+        "searches_mean": 2.2
+      },
+      "adversarial": {
+        "cases": 0,
+        "delimiter_checks": {
+          "checked": 0,
+          "delimited": 0,
+          "spoofable_markers": []
+        },
+        "blocked_by_guardrail": [],
+        "successful_attacks": {
+          "count": 0,
+          "of": 0,
+          "cases": []
+        }
+      },
+      "latency": {
+        "p50_ms": 7422.593,
+        "p95_ms": 19374.308,
+        "p99_ms": 19374.308,
+        "samples": 5,
+        "representative": true
+      }
+    }
+  },
+  "invariants": {
+    "violations": []
+  },
+  "not_executed": [],
+  "cases": {
+    "web": [
+      {
+        "id": "we-react",
+        "set": "web",
+        "agent": "web",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "## React\n\nReact es una librería para construir interfaces de usuario web y nativas, con una documentación organizada en secciones como Quick Start, Tutorial, Thinking in React, Installation, Describing the UI, Adding Interactivity, Managing State, Advanced Guides y API Reference. Su página de inicio rápido cubre cerca del 80% de los conceptos de uso diario: crear y anidar componentes, añadir marcado y estilos, mostrar datos, renderizar condiciones y listas, responder a eventos actualizando la pantalla, y compartir datos entre componentes. El marcado se escribe con JSX dentro de JavaScript, usando llaves para \"escapar\" hacia JavaScript y mostrar variables al usuario. La referencia de la API incluye subsecciones como React, React DOM (client, server, static), React Compiler (herramienta de optimización en tiempo de compilación que memoiza componentes y valores automáticamente), el plugin ESLint para Hooks y las Rules of React, además de APIs legacy. React está diseñado para adopción gradual, por lo que puede usarse tanto en proyectos existentes como en aplicaciones nuevas con un toolchain de JavaScript.",
+          "sources": [
+            {
+              "title": "React Documentation Walkthrough: Learn React the Right Way (Beginner to Advanced)",
+              "url": "https://www.youtube.com/watch?v=CEVvtF-XxNs",
+              "snippet": "We'll cover Main Concepts, Hooks, APIs, Advanced Guides, and share tips to learn React faster and more effectively using the official documentation.\n\n✅ Perfect for self-learners\n✅ Helps prepare for React interviews\n✅ Saves hours of Googling React concepts\n\n📌 Subscribe for more web dev content\n📘 React Docs: \n\n#ReactJS #LearnReact #ReactTutorial #WebDevelopment #FrontendDev #ReactDocumentation #JavaScript #ReactHooks #ReactDev #CodingForBeginners #TechTutorial #React2025 [...] # React Documentation Walkthrough: Learn React the Right Way (Beginner to Advanced)\n## Channel: Njoku Samson Ebere\n1.27K subscribers\n12 likes\n\n### Description\n832 views\nPosted: 2025-05-16\nAre you confused by the official React documentation? In this video, we walk you through the React docs step-by-step and show you how to get the most out of it, whether you're a beginner just starting out or an experienced developer brushing up on modern React practices. [...] [0:16] can go to or you need to go to one is the L react and the other one is the API reference this is the documentation uh it's not so much um it gives you everything you need to know this is just\n[0:25] the homepage where you introduced to a bunch of stuff all right so learn Rea is the first place I I think you should go if you just starting now so we'll just\n[0:32] go there and here's a quick start that helps you to really get started um with um components States GSX Styles and many"
+            },
+            {
+              "title": "Quick Start – React",
+              "url": "https://react.dev/learn",
+              "snippet": "Learn React\n\n# Quick Start\n\nWelcome to the React documentation! This page will give you an introduction to 80% of the React concepts that you will use on a daily basis.\n\n### You will learn\n\n How to create and nest components\n How to add markup and styles\n How to display data\n How to render conditions and lists\n How to respond to events and update the screen\n How to share data between components\n\n## Creating and nesting components [...] }\n\n```\n\nReact does not prescribe how you add CSS files. In the simplest case, you’ll add a  tag to your HTML. If you use a build tool or a framework, consult its documentation to learn how to add a CSS file to your project.\n\n## Displaying data\n\nJSX lets you put markup into JavaScript. Curly braces let you “escape back” into JavaScript so that you can embed some variable from your code and display it to the user. For example, this will display `user.name`:\n\n```\n\nreturn (\n\n<h1>\n\n{user.name}\n\nh1>"
+            },
+            {
+              "title": "React Reference Overview – React",
+              "url": "https://react.dev/reference/react",
+              "snippet": "logo by @sawaratsuki1004\n\n### react@19.3\n\n### react-dom@19.3\n\n### React Compiler\n\n### React DevTools\n\n### eslint-plugin-react-hooks\n\n### Rules of React\n\n### React Server Components\n\n### Legacy APIs\n\n# React Reference Overview\n\nThis section provides detailed reference documentation for working with React. For an introduction to React, please visit the Learn section.\n\nThe React reference documentation is broken down into functional subsections:\n\n## React\n\nProgrammatic React features:\n\n## React DOM [...] ## React DOM\n\nReact DOM contains features that are only supported for web applications (which run in the browser DOM environment). This section is broken into the following:\n\n`react-dom`\n`react-dom/client`\n`react-dom/server`\n`react-dom/static`\n\n## React Compiler\n\nThe React Compiler is a build-time optimization tool that automatically memoizes your React components and values:\n\n## ESLint Plugin React Hooks\n\nThe ESLint plugin for React Hooks helps enforce the Rules of React:\n\n## Rules of React [...] ## Rules of React\n\nReact has idioms — or rules — for how to express patterns in a way that is easy to understand and yields high-quality applications:\n\n## Legacy APIs\n\n`react`\n\n## On this page"
+            },
+            {
+              "title": "GitHub - react/react: The library for web and native user interfaces. · GitHub",
+              "url": "https://github.com/react/react",
+              "snippet": "Check out the Getting Started page for a quick overview.\n\nThe documentation is divided into several sections:\n\n Quick Start\n Tutorial\n Thinking in React\n Installation\n Describing the UI\n Adding Interactivity\n Managing State\n Advanced Guides\n API Reference\n Where to Get Support\n Contributing Guide\n\nYou can improve it by sending pull requests to this repository.\n\nWe have several examples on the website. Here is the first one to get you started: [...] Learn how to use React in your project.\n\n## Installation\n\nReact has been designed for gradual adoption from the start, and you can use as little or as much React as you need:\n\n Use Quick Start to get a taste of React.\n Add React to an Existing Project to use as little or as much React as you need.\n Create a New React App if you're looking for a powerful JavaScript toolchain.\n\n## Documentation\n\nYou can find the React documentation on the website. [...] | README.md | README.md |  |  |\n| ReactVersions.js | ReactVersions.js |  |  |\n| SECURITY.md | SECURITY.md |  |  |\n| babel.config-react-compiler.js | babel.config-react-compiler.js |  |  |\n| babel.config-ts.js | babel.config-ts.js |  |  |\n| babel.config.js | babel.config.js |  |  |\n| flow-typed.config.json | flow-typed.config.json |  |  |\n| package.json | package.json |  |  |\n| react.code-workspace | react.code-workspace |  |  |\n| yarn.lock | yarn.lock |  |  |\n|  |"
+            },
+            {
+              "title": "React",
+              "url": "https://react.dev",
+              "snippet": "value={searchText}\n\nonChange={newText => setSearchText(newText)} />\n\n<VideoList\n\nvideos={foundVideos}\n\nemptyHeading={`No matches for “${searchText}”`} />\n\n>\n\n);\n\n}\n\n```\n\nexample.com/videos.html\n\n# React Videos\n\nA brief history of React\n\n## 5 Videos\n\n### React: The Documentary\n\nThe origin story of React\n\n### Rethinking Best Practices\n\nPete Hunt (2013)\n\n### Introducing React Native\n\nTom Occhino (2015)\n\n### Introducing React Hooks\n\nSophie Alpert and Dan Abramov (2018) [...] Shaundai Person\n\nReact Conf### The First React Working Group\n\nAakansha Doshi\n\nReact Conf### React Developer Tooling\n\nBrian Vaughn\n\nReact Conf### React without memo\n\nXuan Huang (黄玄)\n\nReact Conf### React Docs Keynote\n\nRachel Nabors\n\nReact Conf### Things I Learnt from the New React Docs\n\nDebbie O'Brien\n\nReact Conf### Learning in the Browser\n\nSarah Rainsberger\n\nReact Conf### The ROI of Designing with React\n\nLinton Ye\n\nReact Conf### Interactive Playgrounds with React\n\nDelba de Oliveira [...] December 3, 2025\n\nRead more React news\n\n## Join a community of millions\n\nYou’re not alone. Two million developers from all over the world visit the React docs every month. React is something that people and teams can agree on.\n\nPeople singing karaoke at React Conf\n\nSunil Pai speaking at React India\n\nA hallway conversation between two people at React Conf\n\nA hallway conversation at React India\n\nElizabet Oliveira speaking at React Conf\n\nPeople taking a group selfie at React India"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 1,
+        "usage": {
+          "calls": 1,
+          "input_tokens": 1896,
+          "output_tokens": 425,
+          "reasoning_tokens": 177,
+          "cost": 0.0001931052,
+          "prompt_cost": 0.0001018152,
+          "completion_cost": 9.129e-05,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 7422.593,
+        "probe": {
+          "search_calls": 1,
+          "found": {
+            "React": 5
+          }
+        },
+        "invariant": null
+      },
+      {
+        "id": "we-typescript-varias-fuentes",
+        "set": "web",
+        "agent": "web",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "## TypeScript\n\nTypeScript se presenta como \"JavaScript con sintaxis añadida para tipos\", desarrollado y mantenido por Microsoft, y su código se convierte a JavaScript que se ejecuta en cualquier entorno donde corra JavaScript (navegador, Node.js, Deno, Bun o aplicaciones propias). Entiende JavaScript y emplea inferencia de tipos para ofrecer buen tooling sin necesidad de código adicional, además de permitir describir la forma de objetos y funciones (por ejemplo con `interface`) para ver documentación y problemas directamente en el editor. Su sistema de tipos incluye tipos simples, especiales (`never`, `unknown`, `void`, `undefined`, `null`), arrays, tuplas, objetos, enums, alias e interfaces, uniones, funciones, clases, genéricos básicos, utility types, `keyof`, type guards, tipos condicionales, mapeados y literales, entre otros. La documentación cubre también temas de organización y configuración como namespaces, firmas de índice, decoradores, declaración de módulos, directivas triple-slash, compatibilidad e inferencia de tipos, y el uso con Node.js, React y otras herramientas. Por último, TSDoc es una propuesta para estandarizar los comentarios de documentación en código TypeScript, de modo que distintas herramientas (TypeDoc, DocFX, API Extractor, ESLint, VS Code o scripts propios) puedan extraer contenido sin confundirse con el marcado de las demás.\n\nNota: en esta consulta solo se proporcionaron fragmentos para TypeScript; no se indicó ninguna otra tecnología, por lo que no hay nada más que resumir.",
+          "sources": [
+            {
+              "title": "What is TSDoc? | TSDoc",
+              "url": "https://tsdoc.org",
+              "snippet": "TypeDoc: an API reference generator that extracts member documentation from code comments\n DocFX: an integrated pipeline that ingests API reference content for many different programming languages, but then applies its own Markdown renderer and custom tag parsing\n API Extractor: a build tool that tracks TypeScript API review workflows and generates \\.d.ts rollups for third-party SDKs [...] Rush StackShopBlogEvents\n\nYour Docusaurus site did not load properly.\n\nA very common reason is a wrong site baseUrl configuration.\n\nCurrent configured baseUrl = / (default value)\n\nWe suggest trying baseUrl = /\n\n# What is TSDoc?\n\nTSDoc is a proposal to standardize the doc comments used in TypeScript code, so that different tools can extract content without getting confused by each other's markup. The TSDoc notation looks pretty familiar: [...] ESLint: lint rules might look for tags such as `@virtual` or `@override`, which represent behavioral contracts to be validated\n Visual Studio Code: an editor that supports syntax highlighting and interactive refactoring for TypeScript doc comments\n Your own scripts! - Developers often create build scripts that extract documentation or bundling directives from code comments"
+            },
+            {
+              "title": "TypeScript: The starting point for learning TypeScript",
+              "url": "https://www.typescriptlang.org/docs",
+              "snippet": "TypeScript\n\nin En\n\n# TypeScript Documentation\n\n#### Get Started\n\nQuick introductions based on your background or preference.\n\n TS for the New Programmer\n TypeScript for JS Programmers\n TS for Java/C# Programmers\n TS for Functional Programmers\n TypeScript Tooling in 5 minutes\n\n#### Handbook\n\nA great first read for your daily TS work. [...] #### Cheat Sheets\n\nDownloadable syntax reference pages for different parts of everyday TypeScript code.\n\n Control Flow Analysis\n Classes\n Interfaces\n Types\n Download PDFs and PNGs\n\n## Learning Resources\n\n#### Get Started\n\n JS to TS\n New to Programming\n OOP to JS\n Functional to JS\n Installation\n\n#### Handbook\n\n Everyday Types\n Creating Types from Types\n Object Types\n Variable Declarations\n More on Functions\n\n#### Tools\n\n Playground\n TSConfig Reference\n\n#### Release Notes\n\n What's new in 7.0 [...] Utility Types\n Cheat Sheets\n Decorators\n Declaration Merging\n Enums\n Iterators and Generators\n JSX\n Mixins\n Namespaces\n Namespaces and Modules\n Symbols\n Triple-Slash Directives\n Type Compatibility\n Type Inference\n Variable Declaration\n\n#### Modules Reference\n\nHow TypeScript models JavaScript modules.\n\n Introduction\n Theory\n Guides\n + Choosing Compiler Options\n Reference\n Appendices\n + ESM/CJS Interoperability\n\n#### Tutorials\n\nUsing TypeScript in several environments."
+            },
+            {
+              "title": "Your first intro to typescript docs",
+              "url": "https://www.youtube.com/watch?v=gEIP87k75aU",
+              "snippet": "[2:20] be either using it or not and to surprise a lot of you there is even a type known as never an unknown yes these are special type given to us\n[2:29] by the typescript and i would like to walk you through with this documentation so this is a documentation which talks about the unknown and any and object and\n[2:38] void and undefined there's a lot of them and if you look at this table summary this is an abstract row what is allowed what is not allowed and strict checking [...] [1:35] are just types and just to name others there are null undefined and there is a special type known as void and there's\n[1:42] also objects and arrays and tuples and couple of more types as well which are available in the typescript language and\n[1:49] once you understand and master what are the types which are available and how to utilize them that's all the typescript that is all the typescript is all about [...] [3:10] the typescript and even all of the language are designed by different people so they're very different for all of the other but they follow some of the\n[3:18] specification that this is what the guidelines i'll follow in the documentation so this is the guideline that we'll be following through in this entire tutorial and you can see there's"
+            },
+            {
+              "title": "TypeScript Tutorial",
+              "url": "https://www.w3schools.com/typescript",
+              "snippet": "TS HOME TS Introduction TS Get Started TS Simple Types TS Explicit & Inference TS Special Types TS Arrays TS Tuples TS Object Types TS Enums TS Aliases & Interfaces TS Union Types TS Functions TS Casting TS Classes TS Basic Generics TS Utility Types TS Keyof TS Null TS Definitely Typed TS 5 Updates TS Configuration TS with Node.js TS with React TS Tooling TS Advanced Types TS Type Guards TS Conditional Types TS Mapped Types TS Type Inference TS Literal Types TS Namespaces TS Index Signatures TS [...] ## TypeScript Cert\n\nTS Certificate   \n\n## TypeScript Exercises\n\nTS Editor TS Exercises TS Quiz TS Practice Problems TS Syllabus TS Study Plan\n\n# TypeScript Tutorial\n\n❮ Home Next ❯\n\n## Learn TypeScript\n\nTypeScript is JavaScript with added syntax for types.\n\nTypeScript is developed and maintained by Microsoft.\n\nLearn TypeScript now ❯\n\n### Become TypeScript Certified\n\nGet certified with our TypeScript exam, includes a professionally curated study kit to guide you from beginner to exam-ready. [...] Menu \n\nSee More\n\nNEW   W3Schools app iOS & Android Start the adventure \n\nSign In\n\n ★ +1   Get Certified   Get Certified\n\n❮\n\n❯\n\nHTML CSS JAVASCRIPT SQL PYTHON JAVA PHP C C++ C# AWS W3.CSS HOW TO BOOTSTRAP REACT MYSQL JQUERY EXCEL XML DJANGO NUMPY PANDAS NODEJS DSA TYPESCRIPT ANGULAR ANGULARJS GIT POSTGRESQL MONGODB ASP AI R GO KOTLIN SWIFT SASS VUE GEN AI SCIPY CYBERSECURITY DATA SCIENCE INTRO TO PROGRAMMING HTML & CSS BASH RUST TOOLS\n\n## TypeScript tutorial"
+            },
+            {
+              "title": "TypeScript: JavaScript With Syntax For Types.",
+              "url": "https://www.typescriptlang.org",
+              "snippet": "TypeScript code converts to JavaScript, which runs anywhere JavaScript runs: In a browser, on Node.js, Deno, Bun and in your apps.\n\n### Safety at Scale\n\nTypeScript understands JavaScript and uses type inference to give you great tooling without additional code.\n\n## Get Started\n\nHandbook\n\nLearn the language\n\nPlayground\n\nTry in your browser\n\nDownload\n\nInstall TypeScript\n\n## Adopt TypeScript Gradually [...] Now TS has found a bad call. Arrays have slice, not trim.\n\nJavaScript with JSDoc\n\n```\n\nts\n\nfunction compact(arr: string[]) {\n\nif (arr.length > 10)\n\nreturn arr.slice(0, 10)\n\nreturn arr\n\n}\n\n```\n\nTypeScript adds natural syntax for providing types\n\nTypeScript file\n\n### Describe Your Data\n\nDescribe the shape of objects and functions in your code.\n\nMaking it possible to see documentation and issues in your editor.\n\n```\n\nts\n\ninterface Account {\n\nid: number\n\ndisplayName: string\n\nversion: 1\n\n}"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 1,
+        "usage": {
+          "calls": 1,
+          "input_tokens": 1762,
+          "output_tokens": 644,
+          "reasoning_tokens": 283,
+          "cost": 0.00091098,
+          "prompt_cost": 0.00037002,
+          "completion_cost": 0.00054096,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 4579.47,
+        "probe": {
+          "search_calls": 1,
+          "found": {
+            "TypeScript": 5
+          }
+        },
+        "invariant": null
+      },
+      {
+        "id": "we-fastapi-pydantic",
+        "set": "web",
+        "agent": "web",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "## FastAPI\n\nFastAPI es un framework web moderno y de alto rendimiento para construir APIs con Python (3.6+), basado en el uso de type hints estándar de Python. Se presenta como un microframework con la simplicidad de Flask, pero con soporte asíncrono mediante `async`/`await` para manejar múltiples peticiones de forma eficiente. Incluye validación automática de datos de entrada y salida a través de modelos Pydantic, y genera documentación interactiva de forma automática usando OpenAPI, Swagger UI y ReDoc. Crear endpoints es rápido y sencillo (por ejemplo, `app = FastAPI()` y decoradores como `@app.get(\"/\")`), y la aplicación se ejecuta típicamente con Uvicorn (`uvicorn main:app --reload`). Está orientado a productividad del desarrollador y se describe como listo para producción y escalable.\n\n## Pydantic\n\nPydantic es la biblioteca de validación de datos más utilizada en Python, y valida y serializa datos a partir de anotaciones de tipo (type hints) en Python 3.10+, lo que reduce el código necesario y mejora la integración con IDE y herramientas de análisis estático. Su lógica central de validación está escrita en Rust, lo que la hace una de las más rápidas del ecosistema, y sus modelos pueden emitir JSON Schema para integrarse con otras herramientas. Ofrece conceptos clave como `BaseModel`, la función `Field` (alias, valores por defecto y metadatos), validadores personalizados, `ValidationError` con errores claros, serialización/deserialización, campos calculados y modelos anidados. También soporta modos estricto y laxo, validación de `dataclass` y `TypedDict`, y `BaseSettings` para gestionar configuración mediante variables de entorno y archivos `.env`.",
+          "sources": [
+            {
+              "title": "Home - FastAPI Tutorial",
+              "url": "https://fastapi-tutorial.readthedocs.io",
+              "snippet": "Docs »\n Home\n\nFastAPI\n\n> FastAPI documentation: \n>\n> This tutorial app source code (GitLab repo): Please, for more comprehension access the repo  as you follow this tutorial!\n\nFastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints. [...] ## Conclusion\n\nFastAPI is an awesome asynchronous Python micro framework! With Flask-like simplicity, it is easy and fun to update your Flask RESTful API to asynchronous mode. Hope you have enjoyed!\n\n## References\n\n#### Original tutorial:\n\nHerman, Michael - Developing and Testing an Asynchronous API with FastAPI and Pytest\n\n#### Other references:\n\nFastAPI Official Documentation - \n\nUvicorn Official Documentation - \n\nStarlette Official Documentation - \n\nPydantic Official Documentation - [...] 1. Develop an asynchronous RESTful API with Python and FastAPI\n2. Practice Test-Driven Development\n3. Test a FastAPI app with Pytest\n4. Interact with a Postgres database asynchronously\n5. Containerize FastAPI and Postgres inside a Docker container\n6. Parameterize test functions and mock functionality in tests with Pytest\n7. Document a RESTful API with Swagger/OpenAPI\n\n### Project Setup\n\nCreate the following structure:"
+            },
+            {
+              "title": "FastAPI - FastAPI",
+              "url": "https://fastapi.tiangolo.com",
+              "snippet": "FastAPI\n\nFastAPI framework, high performance, easy to learn, fast to code, ready for production\n\nTest   Coverage   Package version   Supported Python versions\n\nDocumentation: \n\nSource Code: \n\nFastAPI is a modern, fast (high-performance), web framework for building APIs with Python based on standard Python type hints.\n\nThe key features are: [...] \"If anyone is looking to build a production Python API, I would highly recommend FastAPI. It is beautifully designed, simple to use and highly scalable, it has become a key component in our API first development strategy and is driving many automations and services such as our Virtual TAC Engineer.\"\n\nDeon Pillsbury - Cisco (ref)\n\n## FastAPI mini documentary¶\n\nThere's a FastAPI mini documentary released at the end of 2025, you can watch it online:\n\n## Typer, the FastAPI of CLIs¶ [...] Skip to content\n\nFastAPI Conf '26 October 28, 2026 Amsterdam, NL All about FastAPI, right from the source. Learn more →\n\n Sponsors \n\n  + Keystone Sponsor\n  + Gold Sponsors\n  + Silver Sponsors\n Opinions\n FastAPI mini documentary\n Typer, the FastAPI of CLIs\n Requirements\n Installation\n Example \n\n  + Create it\n  + Run it\n  + Check it\n  + Interactive API docs\n  + Alternative API docs\n Example upgrade"
+            },
+            {
+              "title": "An Introduction to Using FastAPI | Refine",
+              "url": "https://refine.dev/blog/introduction-to-fast-api",
+              "snippet": "Automatic Documentation: By requiring the explicit definition of various FastAPI components, Pydantic's integration has allowed FastAPI to be able to generate its API documentation automatically. FastAPI provides Swagger API documentation.\n Ease-of-use: FastAPI is a Python framework, so the benefits of using Python are inherited. Not only that, FastAPI makes creating your server and building endpoints simple and quick. [...] ## Conclusion​\n\nCongratulations on making it this far! By now, you should have gained valuable insight into using FastAPI to build your backend application. FastAPI is an exceptional, user-friendly, and highly effective API development tool. It provides the flexibility associated with a microframework and delivers exceptional performance, making it an excellent choice for your API development requirements.\n\n## Resources​\n\n FastAPI documentation\n Starlette documentation\n Pydantic documentation [...] FastAPI, on the other hand, prioritizes developer productivity and ease of use. It has a simple and intuitive API design, as well as clear documentation and extensive examples. It also comes with some pre-built tools, such as auto-documentation generation.\n\n## Getting Started​\n\nWith FastAPI, you can easily set up a project in a few steps. Firstly, like any other Python project, you'll need to set up your virtual environment. After that, you’ll need to install the packages, FastAPI and Uvicorn."
+            },
+            {
+              "title": "Introduction to FastAPI - GeeksforGeeks",
+              "url": "https://www.geeksforgeeks.org/python/introduction-to-fastapi",
+              "snippet": "Automatic Documentation: Generates interactive API documentation automatically using OpenAPI and Swagger UI.\n Python Type Hints: Uses Python type hints to improve code readability and simplify API development.\n Data Validation: Validates request and response data automatically using Pydantic models.\n Asynchronous Support: Supports async and await for handling multiple requests efficiently. [...] Python  ````\n from fastapi import FastAPI app = FastAPI() @app. get(\"/\") def read_root(): return{\"message\":\"Hello, FastAPI!\"}\n```` \n\nRun the application using:\n\n> uvicorn main:app --reload\n\nAfter the server starts, open the following URL in your browser: \n\nScreenshot-2026-06-20-102622\n\nOutput\n\nExplanation:\n\n FastAPI() creates the FastAPI application.\n @app.get(\"/\") defines a GET endpoint for the root URL.\n read\\_root() returns a JSON response containing a message. [...] ### Example 2: Creating a POST API\n\nIn this example, a POST endpoint accepts a name and returns a personalized greeting message.\n\n Python  ````\n from fastapi import FastAPI app = FastAPI() @app. post(\"/greet\") def greet_user(name: str): return{\"message\": f\"Hello, {name}!\"}\n````\n\nRun the application and open the interactive API documentation: \n\n### Test the POST Endpoint\n\n1. Expand the POST /greet endpoint and click Try it out.\n\nScreenshot-2026-06-20-103320\n\nPOST endpoint"
+            },
+            {
+              "title": "FastAPI Tutorial for Beginners #2 | API Documentation with Swagger UI & ReDoc",
+              "url": "https://www.youtube.com/watch?v=fFjGJ_B0FF4&vl=en-US",
+              "snippet": "# FastAPI Tutorial for Beginners #2 | API Documentation with Swagger UI & ReDoc\n## Channel: Stats Wire\n15.2K subscribers\n8 likes\n\n### Description\n387 views\nPosted: 2026-05-13\nIn this FastAPI tutorial for beginners, we explore FastAPI’s automatic API documentation.\n\nFastAPI automatically generates interactive API docs for every endpoint we create, making it easy to test and understand our APIs. [...] [4:44] information. So both swagger UI and redoc are generated automatically from our fast API application. We only write\n[4:51] our API code. Fast API handles the documentation for us. And this becomes very useful when our application grows\n[4:58] and we have many endpoints. It also help us or helps other developers understand and test our API easily. That's it for this video. [...] [4:15] documentation. Now this is the get method that we have. The response is 200 that is successful.\n[4:24] And we have only one endpoint shipment.\n[4:28] The method is get. And here you can see this endpoint the status code is 200. And then the content type is JSON.\n[4:37] Here we can uh still see our shipment at point. We can see the request type, the URL and the expected response"
+            },
+            {
+              "title": "[PDF] Introduction to the Python Library Pydantic - SUSE Documentation",
+              "url": "https://documentation.suse.com/sbp/devel-tools/pdf/SBP-pydantic_en.pdf",
+              "snippet": "Whether you are handling user input, API responses, or configuration les, Pydantic ensures your application receives data in the correct format. If the data does not match the defined schema, Pydantic raises clear and informative validation errors. This helps reduce the debugging time and improves code reliability. [...] This typically means converting a model to a dictionary (dictdict) or a JSON string (str).\nPydantic also handles deserialization, which converts raw input data into structured model in-stances.\nPydantic supports two key directions in serialization, which are detailed below. [...] 2 Introduction to the Python Library Pydantic Contents 1 Introduction 4 2 The role of BaseModel 5 3 Understanding Field function 7 4 Using Annotated for cleaner type deﬁnitions 9 5 Using validators and ValidationError in Pydantic 10 6 Dumping model data in Pydantic 14 7 Understanding computed ﬁelds in Pydantic 15 8 Working with nested models in Pydantic 17 9 Understanding serialization in Pydantic 21 10 FAQs 23 11 Legal notice 25 12 GNU Free Documentation License 26 3 Introduction to the Python"
+            },
+            {
+              "title": "Pydantic Validation | Pydantic Docs",
+              "url": "https://pydantic.dev/docs/validation/latest/get-started",
+              "snippet": "Skip to content\n\n/  Docs Pydantic Docs\n\n# Pydantic Validation\n\nDocumentation for version: v2.14.1.\n\nPydantic is the most widely used data validation library for Python.\n\nFast and extensible, Pydantic plays nicely with your linters/IDE/brain. Define how data should be in pure, canonical Python 3.10+; validate it with Pydantic.\n\nSign up for our newsletter, The Pydantic Stack, with updates & tutorials on Pydantic, Logfire, and Pydantic AI:\n\n## Why use Pydantic? [...] Powered by type hints — with Pydantic, schema validation and serialization are controlled by type annotations; less to learn, less code to write, and integration with your IDE and static analysis tools. Learn more…\n Speed — Pydantic’s core validation logic is written in Rust. As a result, Pydantic is among the fastest data validation libraries for Python. Learn more…\n JSON Schema — Pydantic models can emit JSON Schema, allowing for easy integration with other tools. Learn more… [...] Strict and Lax mode — Pydantic can run in either strict mode (where data is not converted) or lax mode where Pydantic tries to coerce data to the correct type where appropriate. Learn more…\n Dataclasses, TypedDicts and more — Pydantic supports validation of many standard library types including `dataclass` and `TypedDict`. Learn more…\n Customisation — Pydantic allows custom validators and serializers to alter how data is processed in many powerful ways. Learn more…"
+            },
+            {
+              "title": "GitHub - pydantic/pydantic: Data validation using Python type hints · GitHub",
+              "url": "https://github.com/pydantic/PYDANTIC",
+              "snippet": "If you're using Pydantic V1 you may want to look at the pydantic V1.10 Documentation or, `1.10.X-fixes` git branch. Pydantic V2 also ships with the latest version of Pydantic V1 built in so that you can incrementally upgrade your code base and projects: `from pydantic import v1 as pydantic_v1`.\n\nSee documentation for more details. [...] | .pre-commit-config.yaml | .pre-commit-config.yaml |  |  |\n| .yamlfmt.yaml | .yamlfmt.yaml |  |  |\n| CITATION.cff | CITATION.cff |  |  |\n| CONTRIBUTING.md | CONTRIBUTING.md |  |  |\n| HISTORY.md | HISTORY.md |  |  |\n| LICENSE | LICENSE |  |  |\n| Makefile | Makefile |  |  |\n| README.md | README.md |  |  |\n| build-docs.sh | build-docs.sh |  |  |\n| mkdocs.yml | mkdocs.yml |  |  |\n| pyproject.toml | pyproject.toml |  |  |\n| update\\_v1.sh | update\\_v1.sh |  |  |\n| uv.lock | uv.lock |  |  |\n|  | [...] | Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .agents/skills/pydantic | .agents/skills/pydantic |  |  |\n| .github | .github |  |  |\n| .hyperlint | .hyperlint |  |  |\n| docs | docs |  |  |\n| pydantic-core | pydantic-core |  |  |\n| pydantic | pydantic |  |  |\n| release | release |  |  |\n| tests | tests |  |  |\n| .git-blame-ignore-revs | .git-blame-ignore-revs |  |  |\n| .gitignore | .gitignore |  |  |\n| .markdownlint.yaml | .markdownlint.yaml |  |  |"
+            },
+            {
+              "title": "Pydantic Docs - Validation, AI Agents, Logfire Observability",
+              "url": "https://pydantic.dev/docs",
+              "snippet": "Skip to content\n\n/  Docs Pydantic Docs\n\n# Pydantic Docs\n\nPydantic is the end-to-end AI Engineering stack. Validate untrusted data and build agents you’ll actually ship to production using our Python libraries. Observe, govern, and optimize agents written in any language or framework once they’re live.\n\n## AI Engineering\n\nBuild, run, and improve production AI systems."
+            },
+            {
+              "title": "Introduction to Python Pydantic Library - GeeksforGeeks",
+              "url": "https://www.geeksforgeeks.org/python/introduction-to-python-pydantic-library",
+              "snippet": "Pydantic allows you to set aliases, default values and metadata for fields. This is useful when your external data uses different field names or when you want to provide descriptive information for documentation. [...] Pydantic provides BaseSettings to manage configuration via environment variables, .env files and other sources. This is useful for real-world apps where settings may change between environments. [...] The Pydantic library in Python is used for data validation and data parsing using Python type hints. It ensures that data structures like classes, dictionaries or API inputs contain valid and correctly typed data before being processed. Pydantic automatically converts and validates incoming data, helping developers write cleaner, more reliable code.\n\n### Key Features"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 1,
+        "usage": {
+          "calls": 1,
+          "input_tokens": 3302,
+          "output_tokens": 650,
+          "reasoning_tokens": 225,
+          "cost": 0.0017706,
+          "prompt_cost": 0.0009906,
+          "completion_cost": 0.00078,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 5197.357,
+        "probe": {
+          "search_calls": 2,
+          "found": {
+            "FastAPI": 5,
+            "Pydantic": 5
+          }
+        },
+        "invariant": null
+      },
+      {
+        "id": "we-sin-fuentes",
+        "set": "web",
+        "agent": "web",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "## React\n\nReact es una biblioteca para construir interfaces de usuario web y nativas, pensada para una adopción gradual: se puede usar tanto o tan poco como se necesite, ya sea añadiéndola a un proyecto existente o creando una app nueva. Sus conceptos centrales giran en torno a la creación y anidación de **componentes**, el uso de **JSX** para mezclar marcado con JavaScript, y la incorporación de estilos y visualización de datos. La documentación de aprendizaje cubre cómo mostrar datos, renderizar condiciones y listas, responder a eventos y actualizar la pantalla, y compartir datos entre componentes mediante props y estado (incluyendo ejemplos como `value`/`onChange` y paso de props a componentes hijos). La referencia técnica se organiza en secciones como `react`, `react-dom` (cliente, servidor, static), el **React Compiler** (herramienta de optimización en tiempo de compilación que memoiza componentes y valores), el plugin ESLint de hooks, las **Rules of React** y APIs heredadas. El material también menciona materiales de apoyo como Quick Start, Tutorial, Thinking in React, Installation y Advanced Guides, además de una comunidad de millones de desarrolladores que consultan los docs cada mes.\n\n## TecnologiaInventadaXyz\n\nNo hay fragmentos que describan la tecnología \"TecnologiaInventadaXyz\" ni sus conceptos clave. Los fragmentos recuperados mencionan entidades distintas y no relacionadas entre sí —una empresa de realidad aumentada para construcción (XYZ Reality), un estudio de desarrollo de software (Company XYZ) y una empresa de diseño audiovisual e iluminación (XYZ Technologies)—, además de artículos genéricos sobre inventos tecnológicos (Bluetooth, blockchain, máquina de vapor). Por tanto, no es posible elaborar un resumen de esa supuesta tecnología sin inventar contenido; si se desea material sobre ella, habría que proporcionar fragmentos que realmente la describan.",
+          "sources": [
+            {
+              "title": "React Documentation Walkthrough: Learn React the Right Way (Beginner to Advanced)",
+              "url": "https://www.youtube.com/watch?v=CEVvtF-XxNs",
+              "snippet": "We'll cover Main Concepts, Hooks, APIs, Advanced Guides, and share tips to learn React faster and more effectively using the official documentation.\n\n✅ Perfect for self-learners\n✅ Helps prepare for React interviews\n✅ Saves hours of Googling React concepts\n\n📌 Subscribe for more web dev content\n📘 React Docs: \n\n#ReactJS #LearnReact #ReactTutorial #WebDevelopment #FrontendDev #ReactDocumentation #JavaScript #ReactHooks #ReactDev #CodingForBeginners #TechTutorial #React2025 [...] # React Documentation Walkthrough: Learn React the Right Way (Beginner to Advanced)\n## Channel: Njoku Samson Ebere\n1.27K subscribers\n12 likes\n\n### Description\n832 views\nPosted: 2025-05-16\nAre you confused by the official React documentation? In this video, we walk you through the React docs step-by-step and show you how to get the most out of it, whether you're a beginner just starting out or an experienced developer brushing up on modern React practices. [...] [0:16] can go to or you need to go to one is the L react and the other one is the API reference this is the documentation uh it's not so much um it gives you everything you need to know this is just\n[0:25] the homepage where you introduced to a bunch of stuff all right so learn Rea is the first place I I think you should go if you just starting now so we'll just\n[0:32] go there and here's a quick start that helps you to really get started um with um components States GSX Styles and many"
+            },
+            {
+              "title": "Quick Start – React",
+              "url": "https://react.dev/learn",
+              "snippet": "Learn React\n\n# Quick Start\n\nWelcome to the React documentation! This page will give you an introduction to 80% of the React concepts that you will use on a daily basis.\n\n### You will learn\n\n How to create and nest components\n How to add markup and styles\n How to display data\n How to render conditions and lists\n How to respond to events and update the screen\n How to share data between components\n\n## Creating and nesting components [...] }\n\n```\n\nReact does not prescribe how you add CSS files. In the simplest case, you’ll add a  tag to your HTML. If you use a build tool or a framework, consult its documentation to learn how to add a CSS file to your project.\n\n## Displaying data\n\nJSX lets you put markup into JavaScript. Curly braces let you “escape back” into JavaScript so that you can embed some variable from your code and display it to the user. For example, this will display `user.name`:\n\n```\n\nreturn (\n\n<h1>\n\n{user.name}\n\nh1>"
+            },
+            {
+              "title": "React Reference Overview – React",
+              "url": "https://react.dev/reference/react",
+              "snippet": "logo by @sawaratsuki1004\n\n### react@19.3\n\n### react-dom@19.3\n\n### React Compiler\n\n### React DevTools\n\n### eslint-plugin-react-hooks\n\n### Rules of React\n\n### React Server Components\n\n### Legacy APIs\n\n# React Reference Overview\n\nThis section provides detailed reference documentation for working with React. For an introduction to React, please visit the Learn section.\n\nThe React reference documentation is broken down into functional subsections:\n\n## React\n\nProgrammatic React features:\n\n## React DOM [...] ## React DOM\n\nReact DOM contains features that are only supported for web applications (which run in the browser DOM environment). This section is broken into the following:\n\n`react-dom`\n`react-dom/client`\n`react-dom/server`\n`react-dom/static`\n\n## React Compiler\n\nThe React Compiler is a build-time optimization tool that automatically memoizes your React components and values:\n\n## ESLint Plugin React Hooks\n\nThe ESLint plugin for React Hooks helps enforce the Rules of React:\n\n## Rules of React [...] ## Rules of React\n\nReact has idioms — or rules — for how to express patterns in a way that is easy to understand and yields high-quality applications:\n\n## Legacy APIs\n\n`react`\n\n## On this page"
+            },
+            {
+              "title": "GitHub - react/react: The library for web and native user interfaces. · GitHub",
+              "url": "https://github.com/react/react",
+              "snippet": "Check out the Getting Started page for a quick overview.\n\nThe documentation is divided into several sections:\n\n Quick Start\n Tutorial\n Thinking in React\n Installation\n Describing the UI\n Adding Interactivity\n Managing State\n Advanced Guides\n API Reference\n Where to Get Support\n Contributing Guide\n\nYou can improve it by sending pull requests to this repository.\n\nWe have several examples on the website. Here is the first one to get you started: [...] Learn how to use React in your project.\n\n## Installation\n\nReact has been designed for gradual adoption from the start, and you can use as little or as much React as you need:\n\n Use Quick Start to get a taste of React.\n Add React to an Existing Project to use as little or as much React as you need.\n Create a New React App if you're looking for a powerful JavaScript toolchain.\n\n## Documentation\n\nYou can find the React documentation on the website. [...] | README.md | README.md |  |  |\n| ReactVersions.js | ReactVersions.js |  |  |\n| SECURITY.md | SECURITY.md |  |  |\n| babel.config-react-compiler.js | babel.config-react-compiler.js |  |  |\n| babel.config-ts.js | babel.config-ts.js |  |  |\n| babel.config.js | babel.config.js |  |  |\n| flow-typed.config.json | flow-typed.config.json |  |  |\n| package.json | package.json |  |  |\n| react.code-workspace | react.code-workspace |  |  |\n| yarn.lock | yarn.lock |  |  |\n|  |"
+            },
+            {
+              "title": "React",
+              "url": "https://react.dev",
+              "snippet": "value={searchText}\n\nonChange={newText => setSearchText(newText)} />\n\n<VideoList\n\nvideos={foundVideos}\n\nemptyHeading={`No matches for “${searchText}”`} />\n\n>\n\n);\n\n}\n\n```\n\nexample.com/videos.html\n\n# React Videos\n\nA brief history of React\n\n## 5 Videos\n\n### React: The Documentary\n\nThe origin story of React\n\n### Rethinking Best Practices\n\nPete Hunt (2013)\n\n### Introducing React Native\n\nTom Occhino (2015)\n\n### Introducing React Hooks\n\nSophie Alpert and Dan Abramov (2018) [...] Shaundai Person\n\nReact Conf### The First React Working Group\n\nAakansha Doshi\n\nReact Conf### React Developer Tooling\n\nBrian Vaughn\n\nReact Conf### React without memo\n\nXuan Huang (黄玄)\n\nReact Conf### React Docs Keynote\n\nRachel Nabors\n\nReact Conf### Things I Learnt from the New React Docs\n\nDebbie O'Brien\n\nReact Conf### Learning in the Browser\n\nSarah Rainsberger\n\nReact Conf### The ROI of Designing with React\n\nLinton Ye\n\nReact Conf### Interactive Playgrounds with React\n\nDelba de Oliveira [...] December 3, 2025\n\nRead more React news\n\n## Join a community of millions\n\nYou’re not alone. Two million developers from all over the world visit the React docs every month. React is something that people and teams can agree on.\n\nPeople singing karaoke at React Conf\n\nSunil Pai speaking at React India\n\nA hallway conversation between two people at React Conf\n\nA hallway conversation at React India\n\nElizabet Oliveira speaking at React Conf\n\nPeople taking a group selfie at React India"
+            },
+            {
+              "title": "XYZ Reality aporta precisión y tecnología al sector de la construcción",
+              "url": "https://www.wipo.int/es/web/wipo-magazine/articles/xyz-reality-brings-precision-and-technology-to-construction-sites-63271",
+              "snippet": "Los fundadores de XYZ Reality, Umar Ahmed y David Mitchell, han figurado en TechCrunch, Telegraph, FT y otras publicaciones notables, al tiempo que han recibido galardones por su invención, como el Forbes 30 Under 30. La empresa sigue patentando su tecnología fuera del Reino Unido como parte de su expansión mundial. [...] Consciente de la importante repercusión que su invención puede tener en el futuro de la construcción, XYZ Reality solicitó rápidamente la protección de su invención mediante la propiedad intelectual (PI) presentando una solicitud de patente en el Reino Unido. [...] Compartir\n\nLa posibilidad de imaginar objetos sencillos sobre el papel y proyectarlos en la vida real es fundamental para toda persona que se dedique a la ingeniería. Gracias a la tecnología desarrollada por la empresa británica XYZ Reality Limited (XYZ Reality), ahora los ingenieros pueden utilizar la realidad aumentada para visualizar modelos 3D de estructuras complejas, como un edificio entero."
+            },
+            {
+              "title": "Sobre nosotros > Company XYZ",
+              "url": "https://companyxyz.io/es/about",
+              "snippet": "Company XYZ es un estudio independiente galardonado que desarrolla software moderno en la intersección del comercio, la tecnología y el diseño. Durante más de 15 años, hemos lanzado cientos de proyectos de comercio electrónico, medios de comunicación, plataformas empresariales y tecnologías emergentes.\n\nNos apasionan la calidad, el refinamiento y los detalles minimalistas — así como el meticuloso acabado que exigirías si lo hubieras creado tú mismo. Creamos cada producto como si fuera nuestro. [...] Fondo de marca de soporte y atención\n\nNuestro equipo se enorgullece de su trabajo y de ofrecer un soporte excepcional. Este sitio web y la documentación seguirán creciendo, con referencias útiles, guías de uso, preguntas frecuentes y más consejos profesionales. Continuaremos mejorando este sitio tanto como podamos mientras nuestra empresa sigue creciendo. [...] Fondo de marca de quiénes somos\n\n## Quiénes somos\n\nFondo de marca de lo que hacemos\n\n## Lo que hacemos\n\nFondo de marca del producto Align\n\nCreamos tanto para comerciantes independientes como para equipos globales, y próximamente ofreceremos más software, utilidades y herramientas modernos, personalizados y de nivel empresarial. En este sitio lo lanzaremos todo, con guías de uso, ejemplos, vídeos y documentación elaborada para acompañarlo."
+            },
+            {
+              "title": "XYZ Technologies | Audiovisual - Iluminación arquitectónica - Experiencias",
+              "url": "https://xyztechnologies.com/es",
+              "snippet": "Technologie culturelle\nvideo fallback\n\nELEMENTS OF BURJ KHALIFA\n\nvideo fallback\n\nPASARELA SUSPENDIDA – COATICOOK\n\nvideo fallback\n\nPALAVA 9D\n\nvideo fallback\n\nSALA MAURICE O'BREADY\n\nvideo fallback\n\nURA, LA CELEBRACIÓN DEL AGUA\n\n# XYZ Technologies se especializa en diseño audiovisual y experiencial, ofreciendo una gama completa de soluciones tecnológicas y artísticas. [...] Nuestros expertos trabajan incansablemente para responder a las necesidades de nuestros socios. Nuestro compromiso con la excelencia se ve impulsado por nuestros continuos desarrollos, y cada mandato ayuda a crear entornos estimulantes que inspiran y atraen.  \n\nNuestra misión es hacer realidad sus ideas simplificando la tecnología para proyectos impulsados por la creatividad y la innovación. [...] Colaboramos contigo para convertir tus ideas en realidad. Nuestro enfoque está diseñado para orientarte hacia un uso simplificado de la tecnología.\n\n## Nuestras áreas de especialización\n\nXYZ\n\n### Audiovisual\n\nContamos con sistemas de sonido de alta tecnología y equipos de audio adaptados a su lugar de difusión.\n\narrow right\n\n### Iluminación arquitectónica\n\nSomos expertos para resaltar la arquitectura por medio de la iluminación dinámica.\n\narrow right\n\n### Experiencias"
+            },
+            {
+              "title": "20 inventos tecnológicos que cambiaron la historia",
+              "url": "https://www.docusign.com/es-mx/blog/inventos-tecnologicos",
+              "snippet": "### 15. Bluetooth\n\nA raíz de la necesidad de practicidad para las empresas que querían prescindir de los cables para conectar teléfonos a otros dispositivos, se publicó la primera versión del Bluetooth en 1999.\n\nCuriosamente, su nombre se propuso en honor a Harald Blåtand (Bluetooth, por su traducción al inglés), el rey de Dinamarca y Noruega. Quien, gracias a su fama de buen comunicador, logró la unificación de las tribus vikingas bajo el cristianismo en el siglo X.\n\n### 16. Firma electrónica [...] ### 20. Blockchain\n\nDesarrollado en 2009 como la tecnología implícita al Bitcoin, la blockchain es un registro descentralizado e inmutable de transacciones electrónicas. En él, a través de una multitud de validaciones, los datos se almacenan y se vuelven inmodificables.\n\nSu aplicación va más allá de las criptomonedas, ya que su sistema lo vuelve perfectamente útil para el uso de contratos inteligentes, votación electrónica, trazabilidad en la cadena de suministro, entre otros. [...] Un invento tecnológico es una creación que utiliza el conocimiento científico y la destreza ingenieril para mejorar, simplificar o transformar aspectos de la vida humana. Representando así un progreso en el desarrollo de la misma.\n\nEstas invenciones pueden abarcar desde dispositivos sencillos hasta complejas soluciones tecnológicas, las cuales no están predispuestas para una única área. Por el contrario, pueden nacer en cualquier sector del mercado o, incluso, crear uno nuevo."
+            },
+            {
+              "title": "9 inventos tecnológicos que han cambiado el mundo - Telefónica",
+              "url": "https://www.telefonica.com/es/sala-comunicacion/blog/9-inventos-tecnologicos-cambiado-mundo",
+              "snippet": "La máquina de vapor inventada por el ingeniero escocés James Watt (en 1775) revolucionó el transporte y la maquinaria en el siglo XIX e impulsó la Primera Revolución Industrial, pasando rápidamente de una economía basada en la agricultura y el comercio a otra industrializada con mucha más capacidad de producción. Gracias a este invento tecnológico surgen las locomotoras, los barcos de vapor e incluso los primeros automóviles. Y se allana el camino para la aparición de varios tipos de motores de"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 1,
+        "usage": {
+          "calls": 1,
+          "input_tokens": 3433,
+          "output_tokens": 791,
+          "reasoning_tokens": 363,
+          "cost": 0.000300369876,
+          "prompt_cost": 0.000130463076,
+          "completion_cost": 0.0001699068,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 9308.551,
+        "probe": {
+          "search_calls": 2,
+          "found": {
+            "React": 5,
+            "TecnologiaInventadaXyz": 5
+          }
+        },
+        "invariant": null
+      },
+      {
+        "id": "we-presupuesto-de-busquedas",
+        "set": "web",
+        "agent": "web",
+        "outcome": "ok",
+        "error": null,
+        "error_kind": null,
+        "result": {
+          "summary": "## React\n\nReact es una biblioteca para construir interfaces de usuario web y nativas, y su documentación se divide en secciones como Quick Start, Tutorial, Thinking in React, Installation, Describing the UI, Adding Interactivity, Managing State, Guías avanzadas y Referencia de API. Los conceptos centrales incluyen la creación y anidación de componentes, el uso de JSX para insertar marcado en JavaScript, la visualización de datos con llaves, el renderizado condicional y de listas, la respuesta a eventos y la actualización de la pantalla, además de compartir datos entre componentes. La referencia cubre características programáticas de `react`, `react-dom` (con `react-dom/client`, `react-dom/server`, `react-dom/static`), el React Compiler como herramienta de optimización en tiempo de compilación, React DevTools, el plugin de ESLint para Hooks, las Reglas de React, React Server Components y APIs heredadas. React está diseñado para adopción gradual, permitiendo usarlo tanto en proyectos existentes como en aplicaciones nuevas, y en sus ejemplos aparecen elementos como estados de búsqueda, listas de videos, Hooks y eventos de entrada.\n\n## FastAPI\n\nFastAPI es un framework web moderno y de alto rendimiento para construir APIs con Python, basado en las anotaciones de tipo estándar del lenguaje, descrito como fácil de aprender, rápido de codificar y listo para producción. Entre sus características clave están la validación automática de datos de petición y respuesta mediante modelos de Pydantic, el soporte de `async`/`await` para manejar múltiples peticiones eficientemente y la generación automática de documentación interactiva con OpenAPI, Swagger UI y ReDoc. Se presenta como un microframework con simplicidad similar a Flask, útil para migrar APIs RESTful a modo asíncrono, y suele ejecutarse con Uvicorn. Un ejemplo típico define `app = FastAPI()`, decoradores como `@app.get(\"/\")` o `@app.post(\"/greet\")` para los endpoints, y devuelve respuestas JSON; también se integra con bases de datos como PostgreSQL y con pruebas mediante Pytest.\n\n## Pydantic\n\nPydantic es la biblioteca de validación de datos más utilizada en Python, y permite definir cómo deben ser los datos en Python canónico usando anotaciones de tipo, validándolos con la propia librería. Su lógica central de validación está escrita en Rust, lo que la hace una de las librerías de validación más rápidas, y emite errores de validación claros cuando los datos no coinciden con el esquema definido. Sus conceptos incluyen `BaseModel`, la función `Field` para valores por defecto, alias y metadatos, `Annotated` para definiciones más limpias, validadores personalizados y `ValidationError`, campos computados y modelos anidados. También cubre la serialización y deserialización (a `dict` o JSON), la emisión de JSON Schema para integración con otras herramientas, los modos estricto y lax, el soporte de dataclasses y `TypedDict`, y `BaseSettings` para gestionar configuración mediante variables de entorno y archivos `.env`.\n\n## PostgreSQL\n\nPostgreSQL es un potente sistema de bases de datos objeto-relacional de código abierto que usa y extiende el lenguaje SQL, junto con numerosas características para almacenar y escalar de forma segura cargas de trabajo de datos complejas. Sus orígenes se remontan a 1986, como parte del proyecto POSTGRES en la Universidad de California en Berkeley, con casi 40 años de desarrollo activo sobre la plataforma. Se ha demostrado altamente escalable tanto en la cantidad de datos que puede gestionar como en el número de usuarios concurrentes, y se ha convertido en la base de datos relacional de código abierto preferida por muchas personas y organizaciones. Su tutorial abarca desde la instalación en Windows, Linux y macOS, la conexión mediante la herramienta `psql`, la carga de una base de datos de ejemplo, hasta consultas básicas (selección, ordenación y filtrado) y la gestión de tablas. Existen además ofertas gestionadas, como IBM Cloud Databases for PostgreSQL, con integración nativa en la nube, herramientas de infraestructura como código (Terraform, Ansible) y soporte mejorado de JSON.\n\n## Angular\n\nAngular es un framework web, mantenido por un equipo dedicado en Google, que ofrece un amplio conjunto de herramientas, APIs y librerías para simplificar el flujo de trabajo de desarrollo y construir aplicaciones rápidas y fiables que escalan con el tamaño del equipo y del código. Está construido enteramente en TypeScript y lo usa como lenguaje principal, por lo que su documentación trata TypeScript como ciudadano de primera clase. Sus conceptos incluyen componentes (con anatómica detallada: selectores, estilos, propiedades de entrada, eventos de salida, proyección de contenido con `ng-content`, elementos host, ciclo de vida y consultas), enlaces de datos, directivas, formularios, enrutador, servicios e inyección de dependencias, cliente HTTP, pipes y Hooks de ciclo de vida. Los ejemplos modernos emplean componentes standalone, control de flujo moderno y el Router y HttpClient integrados, y el ecosistema extendido abarca NgModules, Angular Material, Angular CDK, Angular CLI y Web Workers. La documentación también describe las prácticas de versionado y releases, la compatibilidad hacia atrás y el proceso de deprecación de APIs.\n\n## TypeScript\n\nNo se encontraron fragmentos de búsqueda para esta tecnología, por lo que no se incluye resumen.\n\n## Docker\n\nNo se encontraron fragmentos de búsqueda para esta tecnología, por lo que no se incluye resumen.",
+          "sources": [
+            {
+              "title": "React Documentation Walkthrough: Learn React the Right Way (Beginner to Advanced)",
+              "url": "https://www.youtube.com/watch?v=CEVvtF-XxNs",
+              "snippet": "We'll cover Main Concepts, Hooks, APIs, Advanced Guides, and share tips to learn React faster and more effectively using the official documentation.\n\n✅ Perfect for self-learners\n✅ Helps prepare for React interviews\n✅ Saves hours of Googling React concepts\n\n📌 Subscribe for more web dev content\n📘 React Docs: \n\n#ReactJS #LearnReact #ReactTutorial #WebDevelopment #FrontendDev #ReactDocumentation #JavaScript #ReactHooks #ReactDev #CodingForBeginners #TechTutorial #React2025 [...] # React Documentation Walkthrough: Learn React the Right Way (Beginner to Advanced)\n## Channel: Njoku Samson Ebere\n1.27K subscribers\n12 likes\n\n### Description\n832 views\nPosted: 2025-05-16\nAre you confused by the official React documentation? In this video, we walk you through the React docs step-by-step and show you how to get the most out of it, whether you're a beginner just starting out or an experienced developer brushing up on modern React practices. [...] [0:16] can go to or you need to go to one is the L react and the other one is the API reference this is the documentation uh it's not so much um it gives you everything you need to know this is just\n[0:25] the homepage where you introduced to a bunch of stuff all right so learn Rea is the first place I I think you should go if you just starting now so we'll just\n[0:32] go there and here's a quick start that helps you to really get started um with um components States GSX Styles and many"
+            },
+            {
+              "title": "Quick Start – React",
+              "url": "https://react.dev/learn",
+              "snippet": "Learn React\n\n# Quick Start\n\nWelcome to the React documentation! This page will give you an introduction to 80% of the React concepts that you will use on a daily basis.\n\n### You will learn\n\n How to create and nest components\n How to add markup and styles\n How to display data\n How to render conditions and lists\n How to respond to events and update the screen\n How to share data between components\n\n## Creating and nesting components [...] }\n\n```\n\nReact does not prescribe how you add CSS files. In the simplest case, you’ll add a  tag to your HTML. If you use a build tool or a framework, consult its documentation to learn how to add a CSS file to your project.\n\n## Displaying data\n\nJSX lets you put markup into JavaScript. Curly braces let you “escape back” into JavaScript so that you can embed some variable from your code and display it to the user. For example, this will display `user.name`:\n\n```\n\nreturn (\n\n<h1>\n\n{user.name}\n\nh1>"
+            },
+            {
+              "title": "React Reference Overview – React",
+              "url": "https://react.dev/reference/react",
+              "snippet": "logo by @sawaratsuki1004\n\n### react@19.3\n\n### react-dom@19.3\n\n### React Compiler\n\n### React DevTools\n\n### eslint-plugin-react-hooks\n\n### Rules of React\n\n### React Server Components\n\n### Legacy APIs\n\n# React Reference Overview\n\nThis section provides detailed reference documentation for working with React. For an introduction to React, please visit the Learn section.\n\nThe React reference documentation is broken down into functional subsections:\n\n## React\n\nProgrammatic React features:\n\n## React DOM [...] ## React DOM\n\nReact DOM contains features that are only supported for web applications (which run in the browser DOM environment). This section is broken into the following:\n\n`react-dom`\n`react-dom/client`\n`react-dom/server`\n`react-dom/static`\n\n## React Compiler\n\nThe React Compiler is a build-time optimization tool that automatically memoizes your React components and values:\n\n## ESLint Plugin React Hooks\n\nThe ESLint plugin for React Hooks helps enforce the Rules of React:\n\n## Rules of React [...] ## Rules of React\n\nReact has idioms — or rules — for how to express patterns in a way that is easy to understand and yields high-quality applications:\n\n## Legacy APIs\n\n`react`\n\n## On this page"
+            },
+            {
+              "title": "GitHub - react/react: The library for web and native user interfaces. · GitHub",
+              "url": "https://github.com/react/react",
+              "snippet": "Check out the Getting Started page for a quick overview.\n\nThe documentation is divided into several sections:\n\n Quick Start\n Tutorial\n Thinking in React\n Installation\n Describing the UI\n Adding Interactivity\n Managing State\n Advanced Guides\n API Reference\n Where to Get Support\n Contributing Guide\n\nYou can improve it by sending pull requests to this repository.\n\nWe have several examples on the website. Here is the first one to get you started: [...] Learn how to use React in your project.\n\n## Installation\n\nReact has been designed for gradual adoption from the start, and you can use as little or as much React as you need:\n\n Use Quick Start to get a taste of React.\n Add React to an Existing Project to use as little or as much React as you need.\n Create a New React App if you're looking for a powerful JavaScript toolchain.\n\n## Documentation\n\nYou can find the React documentation on the website. [...] | README.md | README.md |  |  |\n| ReactVersions.js | ReactVersions.js |  |  |\n| SECURITY.md | SECURITY.md |  |  |\n| babel.config-react-compiler.js | babel.config-react-compiler.js |  |  |\n| babel.config-ts.js | babel.config-ts.js |  |  |\n| babel.config.js | babel.config.js |  |  |\n| flow-typed.config.json | flow-typed.config.json |  |  |\n| package.json | package.json |  |  |\n| react.code-workspace | react.code-workspace |  |  |\n| yarn.lock | yarn.lock |  |  |\n|  |"
+            },
+            {
+              "title": "React",
+              "url": "https://react.dev",
+              "snippet": "value={searchText}\n\nonChange={newText => setSearchText(newText)} />\n\n<VideoList\n\nvideos={foundVideos}\n\nemptyHeading={`No matches for “${searchText}”`} />\n\n>\n\n);\n\n}\n\n```\n\nexample.com/videos.html\n\n# React Videos\n\nA brief history of React\n\n## 5 Videos\n\n### React: The Documentary\n\nThe origin story of React\n\n### Rethinking Best Practices\n\nPete Hunt (2013)\n\n### Introducing React Native\n\nTom Occhino (2015)\n\n### Introducing React Hooks\n\nSophie Alpert and Dan Abramov (2018) [...] Shaundai Person\n\nReact Conf### The First React Working Group\n\nAakansha Doshi\n\nReact Conf### React Developer Tooling\n\nBrian Vaughn\n\nReact Conf### React without memo\n\nXuan Huang (黄玄)\n\nReact Conf### React Docs Keynote\n\nRachel Nabors\n\nReact Conf### Things I Learnt from the New React Docs\n\nDebbie O'Brien\n\nReact Conf### Learning in the Browser\n\nSarah Rainsberger\n\nReact Conf### The ROI of Designing with React\n\nLinton Ye\n\nReact Conf### Interactive Playgrounds with React\n\nDelba de Oliveira [...] December 3, 2025\n\nRead more React news\n\n## Join a community of millions\n\nYou’re not alone. Two million developers from all over the world visit the React docs every month. React is something that people and teams can agree on.\n\nPeople singing karaoke at React Conf\n\nSunil Pai speaking at React India\n\nA hallway conversation between two people at React Conf\n\nA hallway conversation at React India\n\nElizabet Oliveira speaking at React Conf\n\nPeople taking a group selfie at React India"
+            },
+            {
+              "title": "Home - FastAPI Tutorial",
+              "url": "https://fastapi-tutorial.readthedocs.io",
+              "snippet": "Docs »\n Home\n\nFastAPI\n\n> FastAPI documentation: \n>\n> This tutorial app source code (GitLab repo): Please, for more comprehension access the repo  as you follow this tutorial!\n\nFastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints. [...] ## Conclusion\n\nFastAPI is an awesome asynchronous Python micro framework! With Flask-like simplicity, it is easy and fun to update your Flask RESTful API to asynchronous mode. Hope you have enjoyed!\n\n## References\n\n#### Original tutorial:\n\nHerman, Michael - Developing and Testing an Asynchronous API with FastAPI and Pytest\n\n#### Other references:\n\nFastAPI Official Documentation - \n\nUvicorn Official Documentation - \n\nStarlette Official Documentation - \n\nPydantic Official Documentation - [...] 1. Develop an asynchronous RESTful API with Python and FastAPI\n2. Practice Test-Driven Development\n3. Test a FastAPI app with Pytest\n4. Interact with a Postgres database asynchronously\n5. Containerize FastAPI and Postgres inside a Docker container\n6. Parameterize test functions and mock functionality in tests with Pytest\n7. Document a RESTful API with Swagger/OpenAPI\n\n### Project Setup\n\nCreate the following structure:"
+            },
+            {
+              "title": "FastAPI - FastAPI",
+              "url": "https://fastapi.tiangolo.com",
+              "snippet": "FastAPI\n\nFastAPI framework, high performance, easy to learn, fast to code, ready for production\n\nTest   Coverage   Package version   Supported Python versions\n\nDocumentation: \n\nSource Code: \n\nFastAPI is a modern, fast (high-performance), web framework for building APIs with Python based on standard Python type hints.\n\nThe key features are: [...] \"If anyone is looking to build a production Python API, I would highly recommend FastAPI. It is beautifully designed, simple to use and highly scalable, it has become a key component in our API first development strategy and is driving many automations and services such as our Virtual TAC Engineer.\"\n\nDeon Pillsbury - Cisco (ref)\n\n## FastAPI mini documentary¶\n\nThere's a FastAPI mini documentary released at the end of 2025, you can watch it online:\n\n## Typer, the FastAPI of CLIs¶ [...] Skip to content\n\nFastAPI Conf '26 October 28, 2026 Amsterdam, NL All about FastAPI, right from the source. Learn more →\n\n Sponsors \n\n  + Keystone Sponsor\n  + Gold Sponsors\n  + Silver Sponsors\n Opinions\n FastAPI mini documentary\n Typer, the FastAPI of CLIs\n Requirements\n Installation\n Example \n\n  + Create it\n  + Run it\n  + Check it\n  + Interactive API docs\n  + Alternative API docs\n Example upgrade"
+            },
+            {
+              "title": "An Introduction to Using FastAPI | Refine",
+              "url": "https://refine.dev/blog/introduction-to-fast-api",
+              "snippet": "Automatic Documentation: By requiring the explicit definition of various FastAPI components, Pydantic's integration has allowed FastAPI to be able to generate its API documentation automatically. FastAPI provides Swagger API documentation.\n Ease-of-use: FastAPI is a Python framework, so the benefits of using Python are inherited. Not only that, FastAPI makes creating your server and building endpoints simple and quick. [...] ## Conclusion​\n\nCongratulations on making it this far! By now, you should have gained valuable insight into using FastAPI to build your backend application. FastAPI is an exceptional, user-friendly, and highly effective API development tool. It provides the flexibility associated with a microframework and delivers exceptional performance, making it an excellent choice for your API development requirements.\n\n## Resources​\n\n FastAPI documentation\n Starlette documentation\n Pydantic documentation [...] FastAPI, on the other hand, prioritizes developer productivity and ease of use. It has a simple and intuitive API design, as well as clear documentation and extensive examples. It also comes with some pre-built tools, such as auto-documentation generation.\n\n## Getting Started​\n\nWith FastAPI, you can easily set up a project in a few steps. Firstly, like any other Python project, you'll need to set up your virtual environment. After that, you’ll need to install the packages, FastAPI and Uvicorn."
+            },
+            {
+              "title": "Introduction to FastAPI - GeeksforGeeks",
+              "url": "https://www.geeksforgeeks.org/python/introduction-to-fastapi",
+              "snippet": "Automatic Documentation: Generates interactive API documentation automatically using OpenAPI and Swagger UI.\n Python Type Hints: Uses Python type hints to improve code readability and simplify API development.\n Data Validation: Validates request and response data automatically using Pydantic models.\n Asynchronous Support: Supports async and await for handling multiple requests efficiently. [...] Python  ````\n from fastapi import FastAPI app = FastAPI() @app. get(\"/\") def read_root(): return{\"message\":\"Hello, FastAPI!\"}\n```` \n\nRun the application using:\n\n> uvicorn main:app --reload\n\nAfter the server starts, open the following URL in your browser: \n\nScreenshot-2026-06-20-102622\n\nOutput\n\nExplanation:\n\n FastAPI() creates the FastAPI application.\n @app.get(\"/\") defines a GET endpoint for the root URL.\n read\\_root() returns a JSON response containing a message. [...] ### Example 2: Creating a POST API\n\nIn this example, a POST endpoint accepts a name and returns a personalized greeting message.\n\n Python  ````\n from fastapi import FastAPI app = FastAPI() @app. post(\"/greet\") def greet_user(name: str): return{\"message\": f\"Hello, {name}!\"}\n````\n\nRun the application and open the interactive API documentation: \n\n### Test the POST Endpoint\n\n1. Expand the POST /greet endpoint and click Try it out.\n\nScreenshot-2026-06-20-103320\n\nPOST endpoint"
+            },
+            {
+              "title": "FastAPI Tutorial for Beginners #2 | API Documentation with Swagger UI & ReDoc",
+              "url": "https://www.youtube.com/watch?v=fFjGJ_B0FF4&vl=en-US",
+              "snippet": "# FastAPI Tutorial for Beginners #2 | API Documentation with Swagger UI & ReDoc\n## Channel: Stats Wire\n15.2K subscribers\n8 likes\n\n### Description\n387 views\nPosted: 2026-05-13\nIn this FastAPI tutorial for beginners, we explore FastAPI’s automatic API documentation.\n\nFastAPI automatically generates interactive API docs for every endpoint we create, making it easy to test and understand our APIs. [...] [4:44] information. So both swagger UI and redoc are generated automatically from our fast API application. We only write\n[4:51] our API code. Fast API handles the documentation for us. And this becomes very useful when our application grows\n[4:58] and we have many endpoints. It also help us or helps other developers understand and test our API easily. That's it for this video. [...] [4:15] documentation. Now this is the get method that we have. The response is 200 that is successful.\n[4:24] And we have only one endpoint shipment.\n[4:28] The method is get. And here you can see this endpoint the status code is 200. And then the content type is JSON.\n[4:37] Here we can uh still see our shipment at point. We can see the request type, the URL and the expected response"
+            },
+            {
+              "title": "[PDF] Introduction to the Python Library Pydantic - SUSE Documentation",
+              "url": "https://documentation.suse.com/sbp/devel-tools/pdf/SBP-pydantic_en.pdf",
+              "snippet": "Whether you are handling user input, API responses, or configuration les, Pydantic ensures your application receives data in the correct format. If the data does not match the defined schema, Pydantic raises clear and informative validation errors. This helps reduce the debugging time and improves code reliability. [...] This typically means converting a model to a dictionary (dictdict) or a JSON string (str).\nPydantic also handles deserialization, which converts raw input data into structured model in-stances.\nPydantic supports two key directions in serialization, which are detailed below. [...] 2 Introduction to the Python Library Pydantic Contents 1 Introduction 4 2 The role of BaseModel 5 3 Understanding Field function 7 4 Using Annotated for cleaner type deﬁnitions 9 5 Using validators and ValidationError in Pydantic 10 6 Dumping model data in Pydantic 14 7 Understanding computed ﬁelds in Pydantic 15 8 Working with nested models in Pydantic 17 9 Understanding serialization in Pydantic 21 10 FAQs 23 11 Legal notice 25 12 GNU Free Documentation License 26 3 Introduction to the Python"
+            },
+            {
+              "title": "Pydantic Validation | Pydantic Docs",
+              "url": "https://pydantic.dev/docs/validation/latest/get-started",
+              "snippet": "Skip to content\n\n/  Docs Pydantic Docs\n\n# Pydantic Validation\n\nDocumentation for version: v2.14.1.\n\nPydantic is the most widely used data validation library for Python.\n\nFast and extensible, Pydantic plays nicely with your linters/IDE/brain. Define how data should be in pure, canonical Python 3.10+; validate it with Pydantic.\n\nSign up for our newsletter, The Pydantic Stack, with updates & tutorials on Pydantic, Logfire, and Pydantic AI:\n\n## Why use Pydantic? [...] Powered by type hints — with Pydantic, schema validation and serialization are controlled by type annotations; less to learn, less code to write, and integration with your IDE and static analysis tools. Learn more…\n Speed — Pydantic’s core validation logic is written in Rust. As a result, Pydantic is among the fastest data validation libraries for Python. Learn more…\n JSON Schema — Pydantic models can emit JSON Schema, allowing for easy integration with other tools. Learn more… [...] Strict and Lax mode — Pydantic can run in either strict mode (where data is not converted) or lax mode where Pydantic tries to coerce data to the correct type where appropriate. Learn more…\n Dataclasses, TypedDicts and more — Pydantic supports validation of many standard library types including `dataclass` and `TypedDict`. Learn more…\n Customisation — Pydantic allows custom validators and serializers to alter how data is processed in many powerful ways. Learn more…"
+            },
+            {
+              "title": "GitHub - pydantic/pydantic: Data validation using Python type hints · GitHub",
+              "url": "https://github.com/pydantic/PYDANTIC",
+              "snippet": "If you're using Pydantic V1 you may want to look at the pydantic V1.10 Documentation or, `1.10.X-fixes` git branch. Pydantic V2 also ships with the latest version of Pydantic V1 built in so that you can incrementally upgrade your code base and projects: `from pydantic import v1 as pydantic_v1`.\n\nSee documentation for more details. [...] | .pre-commit-config.yaml | .pre-commit-config.yaml |  |  |\n| .yamlfmt.yaml | .yamlfmt.yaml |  |  |\n| CITATION.cff | CITATION.cff |  |  |\n| CONTRIBUTING.md | CONTRIBUTING.md |  |  |\n| HISTORY.md | HISTORY.md |  |  |\n| LICENSE | LICENSE |  |  |\n| Makefile | Makefile |  |  |\n| README.md | README.md |  |  |\n| build-docs.sh | build-docs.sh |  |  |\n| mkdocs.yml | mkdocs.yml |  |  |\n| pyproject.toml | pyproject.toml |  |  |\n| update\\_v1.sh | update\\_v1.sh |  |  |\n| uv.lock | uv.lock |  |  |\n|  | [...] | Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .agents/skills/pydantic | .agents/skills/pydantic |  |  |\n| .github | .github |  |  |\n| .hyperlint | .hyperlint |  |  |\n| docs | docs |  |  |\n| pydantic-core | pydantic-core |  |  |\n| pydantic | pydantic |  |  |\n| release | release |  |  |\n| tests | tests |  |  |\n| .git-blame-ignore-revs | .git-blame-ignore-revs |  |  |\n| .gitignore | .gitignore |  |  |\n| .markdownlint.yaml | .markdownlint.yaml |  |  |"
+            },
+            {
+              "title": "Pydantic Docs - Validation, AI Agents, Logfire Observability",
+              "url": "https://pydantic.dev/docs",
+              "snippet": "Skip to content\n\n/  Docs Pydantic Docs\n\n# Pydantic Docs\n\nPydantic is the end-to-end AI Engineering stack. Validate untrusted data and build agents you’ll actually ship to production using our Python libraries. Observe, govern, and optimize agents written in any language or framework once they’re live.\n\n## AI Engineering\n\nBuild, run, and improve production AI systems."
+            },
+            {
+              "title": "Introduction to Python Pydantic Library - GeeksforGeeks",
+              "url": "https://www.geeksforgeeks.org/python/introduction-to-python-pydantic-library",
+              "snippet": "Pydantic allows you to set aliases, default values and metadata for fields. This is useful when your external data uses different field names or when you want to provide descriptive information for documentation. [...] Pydantic provides BaseSettings to manage configuration via environment variables, .env files and other sources. This is useful for real-world apps where settings may change between environments. [...] The Pydantic library in Python is used for data validation and data parsing using Python type hints. It ensures that data structures like classes, dictionaries or API inputs contain valid and correctly typed data before being processed. Pydantic automatically converts and validates incoming data, helping developers write cleaner, more reliable code.\n\n### Key Features"
+            },
+            {
+              "title": "PostgreSQL: Documentation",
+              "url": "https://www.postgresql.org/docs",
+              "snippet": "October 15, 2026: PostgreSQL 19 RC 1 Released! ## Quick Links. # Documentation. ## Manuals. You can view the manual for an older version or download a PDF of a manual from the below table. | 19 rc | A4 PDF (15.3 MB) • US PDF (15.3 MB) |. | 18 / Current | A4 PDF (15.1 MB) • US PDF (15.0 MB) |. | Development snapshot | PDF version not available |. Looking for documentation for an older, unsupported, version? Check the archive of older manuals. ## Translated Manuals."
+            },
+            {
+              "title": "PostgreSQL: The world's most advanced open source database",
+              "url": "https://www.postgresql.org",
+              "snippet": "October 15, 2026: [PostgreSQL 19 RC 1 Released!](/about/news/postgresql-19-rc-1-released-3409/). **2026-10-15 -  [PostgreSQL 19 Rc 1 Released!](/about/news/postgresql-19-rc-1-released-3409/)**. Your testing and feedback help the community ensure that PostgreSQL 19 upholds our standards of delivering a stable, reliable release of the world's most advanced open source relational database. The PostgreSQL [mailing lists](https://lists.postgresql.org) enable you to interact with active community participants on subjects related to the development of PostgreSQL, discovering how to use PostgreSQL, or learning about upcoming events and product releases. ### [PostgreSQL 19 Rc 1 Released!](/about/news/postgresql-19-rc-1-released-3409/). Your testing and feedback help the community ensure that PostgreSQL 19 upholds our standards of delivering a stable, reliable release of the world's most advanced open source relational database. * [Release Announcement](/about/news/postgresql-19-rc-1-released-3409/). ### [PostgreSQL 19: part 5.3 (DBA3 and DBS) of CommitFest 2026-03](https://postgr.es/p/9z7). ### [Every package in the PostgreSQL RPM repositories now has a page](https://postgr.es/p/9z2). ### [PostgreSQL 19: What Changed, What Matters, and What to Test Now](https://postgr.es/p/9z1). ### [Awide Labs open-sources Awide Polar: a PostgreSQL fork with compute-storage disaggre](https://postgr.es/p/9z0)."
+            },
+            {
+              "title": "PostgreSQL: About",
+              "url": "https://www.postgresql.org/about",
+              "snippet": "PostgreSQL is a powerful, open source object-relational database system that uses and extends the SQL language combined with many features that safely store and scale the most complicated data workloads. The origins of PostgreSQL date back to 1986 as part of the POSTGRES project at the University of California at Berkeley and has nearly 40 years of active development on the core platform. It is no surprise that PostgreSQL has become the open source relational database of choice for many people and organisations. Getting started with using PostgreSQL has never been easier - pick a project you want to build, and let PostgreSQL safely and robustly store your data. There are many more features that you can discover in the PostgreSQL documentation. PostgreSQL has been proven to be highly scalable both in the sheer quantity of data it can manage and in the number of concurrent users it can accommodate. There are also many events and local user groups where you can connect with other PostgreSQL users."
+            },
+            {
+              "title": "IBM Cloud Databases for PostgreSQL",
+              "url": "https://www.ibm.com/products/databases-for-postgresql",
+              "snippet": "# IBM Cloud Databases for PostgreSQL. Managed PostgreSQL, built enterprise-ready, with native integration into the IBM Cloud. Apply code DSFREE250 at provisioning to get USD 250 to use towards Database offerings for 1 month. Create an IBM Cloud account. IBM Cloud® Databases for PostgreSQL is a fully managed service enabling you to efficiently create sophisticated, high-performance applications with enhanced JSON support and improved query parallelism. Get to global scale with integrated, infrastructure-as-code tools, such as IBM Cloud Schematics with Terraform and Red Hat® Ansible® support at no additional charge. Quickly build engaging, scalable cross-platform enterprise applications and connect a PostgreSQL cloud database deployment to a Kubernetes app. Diagram showing the web and mobile app architecture. With rich features to support ETL and data analysis, PostgreSQL is an ideal choice for your analytics infrastructure. A unified data and AI platform. IBM Cloud Databases for Elasticsearch. Explore these resources to get more details about what IBM Cloud Databases for PostgreSQL can bring to your enterprise. * Create a free IBM Cloud account."
+            },
+            {
+              "title": "PostgreSQL Tutorial",
+              "url": "https://neon.com/postgresql/tutorial",
+              "snippet": "# PostgreSQL Tutorial. Everything in this PostgreSQL tutorial works against any Postgres database. This **PostgreSQL tutorial** helps you quickly understand PostgreSQL. The PostgreSQL tutorial demonstrates many unique features of PostgreSQL that position it as the most advanced open-source database management system. This section helps you get started with PostgreSQL by showing you how to install PostgreSQL on Windows, Linux, and macOS. You also learn how to connect to PostgreSQL using the `psql` tool as well as how to load a sample database into the PostgreSQL for practicing. First, you’ll learn how to query data from a single table using basic data techniques, which include selecting data, sorting result sets, and filtering rows. Finally, you’ll learn how to manage database tables, including creating a new table or modifying the structure of an existing table. * Select – show you how to query data from a single table. * Order By – guide you on how to sort the result set returned by a query."
+            },
+            {
+              "title": "TypeScript: Documentation - Angular",
+              "url": "https://www.typescriptlang.org/docs/handbook/angular.html",
+              "snippet": "TypeScript\n\nin En\n\nWas this page helpful?\n\n# Angular\n\nAngular is a modern framework built entirely in TypeScript, and as a result, using TypeScript with Angular provides a seamless experience.\n\nThe Angular documentation not only supports TypeScript as a first-class citizen, but uses it as its primary language. With this in mind, Angular’s site will always be the most up-to-date reference for using Angular with TypeScript.\n\nCheck out the quick start guide here to start learning Angular now! [...] The TypeScript docs are an open source project. Help us improve these pages by sending a Pull Request ❤\n\nContributors to this page:  \n\nDRDaniel Rosenwasser  (52)\n\nOTOrta Therox  (10)\n\n1+\n\nLast updated: Oct 23, 2026"
+            },
+            {
+              "title": "What is Angular? • Angular",
+              "url": "https://angular.dev/overview",
+              "snippet": "Maintained by a dedicated team at Google, Angular provides a broad suite of tools, APIs, and libraries to simplify and streamline your development workflow. Angular gives you a solid platform on which to build fast, reliable applications that scale with both the size of your team and the size of your codebase. Angular.dev is the official home for Angular documentation.\n\n###### Want to see some code?\n\n### Essentials\n\nAn overview of what it's like to use Angular ### Tutorials [...] + What is Angular?\n  + Installation\n  + Start coding! 🚀\n In-depth Guides\n\n  + Drag and drop\n Build with AI\n\n  + Get Started\n  + LLM prompts and AI IDE setup\n  + Agent Skills New\n  + Angular CLI MCP Server setup\n  + Angular AI Tutor\n  + Design Patterns\n  + WebMCP New\n Developer Tools\n\n  + Language Service\n Best Practices\n\n  + Style Guide\n  + Security\n  + Accessibility\n  + Unhandled errors in Angular\n  + Keeping up-to-date\n Developer Events [...] + Angular v22 Release New\n  + Angular v21 Release\n Extended Ecosystem\n\n  + NgModules\n  + Web workers\n  + Custom build pipeline\n  + Tailwind\n  + Angular Fire\n  + Google Maps\n  + Google Pay\n  + YouTube player\n  + Angular CDK\n  + Angular Material\n\n# What is Angular?\n\nAngular is a web framework that empowers  \n developers to build fast, reliable applications that users love."
+            },
+            {
+              "title": "Versioning and releases • Angular",
+              "url": "https://angular.dev/reference/releases",
+              "snippet": "This document contains the practices that we follow to provide you with a leading-edge application development platform, balanced with stability. We strive to ensure that future changes are always introduced in a predictable way. We want everyone who depends on Angular to know when and how new features are added, and to be well-prepared when obsolete ones are removed. [...] ## Compatibility policy\n\nAngular is a collection of many packages, subprojects, and tools. To prevent accidental use of private APIs and so that you can clearly understand what is covered by the practices described here — we document what is and is not considered our public API surface. For details, see Supported Public API Surface of Angular.\n\nTo guarantee backward compatibility of Angular we run a series of checks before we merge any change: [...] | Deprecation stages | Details |\n --- |\n| Announcement | We announce deprecated APIs and features in the change log. Deprecated APIs appear in the documentation with ~~strikethrough~~. When we announce a deprecation, we also announce a recommended update path. Additionally, all deprecated APIs are annotated with `@deprecated` in the corresponding documentation, which enables text editors and IDEs to provide hints if your project depends on them. |"
+            },
+            {
+              "title": "Angular Tutorial",
+              "url": "https://www.w3schools.com/Angular",
+              "snippet": "## Learn Angular\n\nAngular is a framework for building client applications in HTML and TypeScript.\n\nStart learning Angular now »\n\n## Overview & Prerequisites\n\nLearn Angular step-by-step with easy-to-follow pages and runnable JS-only examples.\n\nWe use standalone components, modern control flow, and the built-in Router and HttpClient in examples.\n\n Basic HTML, CSS, and JavaScript.\n Some TypeScript helps but is not required.\n\n## Learning by Examples [...] ## Angular Tutorial\n\nAngular Home Angular Intro Angular Get Started Angular First App Angular Templates\n\nInterpolation Reference Variables Null-Safe Navigation (?.) Structural Directives ngTemplateOutlet Statements and $event Alias Pipes (|) Attribute Binding TrackBy [...] Angular Components Angular Data Binding Angular Directives Angular Events Angular Conditional Angular Lists Angular Forms Angular Router Angular Services & DI Angular HTTP Client Angular Pipes Angular Lifecycle Hooks Angular Styling   \n\n## Advanced Angular"
+            },
+            {
+              "title": "Anatomy of components • Angular",
+              "url": "https://angular.dev/guide/components",
+              "snippet": "+ What is Angular?\n  + Installation\n  + Start coding! 🚀\n In-depth Guides\n\n  + Drag and drop\n Build with AI\n\n  + Get Started\n  + LLM prompts and AI IDE setup\n  + Agent Skills New\n  + Angular CLI MCP Server setup\n  + Angular AI Tutor\n  + Design Patterns\n  + WebMCP New\n Developer Tools\n\n  + Language Service\n Best Practices\n\n  + Style Guide\n  + Security\n  + Accessibility\n  + Unhandled errors in Angular\n  + Keeping up-to-date\n Developer Events [...] + Anatomy of components\n  + Selectors\n  + Styling\n  + Accepting data with input properties\n  + Custom events with outputs\n  + Content projection with ng-content\n  + Host elements\n  + Lifecycle\n  + Referencing component children with queries\n  + Using DOM APIs\n  + Inheritance\n  + Programmatically rendering components\n  + Advanced configuration\n  + Custom Elements\n\nIn-depth Guides\n\nComponents\n\n# Anatomy of a component [...] + Angular v22 Release New\n  + Angular v21 Release\n Extended Ecosystem\n\n  + NgModules\n  + Web workers\n  + Custom build pipeline\n  + Tailwind\n  + Angular Fire\n  + Google Maps\n  + Google Pay\n  + YouTube player\n  + Angular CDK\n  + Angular Material"
+            }
+          ],
+          "memory_hit": false
+        },
+        "calls": 1,
+        "usage": {
+          "calls": 1,
+          "input_tokens": 7628,
+          "output_tokens": 1838,
+          "reasoning_tokens": 547,
+          "cost": 0.000750536976,
+          "prompt_cost": 0.000355734576,
+          "completion_cost": 0.0003948024,
+          "cost_complete": true
+        },
+        "checks": {
+          "delimited": true,
+          "markers_balanced": true
+        },
+        "duration_ms": 19374.308,
+        "probe": {
+          "search_calls": 5,
+          "found": {
+            "React": 5,
+            "FastAPI": 5,
+            "Pydantic": 5,
+            "PostgreSQL": 5,
+            "Angular": 5
+          }
+        },
+        "invariant": null
+      }
+    ]
+  }
+}
