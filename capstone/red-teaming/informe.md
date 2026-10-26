@@ -9,7 +9,7 @@ generado por el arnés, no de una transcripción a mano.
 |---|---|
 | **Fecha de la ejecución** | 24 de octubre de 2026 |
 | **Modo** | real, contra los modelos y el proxy LiteLLM del stack local |
-| **Informe de origen** | `evals/results/20261024T122329Z-real.json` |
+| **Informe de origen** | `evals/baseline/red-teaming/20261024T122329Z-real.json` |
 | **Agentes ejercitados en real** | evaluador, revisor, validador |
 | **Agentes evaluados solo en simulado** | web y código (ver límites) |
 | **Casos adversariales** | 24 (eran 19; se añaden 5) |
