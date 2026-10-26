@@ -90,6 +90,7 @@ de una respuesta, en §1.7.
 | Análisis de riesgos | §6.3, §6.4 |
 | Red teaming | §6.5 |
 | Privacidad y datos personales | §6.6 |
+| Ética y marco regulatorio (Reglamento de IA, decisiones automatizadas, transferencias) | §6.7 |
 
 **Convenciones.** Las referencias a archivos son rutas del repositorio
 (`backend/app/orchestrator.py`). Las referencias entre comillas simples a un
@@ -2784,7 +2785,7 @@ capítulo 3 llevada al terreno de la seguridad.
 
 ### 6.4 Análisis de riesgos
 
-El registro recoge los diez riesgos propios de este sistema —los genéricos de
+El registro recoge los once riesgos propios de este sistema —los genéricos de
 cualquier aplicación web ya los cubre §6.2—, cada uno con su control actual, una
 valoración de **probabilidad** e **impacto**, el **nivel** que resulta de ambas y el
 **tratamiento** con su decisión de aceptación.
@@ -2819,8 +2820,9 @@ calidad de un resultado.
 | 8 | Degradación silenciosa de calidad del fallback | Media | Medio | **Medio** | **Medido en calidad.** La comparativa primario/respaldo de §5.7 —dos ejecuciones completas con el respaldo— muestra una calidad equivalente en lo esencial (algo más de repetición de temas en ejercicios y un fragmento sin fundamentar en una de las dos ejecuciones); el fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). Lo que sigue **estimado, no medido**, es el coste del respaldo (§3.7) |
 | 9 | **Falso positivo de guardarraíl que rompe el servicio** | Baja *(tras el arreglo)* | Alto | **Medio** | **Mitigado en origen.** Ya ocurrió dos veces (§7); la redacción por campo elimina la causa raíz en lugar de recortar el alcance, y Lakera salió de la ruta de generación. El residual de reactivar Lakera se traslada a LLM01 (§6.3) y está declarado |
 | 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas en la evaluación (§3.3, §4.6). Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
+| 11 | **Transferencia de datos a proveedores de inferencia de terceros países**, sin decisión de adecuación y sin saber de antemano cuál recibe cada llamada | Alta *(con la configuración actual)* | Alto | **Alto** | **Mitigar.** Fijar en LiteLLM la política de enrutado de OpenRouter (`data_collection: "deny"`, `zdr: true` y una lista cerrada de proveedores) como change propio; el revisor pasaría a GLM-5.3-Flash si Z.AI queda fuera (§6.7). De raíz, la inferencia autoalojada (riesgo 3) |
 
-**Los tres riesgos de nivel Alto concentran lo que de verdad hay que decidir**, y
+**Los cuatro riesgos de nivel Alto concentran lo que de verdad hay que decidir**, y
 ninguno se cierra con un control más:
 
 - **Riesgo 3 (fuga de código al proveedor)** no es un fallo a corregir sino una
@@ -2842,6 +2844,12 @@ ninguno se cierra con un control más:
   real no es un guardarraíl: es que el tech lead revise las valoraciones a
   posteriori, y que el producto lo haga fácil. La aceptación del residual está
   condicionada a que esa revisión exista.
+- **Riesgo 11 (transferencias a terceros países)** es el único de los cuatro que se
+  cierra con configuración. Salió al preguntar adónde viajan los datos (§6.7), y no
+  al revisar el código: el código es correcto, lo abierto es una política que nadie
+  había fijado. Mientras no se fije, el riesgo 3 es peor de lo que parece, porque el
+  código propietario no va a «un proveedor», sino al que OpenRouter elija en cada
+  llamada.
 
 **Las decisiones de aceptación.** El registro las propone; la aceptación formal de
 cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
@@ -2853,6 +2861,7 @@ cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
 | 7 | Aceptado solo en desarrollo, de momento; su cierre merece una especificación propia |
 | 8 | Aceptado: la calidad del respaldo está medida (§5.7); su coste queda estimado con los precios publicados, no medido (§3.7) |
 | 10 | Aceptado a condición de la revisión a posteriori de las valoraciones |
+| 11 | **Mitigar:** fijar la política de enrutado de OpenRouter antes de desplegar para un cliente (change propio, §6.7) |
 | 2, 4, 5, 6, 9 | Aceptados como residual bajo o medio con los controles actuales |
 
 ### 6.5 Red teaming
@@ -3060,10 +3069,13 @@ versionados en `evals/datasets/adversarial.jsonl` (producidos).
 
 ### 6.6 Privacidad y datos personales
 
-> **Sección pendiente de cumplimiento.** El análisis técnico de abajo está hecho y
-> no cambia; lo que falta es el trabajo de cumplimiento, que no es de ingeniería:
-> registro de actividades de tratamiento, base jurídica, información al alumno,
-> acuerdo de encargado de tratamiento con cada proveedor y política de retención.
+> **Cómo leer esta sección.** La primera parte es el análisis técnico. La segunda
+> es un **borrador** del trabajo de cumplimiento: registro de actividades, base
+> jurídica, información al alumno, encargados, retención y evaluación de impacto.
+> Es una propuesta de ingeniería, no asesoramiento jurídico, y tiene que revisarla
+> el delegado de protección de datos o la asesoría de cada empresa que despliegue
+> el sistema. El encaje en el Reglamento de IA y el resto de cuestiones éticas están
+> en §6.7.
 
 **Qué datos personales existen en el sistema**, que son pocos y conviene decirlo
 con precisión:
@@ -3075,10 +3087,12 @@ con precisión:
 | Veredicto y justificación | `answer` | No (se genera fuera y vuelve) |
 | Auditoría de acceso a repositorios | `repo_access_log` | No |
 
-No hay datos de categoría especial, ni datos de menores por diseño del producto
-(son empleados), ni perfilado automatizado con efectos jurídicos. El tratamiento
-relevante es uno: **el texto que escribe el alumno se envía a un proveedor de
-inferencia externo**, y eso es lo que las medidas de esta sección acotan.
+No hay datos de categoría especial ni datos de menores por diseño del producto
+(son empleados). Si hay o no decisiones automatizadas con efectos significativos
+depende del uso que la empresa dé a las valoraciones, y se discute en §6.7. El
+tratamiento técnicamente relevante es uno: **el texto que escribe el alumno se
+envía a un proveedor de inferencia externo**, y eso es lo que las medidas de esta
+sección acotan.
 
 **La distinción que conviene no confundir nunca:**
 
@@ -3110,11 +3124,214 @@ entregamos. Acotado a `input`, la protección se mantiene íntegra y el contenid
 llega limpio. El *fail-closed* también se mantiene: si Presidio no responde, la
 llamada no pasa.
 
-**Lo que queda pendiente en materia de privacidad**, y es trabajo de cumplimiento
-más que de ingeniería: el registro de actividades de tratamiento, la base jurídica y
-la información al alumno sobre que su respuesta se procesa con un modelo de un
-tercero, el acuerdo de encargado de tratamiento con cada proveedor, y la política de
-retención de `answer` y de las trazas.
+#### Borrador de cumplimiento
+
+**Quién es quién.** El responsable del tratamiento es la empresa que despliega
+JuniorTrainer para formar a su plantilla: decide para qué se usan las valoraciones.
+Quien opere el sistema por cuenta de esa empresa actúa como encargado, y los
+servicios externos de la tabla de encargados, como subencargados.
+
+**1. Registro de actividades de tratamiento** (art. 30 RGPD). Una sola actividad:
+
+| Campo | Propuesta |
+|---|---|
+| Tratamiento | Formación práctica y valoración formativa de personas en su incorporación a un proyecto |
+| Finalidad | Generar ejercicios del código del proyecto, valorar las respuestas y dar seguimiento al tech lead |
+| Interesados | Alumnos (empleados en incorporación) y tech leads |
+| Datos | Identificativos (correo y nombre); respuestas a los ejercicios; veredictos y justificaciones; auditoría de accesos a repositorios (quién pidió leer qué) |
+| Destinatarios | Los encargados de la tabla de abajo; ninguna cesión a terceros |
+| Transferencias internacionales | Las del proveedor de inferencia, que hoy no están acotadas (§6.7) |
+| Plazos de supresión | Los de la política de retención, abajo |
+| Medidas de seguridad | Los veinticinco controles de §6.2 y las de esta sección |
+
+**2. Base jurídica** (art. 6 RGPD). El consentimiento no sirve: en una relación
+laboral no se presta libremente, por el desequilibrio entre las partes (CEPD,
+2020). Quedan dos opciones. Si la formación forma parte de las funciones del puesto,
+la base es la ejecución del contrato (art. 6.1.b). Si no, el interés legítimo de la
+empresa en formar a su plantilla (art. 6.1.f), con una ponderación documentada que
+pese, sobre todo, el envío de las respuestas a proveedores externos. La elección es
+de cada empresa.
+
+**3. Información al alumno** (art. 13 RGPD y art. 50 del Reglamento de IA).
+Propuesta de texto para la primera vez que el alumno entra en la aplicación:
+
+> Tus respuestas las valora automáticamente un sistema de inteligencia artificial.
+> Para hacerlo, el texto que escribes se envía a proveedores externos de modelos de
+> lenguaje, sin tu nombre ni tu correo y con los datos personales que contenga
+> sustituidos por marcadores. La valoración es formativa: no se usa para tomar
+> decisiones sobre tu empleo. Tu tech lead puede ver todas tus respuestas y sus
+> valoraciones, y puedes pedir que una persona revise cualquiera de ellas.
+
+Las dos últimas frases son compromisos, no descripciones del sistema actual: la
+primera exige que la empresa se obligue a ese uso formativo, y la segunda, la
+impugnación que propone §6.7, que hoy no existe.
+
+**4. Encargados de tratamiento** (art. 28 RGPD). Con cada uno hace falta un acuerdo
+de encargo, y conocer dónde trata los datos:
+
+| Servicio | Qué recibe | Dónde |
+|---|---|---|
+| Supabase | Base de datos y autenticación: todos los datos de la tabla de arriba | UE (`eu-west-1`) |
+| Langfuse Cloud | Trazas con el contenido enmascarado (`mask_input`) | Región UE (`cloud.langfuse.com`) |
+| OpenRouter | Código del repositorio y respuestas del alumno ya redactadas | Empresa estadounidense que enruta a proveedores de inferencia de varias jurisdicciones (§6.7) |
+| Hugging Face | Lo mismo que OpenRouter, cuando actúa el respaldo | Enruta a proveedores de inferencia; a confirmar en el contrato |
+| Lakera | Los nombres de tecnología del validador, ya filtrados por el pre-filtro | A confirmar en el contrato |
+| Tavily | Nombres de tecnología, sin datos personales | A confirmar en el contrato |
+| GitHub | Ningún dato de alumnos: el sistema solo lee código | — |
+
+**5. Política de retención** (art. 5.1.e RGPD). Propuesta, a ajustar por cada
+empresa:
+
+| Dato | Plazo propuesto | Razón |
+|---|---|---|
+| Respuestas, veredictos y justificaciones | Hasta 12 meses después de terminar la incorporación del alumno, o hasta su baja si llega antes | Permiten el seguimiento y la impugnación; pasado ese uso, no tienen finalidad |
+| Perfil del alumno | Hasta su baja en la empresa | Necesario para entrar en la aplicación |
+| Auditoría de accesos a repositorios | 12 meses | Trazabilidad de qué código propietario se leyó y a petición de quién |
+| Trazas de Langfuse | 30 días | Diagnóstico de operación; el contenido ya va enmascarado |
+| Memoria de los agentes | 30 días sin lecturas (TTL actual) | No contiene datos de alumnos (§4.8) |
+
+Esa política choca con una decisión de diseño, y conviene decirlo: **hoy el sistema
+no tiene forma de suprimir los datos de un alumno.** El historial es inmutable por
+diseño (§2.5): ninguna API borra respuestas, `answer` no se borra en cascada desde
+la copia asignada, y `assignment` apunta al perfil sin cascada, así que la base de
+datos rechaza dar de baja a un alumno que tenga asignaciones. La inmutabilidad
+protege contra la edición, no contra la supresión que exigen el plazo de retención y
+el derecho del artículo 17. Hace falta un procedimiento explícito de supresión, que
+borre en orden las respuestas, las copias asignadas, las asignaciones y el perfil, y
+que deje constancia de que se ejecutó (§8).
+
+**6. Evaluación de impacto** (art. 35 RGPD). Probablemente obligatoria: el
+tratamiento valora a empleados, que están en una posición de desequilibrio frente a
+la empresa, con una tecnología nueva y enviando su texto a terceros. Son criterios
+que la lista de la AEPD de tratamientos que requieren evaluación de impacto
+contempla (AEPD, 2019). Este documento aporta buena parte del material: el
+inventario de datos, el análisis de riesgos (§6.4) y los controles (§6.2).
+
+### 6.7 Ética y marco regulatorio
+
+JuniorTrainer valora a personas en su trabajo. Eso plantea cuatro preguntas que no
+son de ingeniería, pero que el diseño tiene que poder responder: si el sistema es de
+alto riesgo según el Reglamento de IA, si sus valoraciones son decisiones
+automatizadas en el sentido del RGPD, qué puede hacer un alumno que no esté de
+acuerdo con una valoración y adónde viajan los datos. Lo que sigue es el análisis de
+quien diseñó el sistema, no un dictamen jurídico.
+
+**1. El Reglamento de IA.** El Reglamento (UE) 2024/1689 trata como de alto riesgo
+los usos del Anexo III, y dos rozan este producto:
+
+- **Educación y formación profesional** (punto 3, letra b): sistemas que evalúan
+  resultados de aprendizaje, pero «en centros de educación y formación profesional».
+  Una herramienta interna de incorporación de una empresa no es, en principio, uno
+  de esos centros.
+- **Empleo** (punto 4, letra b): sistemas destinados a «supervisar y evaluar el
+  rendimiento y el comportamiento» de las personas en una relación laboral. Este es
+  el que de verdad importa, y la respuesta depende del uso, no del código. Si la
+  empresa usa las valoraciones solo para que el junior practique, el sistema podría
+  acogerse a la excepción del artículo 6, apartado 3, para sistemas que no
+  plantean un riesgo significativo porque, por ejemplo, no influyen de forma
+  sustancial en la decisión que se tome sobre la persona. Si las
+  usa para juzgar su rendimiento, entra de lleno en el punto 4.b. Y hay una
+  dificultad añadida: la excepción no cabe cuando el sistema elabora perfiles de
+  personas, y un historial de valoraciones por alumno se parece mucho a uno.
+
+La consecuencia práctica es doble. El producto debe declarar y contratar un **uso
+formativo**, y quien lo comercialice tiene que documentar su evaluación de la
+excepción (art. 6, apartado 4). Si aun así se considera de alto riesgo, las
+obligaciones del Anexo III se aplican desde el **2 de diciembre de 2027**, tras el
+aplazamiento del Reglamento (UE) 2026/1744. Entre ellas está la del responsable del
+despliegue de informar a la representación de los trabajadores (art. 26,
+apartado 7). Buena parte de lo demás ya existe: registro de cada operación (§5.8),
+supervisión humana de lo que persiste (§4.6), gestión de riesgos (§6.4) y
+documentación técnica (este documento). Lo que no se ha aplazado son las
+obligaciones de transparencia del artículo 50, que se aplican desde el 2 de agosto
+de 2026 y exigen que quien interactúa con un sistema de IA lo sepa. La valoración no
+es un chat, pero lo prudente es decirlo, y el texto de información de §6.6 lo dice.
+
+En España, además, el artículo 64.4.d del Estatuto de los Trabajadores, añadido por
+el Real Decreto-ley 9/2021, da al comité de empresa derecho a conocer los
+parámetros y reglas de los sistemas de IA que influyen en decisiones sobre las
+condiciones de trabajo. Si las valoraciones llegan a pesar en esas decisiones, el
+comité tiene que conocer el sistema. Este documento y los prompts del Anexo A son
+el material para informarle.
+
+**2. El artículo 22 del RGPD.** Protege frente a decisiones «basadas únicamente en
+el tratamiento automatizado» que produzcan efectos jurídicos o afecten de forma
+similarmente significativa a la persona. La valoración es totalmente automática:
+ningún humano interviene antes de que el alumno la lea (§4.6). Mientras sea
+formativa y no tenga consecuencias, no es una decisión de ese tipo. Pasaría a serlo
+si la empresa la usara para decidir sobre el empleo del junior, por ejemplo al
+final de su periodo de prueba. Y que el tech lead la firme sin revisarla no la
+convertiría en una decisión humana, porque la intervención humana tiene que ser real
+(Grupo de Trabajo del Artículo 29, 2018). Por eso las dos medidas van juntas: el
+compromiso de uso formativo de §6.6 y un mecanismo de impugnación, que el
+artículo 22.3 exige precisamente cuando la decisión automatizada está permitida.
+
+**3. Impugnar una valoración.** Hoy no se puede. Las respuestas son inmutables
+(§2.5) y el producto no ofrece ninguna vía para que el alumno discrepe. Es un hueco
+ético antes que legal: la valoración es la única salida del sistema que llega a una
+persona sin revisión humana (§4.6), y quien la recibe es, por definición, quien
+menos criterio tiene para detectar un error (riesgo 10). La propuesta respeta la
+inmutabilidad en lugar de romperla:
+
+- El alumno pulsa «Pedir revisión» sobre una respuesta valorada. Se crea una fila
+  en una tabla nueva, `answer_review`, de solo inserción, que referencia la
+  respuesta sin modificarla.
+- El tech lead ve las solicitudes pendientes como una cola, registra su propio
+  veredicto y una nota, y la solicitud queda resuelta.
+- El alumno ve la valoración humana junto a la automática. La original no se borra
+  y queda como registro de lo que dijo el sistema.
+
+Tiene además un efecto de producto: las revisiones que acaban en desacuerdo son
+exactamente los casos que hay que añadir al conjunto de evaluación (§5.7), así que
+la impugnación alimenta la medición que más falta hace.
+
+**4. Adónde viajan los datos.** Es la pregunta con la respuesta más incómoda. La
+configuración de LiteLLM no fija ninguna política de enrutado en OpenRouter, así que
+OpenRouter elige el proveedor de inferencia por precio y disponibilidad. Es
+coherente con lo que se midió en §3.7, donde lo facturado no cuadraba con el precio
+de lista. Según la API pública de OpenRouter (consultada el 26 de octubre de 2026):
+
+| Modelo y rol | Quién lo sirve |
+|---|---|
+| DeepSeek V4.1 Flash (generador y evaluador) | 41 *endpoints* de 33 proveedores, entre ellos nubes chinas (Baidu, Alibaba, SiliconFlow, StreamLake) y estadounidenses |
+| GLM-5.3-FlashX (primario del revisor) | Un único proveedor: Z.AI, la plataforma internacional de Zhipu, una empresa china |
+| GLM-5.3-Flash (validador y respaldo del revisor) | 38 *endpoints* de 34 proveedores |
+
+Por esa ruta viajan el código propietario del repositorio (riesgo 3) y las
+respuestas de los alumnos, ya redactadas. Una transferencia a un país sin decisión
+de adecuación, como China, exige garantías adicionales (capítulo V del RGPD) que con
+un enrutado automático no se pueden ofrecer, porque ni siquiera se sabe de antemano
+qué proveedor recibirá cada llamada.
+
+La mitigación es de configuración y barata. OpenRouter admite en cada petición un
+objeto `provider` con tres controles (OpenRouter, s. f.):
+
+- `data_collection: "deny"`, que excluye a los proveedores que guardan o entrenan con
+  los datos;
+- `zdr: true`, que exige retención cero;
+- una lista cerrada de proveedores en jurisdicciones aceptables.
+
+LiteLLM puede pasarlos en cada *deployment*. Tiene una consecuencia: GLM-5.3-FlashX
+solo lo sirve Z.AI, así que una política que excluya ese proveedor obliga al
+revisor a usar GLM-5.3-Flash, que hoy es su respaldo y cuya calidad está medida
+(§5.7). Y la solución de raíz sigue siendo la de §3.1: los modelos son open-weight
+precisamente para poder autoalojarlos.
+
+**5. Más allá de la norma.** Tres cuestiones éticas que ninguna regla obliga a
+resolver y que el diseño debería tener presentes:
+
+- **El sesgo de automatización del tech lead.** Si las valoraciones aciertan casi
+  siempre, el tech lead dejará de leerlas, y la revisión a posteriori que compensa
+  la autonomía de §4.6 se queda en teoría. La cola de impugnaciones le dice dónde
+  mirar.
+- **La equidad entre alumnos.** El evaluador valora texto en español, y el conjunto
+  de evaluación incluye respuestas correctas mal expresadas (§5.5). Pero no mide si
+  penaliza a quien escribe en un registro distinto o en una lengua que no es la
+  suya, y en un equipo internacional eso importa.
+- **El propósito declarado.** El producto quiere que el junior dependa menos de la
+  IA (§1.1) y lo hace con IA. No es una contradicción, pero obliga a que la
+  valoración explique qué falta en lugar de dar la respuesta: es lo que pide el
+  prompt del evaluador (Anexo A.5).
 
 ---
 
@@ -3223,6 +3440,10 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
+| Política de enrutado de proveedores de inferencia | Riesgo 11: hoy OpenRouter elige el proveedor en cada llamada, incluidos algunos de terceros países sin decisión de adecuación. Se cierra con configuración en LiteLLM (§6.7) |
+| Impugnación de valoraciones | El alumno no puede discrepar de una valoración. La propuesta de §6.7, con una tabla de solo inserción `answer_review`, respeta la inmutabilidad del historial y da al tech lead una cola de revisión |
+| Procedimiento de supresión de los datos de un alumno | Hoy la base de datos rechaza dar de baja a un alumno con asignaciones, y ninguna API borra respuestas. Sin él no se puede cumplir el plazo de retención ni el artículo 17 del RGPD (§6.6) |
+| Cumplimiento: clasificación y evaluación de impacto | Documentar la evaluación del artículo 6.3 del Reglamento de IA y hacer la evaluación de impacto del artículo 35 del RGPD con el borrador de §6.6 |
 | Piloto con un equipo real | Las premisas de §1.1 no están medidas (§9): hace falta medir con usuarios la proporción de candidatos guardados, el tiempo de revisión del tech lead y la opinión de los juniors sobre las valoraciones |
 | Afinar el juez de contenido (§5.6) | El juez ya funciona y está calibrado (κ 0,475); faltan revisar `autosuficiencia` y `calidad_del_fallo` con una nueva pasada |
 | CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI y el job `evals-gate` existe; faltan el **aprovisionamiento de `develop`** y la **protección de rama** que haga obligatorio el gate, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
@@ -3288,7 +3509,7 @@ reforzadas, y cada una por una razón concreta:
    no puede comprobar, la corrección pedagógica de un ejercicio y la de un veredicto
    fuera de la muestra.
 
-**Lo que queda abierto.** Tres cosas, por orden de importancia:
+**Lo que queda abierto.** Cuatro cosas, por orden de importancia:
 
 - **El valor del producto no está validado con usuarios.** Que el junior aprenda
   antes y el tech lead recupere horas es la premisa de §1.1, no un resultado. Para
@@ -3298,6 +3519,11 @@ reforzadas, y cada una por una razón concreta:
 - **La valoración descansa en un evaluador medido sobre 22 respuestas.** Es la
   única salida que llega a una persona sin revisión humana. Ampliar el conjunto de
   evaluación es la medición pendiente más importante del sistema (§5.7).
+- **El encaje legal depende del uso, y el sistema aún no lo sostiene.** Si las
+  valoraciones son formativas, el sistema queda fuera del alto riesgo del Reglamento
+  de IA y del artículo 22 del RGPD con argumentos razonables. Pero un alumno no puede
+  impugnar una valoración, sus datos no se pueden suprimir y no se sabe de antemano
+  qué proveedor recibe su texto (§6.6, §6.7).
 - **El paso a producción tiene tareas concretas:** gestor de secretos por servicio,
   tests del backend en el CI, aprovisionamiento de `develop` y el cuadro de mando
   (§8, prioridad alta).
@@ -3311,6 +3537,29 @@ lo que falta para saber si cumple su propósito es ponerlo en manos de un equipo
 
 Las direcciones web se consultaron en octubre de 2026. Para las herramientas se
 indica, cuando el repositorio la fija, la versión que usa el sistema.
+
+**Normativa y guías de protección de datos**
+
+- Agencia Española de Protección de Datos (AEPD). (2019). *Listas de tipos de tratamientos
+  de datos que requieren evaluación de impacto relativa a la protección de datos
+  (art. 35.4)*. <https://www.aepd.es/>
+- Comité Europeo de Protección de Datos (CEPD). (2020). *Directrices 05/2020 sobre el
+  consentimiento en el sentido del Reglamento 2016/679*.
+- Grupo de Trabajo del Artículo 29. (2018). *Directrices sobre decisiones
+  individuales automatizadas y elaboración de perfiles a los efectos del Reglamento
+  2016/679* (WP251 rev.01), asumidas por el Comité Europeo de Protección de Datos.
+- Real Decreto-ley 9/2021, de 11 de mayo, que modifica el texto refundido de la Ley
+  del Estatuto de los Trabajadores (añade el artículo 64.4.d). *Boletín Oficial del
+  Estado*.
+- Reglamento (UE) 2016/679, del Parlamento Europeo y del Consejo, de 27 de abril de
+  2016 (Reglamento General de Protección de Datos). *Diario Oficial de la Unión
+  Europea*, L 119.
+- Reglamento (UE) 2024/1689, del Parlamento Europeo y del Consejo, de 13 de junio de
+  2024, por el que se establecen normas armonizadas en materia de inteligencia
+  artificial (Reglamento de IA). *Diario Oficial de la Unión Europea*.
+- Reglamento (UE) 2026/1744 (Ómnibus Digital sobre IA), que modifica el Reglamento
+  de IA y aplaza al 2 de diciembre de 2027 las obligaciones del Anexo III. *Diario
+  Oficial de la Unión Europea*, 24 de julio de 2026.
 
 **Normas y especificaciones**
 
@@ -3361,7 +3610,9 @@ indica, cuando el repositorio la fija, la versión que usa el sistema.
   <https://github.com/langchain-ai/langgraph>
 - Langfuse. (s. f.). *Langfuse: open source LLM engineering platform* (SDK v3).
   <https://langfuse.com/docs>
-- OpenRouter. (s. f.). *OpenRouter documentation*. <https://openrouter.ai/docs>
+- OpenRouter. (s. f.). *OpenRouter documentation*. <https://openrouter.ai/docs>.
+  Enrutado de proveedores: <https://openrouter.ai/docs/features/provider-routing>;
+  retención cero: <https://openrouter.ai/docs/features/zdr>
 - Ramírez, S. (s. f.). *FastAPI* (0.115). <https://fastapi.tiangolo.com/>
 - Supabase. (s. f.). *Supabase documentation*. <https://supabase.com/docs>
 - Tavily. (s. f.). *Tavily Search API*. <https://docs.tavily.com/>
