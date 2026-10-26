@@ -2902,9 +2902,11 @@ guardarraíl sea una de las métricas de §5.5.
 Epílogo, porque la historia no acabó en `monitor`: un control en observación que
 nadie lee no es un control, es una factura. El change `guardarrailes-por-capas` lo
 retiró de la ruta de generación —donde el falso positivo ocurrió— y lo dejó
-bloqueando donde el autor del texto tiene incentivo para atacar. **La respuesta a
-un falso positivo no es bajar el control a observación y olvidarlo: es acotar
-dónde se aplica.**
+bloqueando en el validador, el único punto del sistema cuyo propósito entero es
+denegar por defecto; en el evaluador y el revisor —donde de verdad escribe un autor
+con incentivo— sigue apagado a la espera de recalibrar su umbral (§6.5). **La
+respuesta a un falso positivo no es bajar el control a observación y olvidarlo: es
+acotar dónde se aplica.**
 
 **2. Enmascarar la salida de un modelo no protege a nadie y corrompe el producto.**
 Presidio corría con `filter_scope: both` por defecto y enmascaraba también la
