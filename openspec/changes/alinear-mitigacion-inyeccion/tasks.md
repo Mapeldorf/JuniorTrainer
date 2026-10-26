@@ -18,11 +18,11 @@
 
 ## 4. Documentación del capstone
 
-- [ ] 4.1 Actualizar el Anexo A.4 con el prompt íntegro resultante, delimitadores y frase incluidos. Verificar: el bloque del anexo coincide palabra a palabra con el literal del código.
-- [ ] 4.2 Actualizar §3.6 (punto 4 y la nota posterior): la frase defensiva cubre ya los siete prompts; eliminar la excepción del redactor. Verificar: no queda en §3.6 ninguna frase que declare al prompt de ejercicios sin mitigación por instrucción.
-- [ ] 4.3 Actualizar §6.3 LLM01 («los seis prompts que manejan contenido no confiable» pasa a siete). Verificar: una búsqueda de «seis prompts» en el documento no arroja referencias desfasadas.
+- [x] 4.1 Actualizar el Anexo A.4 con el prompt íntegro resultante, delimitadores y frase incluidos. Verificar: el bloque del anexo coincide palabra a palabra con el literal del código. **Verificado:** comparación programática entre el literal `_SYSTEM_PROMPT` y el bloque del anexo (ambos normalizados): coinciden.
+- [x] 4.2 Actualizar §3.6 (punto 4 y la nota posterior): la frase defensiva cubre ya los siete prompts; eliminar la excepción del redactor. Verificar: no queda en §3.6 ninguna frase que declare al prompt de ejercicios sin mitigación por instrucción. **Verificado:** el punto 4 dice «siete prompts», la excepción se sustituyó por el párrafo del redactor con mención al change; la única aparición restante de «seis prompts» es el punto 3 (contrato de salida), que es otro recuento y sigue siendo correcto.
+- [x] 4.3 Actualizar §6.3 LLM01 («los seis prompts que manejan contenido no confiable» pasa a siete). Verificar: una búsqueda de «seis prompts» en el documento no arroja referencias desfasadas. **Verificado:** grep confirma solo la del punto 3 de §3.6; LLM01 ya dice «siete prompts».
 
 ## 5. Cierre
 
-- [ ] 5.1 `openspec validate --all` en verde tras todos los cambios. Verificar: el comando sale 0 y no reporta el change.
+- [x] 5.1 `openspec validate --all` en verde tras todos los cambios. Verificar: el comando sale 0 y no reporta el change. **Verificado:** 29 passed, 0 failed (29 items), incluido el delta del change.
 - [ ] 5.2 Commit de código + artefactos en la rama propia y PR contra `develop`. Verificar: checks del PR en verde y `openspec list` muestra el change `alinear-mitigacion-inyeccion` sin archivar (el archivado es un paso posterior, tras el merge).
