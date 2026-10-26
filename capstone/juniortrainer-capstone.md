@@ -2330,7 +2330,7 @@ el runbook describe hechos y no intenciones.
 |---|---|---|
 | **Alumno** | Sus asignaciones, y escribir el texto de sus respuestas | **El actor más interesante del modelo**: está autenticado, su texto llega a dos modelos, y tiene un incentivo directo y concreto para manipular su propia corrección |
 | **Tech lead** | Todo el sistema | Escribe las tecnologías y elige el repositorio: su entrada llega a tres modelos y a la API de GitHub |
-| **Atacante externo sin credenciales** | Solo `/health` | Superficie reducida a dos servicios expuestos |
+| **Atacante externo sin credenciales** | Solo `/health` y la documentación (`/docs`, `/redoc`, con su CSP acotada) | Superficie reducida a dos servicios expuestos |
 | **Contenido de repositorio** | Entra por el agente de código | Código arbitrario, con comentarios arbitrarios, que un modelo va a leer |
 | **Contenido web** | Entra por el agente web | Páginas de terceros que el sistema no controla |
 | **Proveedor de modelo** | Recibe los prompts | Ve todo lo que se le envíe: es un destino de fuga, no un atacante |
@@ -2340,7 +2340,7 @@ entra por tres puertas distintas, y cada una recibe un tratamiento distinto.**
 
 ```mermaid
 flowchart LR
-    E1["Texto del tech lead<br/>(tecnologías)"] --> V["Validador<br/>pre-filtro + juez default-deny<br/>+ guardarraíles en BLOQUEO"]
+    E1["Texto del tech lead<br/>(tecnologías)"] --> V["Validador<br/>pre-filtro + Presidio en la admisión<br/>+ juez default-deny + guardarraíles en BLOQUEO"]
     E2["Texto del alumno<br/>(respuesta)"] --> EV["Evaluador y Revisor<br/>delimitadores + Presidio en MASK"]
     E3["Contenido de repositorio y web"] --> AG["Código y Web<br/>delimitadores + validación de rutas<br/>sin Presidio (falsos positivos)"]
 ```
@@ -2515,7 +2515,7 @@ red teaming (§6.5) se dice así en lugar de darlo por hecho.
 
 | Riesgo OWASP | Controles reales (con traza) | Veredicto y riesgo residual |
 |---|---|---|
-| **LLM01** Inyección de prompts | Delimitadores de dato y frase defensiva adaptada en los seis prompts que manejan contenido no confiable (§3.6); detección de Lakera en `block` **solo** sobre el validador y su respaldo (`guardarrailes-por-capas`, §6.2 control de IA); ausencia de herramientas de escritura en los seis agentes (§4.6) | **Mitigado, con residual declarado.** El bloqueo automatizado solo actúa en el *gate* de entrada: Lakera se retiró de la ruta de generación por falsos positivos sobre rutas de repositorio (§6.5) y su activación en evaluador y revisor está condicionada a subir el umbral de *enforcement* y volver a medir —la medición sobre 15 respuestas reales dio 1 falso positivo (§6.5)—. En esos dos agentes, por tanto, **hoy solo protege la instrucción**. Además, el cierre del propio delimitador desde el contenido no confiable es posible en los prompts del evaluador, el web y el de código: ningún código lo impide (objetivo 10, §6.5). El radio de daño queda acotado a la **calidad del resultado** (§6.2) |
+| **LLM01** Inyección de prompts | Delimitadores de dato y frase defensiva adaptada en los seis prompts que manejan contenido no confiable (§3.6); detección de Lakera en `block` **solo** sobre el validador y su respaldo (`guardarrailes-por-capas`, §6.2 control de IA); ausencia de herramientas de escritura en los seis agentes (§4.3, §6.2) | **Mitigado, con residual declarado.** El bloqueo automatizado solo actúa en el *gate* de entrada: Lakera se retiró de la ruta de generación por falsos positivos sobre rutas de repositorio (§6.5) y su activación en evaluador y revisor está condicionada a subir el umbral de *enforcement* y volver a medir —la medición sobre 15 respuestas reales dio 1 falso positivo (§6.5)—. En esos dos agentes, por tanto, **hoy solo protege la instrucción**. Además, el cierre del propio delimitador desde el contenido no confiable es posible en los prompts del evaluador, el web y el de código: ningún código lo impide (objetivo 10, §6.5). El radio de daño queda acotado a la **calidad del resultado** (§6.2) |
 | **LLM02** Fuga de información sensible | Presidio autoalojado, redactando en el agente (evaluador y revisor) y como red en `MASK` en el proxy, acotado a 5 entidades y a la entrada (§6.2, §6.6); pre-filtro determinista del validador para DNI/NIE, que Presidio no reconoce (§6.2); `mask_input` de Langfuse en las trazas (§6.6); tres roles de BD de mínimo privilegio (§6.2 controles 10-11); GitHub App de solo lectura sin persistencia en disco (§6.2 control 22) | **Mitigado.** Residual inherente a la función: el **código propietario del repositorio sí llega al proveedor del modelo** por diseño (riesgo 3, aceptado, con la inferencia autoalojable como mitigación disponible). Residual menor: PII que Presidio no reconoce y que no es DNI/NIE (riesgo 4) |
 | **LLM03** Cadena de suministro | El frontend fija sus dependencias con *lockfile* (`frontend/package-lock.json`, instalado con `npm ci` en el CI, §5.3); los modelos son open-weight con fallback a otro proveedor (§3.3) | **Parcial, con asimetría entre lados.** El backend y los seis agentes declaran sus dependencias **solo por rango** en `requirements.txt` (`fastapi>=0.115,<0.116`…), **sin fijarlas a versión exacta ni por *hash* y sin *lockfile***, de modo que dos construcciones de un agente pueden no ser idénticas. Y no hay análisis automatizado de vulnerabilidades de dependencias en el CI (ni `dependabot`, ni escaneo de imágenes, ni SCA) en ningún lado. Es el hueco de proceso más claro de todo el inventario |
 | **LLM04** Envenenamiento de datos | El sistema **no entrena ni ajusta** modelos, lo que descarta el vector clásico. El único vector real es la **memoria** de los agentes web y de código: el resumen que se cachea deriva de contenido no confiable (web o repositorio). Lo acotan el aislamiento de la memoria en el rol `agents_memory`, sin `USAGE` sobre `public` (§6.2 control 11); los delimitadores en el prompt que produce ese resumen; y una clave de caché por repositorio y tecnologías, que limita el alcance de un envenenamiento a esa clave | **Parcial, y es el riesgo menos obvio.** Una entrada manipulada que entre en la caché persiste su TTL de **30 días** (`agents/*/app/memory.py`), y como el TTL se **refresca en cada lectura** (`refresh_on_read=True`), una clave que se consulte a menudo puede no caducar nunca. Es el objetivo 9 del red teaming (§6.5), específico de esta arquitectura |
@@ -2581,7 +2581,7 @@ calidad de un resultado.
 | 5 | Coste descontrolado por abuso o bucle | Baja | Bajo | **Bajo** | **Aceptar.** Presupuesto y ritmo por clave, rate limiting en dos niveles y presupuestos de operaciones (§6.2 controles 13-16); el daño está acotado por el tope de cada clave |
 | 6 | Un alumno accede a asignaciones de otro | Baja | Medio | **Bajo** | **Aceptar.** Doble capa: filtrado explícito por alumno en el código y RLS en la base de datos (§6.2 controles 3-4) |
 | 7 | **Todos los servicios comparten el mismo `.env`** | Alta *(en desarrollo)* | Alto | **Alto** | **Aceptar solo en desarrollo, de momento.** No hay control hoy. Su cierre —un gestor de secretos por servicio, ya requisito de la plataforma (§5.2)— **merece una especificación propia más adelante**; es una postura de desarrollo que un despliegue real no puede heredar |
-| 8 | Degradación silenciosa de calidad del fallback | Media *(no medida)* | Medio | **Medio** | **Medir.** El fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). La comparativa primario/fallback es parte de §5.7. Residual aceptado de forma interina hasta medirla |
+| 8 | Degradación silenciosa de calidad del fallback | Media | Medio | **Medio** | **Medido en calidad.** La comparativa primario/respaldo de §5.7 —dos ejecuciones completas con el respaldo— muestra una calidad equivalente en lo esencial (algo más de repetición de temas en ejercicios y un fragmento sin fundamentar en una de las dos ejecuciones); el fallback va a un modelo equivalente, y en el validador al mismo modelo en otro proveedor, de modo que ahí no cambia el criterio (§3.3). Lo que sigue **estimado, no medido**, es el coste del respaldo (§3.8) |
 | 9 | **Falso positivo de guardarraíl que rompe el servicio** | Baja *(tras el arreglo)* | Alto | **Medio** | **Mitigado en origen.** Ya ocurrió dos veces (§7); la redacción por campo elimina la causa raíz en lugar de recortar el alcance, y Lakera salió de la ruta de generación. El residual de reactivar Lakera se traslada a LLM01 (§6.3) y está declarado |
 | 10 | **Contenido generado incorrecto que se enseña como correcto a un junior** | Media | Alto | **Alto** | **Mitigar (no técnico); aceptar con esa mitigación.** Aprobación humana de los ejercicios y doble pasada con modelos de familias distintas en la evaluación (§3.3, §4.6). Residual aceptado **a condición** de que el tech lead revise las valoraciones a posteriori |
 
@@ -2616,29 +2616,28 @@ cada riesgo residual es del tech lead, que es quien asume sus consecuencias:
 | 1 | **Mitigar:** reactivar Lakera en evaluador y revisor subiendo el umbral y remidiendo antes de encenderlo (change propio, §6.5) |
 | 3 | Aceptado por diseño; previsto mover la inferencia a infraestructura propia, que lo elimina de raíz |
 | 7 | Aceptado solo en desarrollo, de momento; su cierre merece una especificación propia |
-| 8 | Aceptado de forma interina hasta medir la comparativa primario/fallback, que el arnés ya permite (§5.7) |
+| 8 | Aceptado: la calidad del respaldo está medida (§5.7); su coste queda estimado con los precios publicados, no medido (§3.8) |
 | 10 | Aceptado a condición de la revisión a posteriori de las valoraciones |
 | 2, 4, 5, 6, 9 | Aceptados como residual bajo o medio con los controles actuales |
 
 ### 6.5 Red teaming
 
-> **Ejercicio ejecutado el 24 de octubre de 2026.** El informe completo está en
-> `capstone/red-teaming/informe.md`, y sus cifras salen del informe de la suite
-> (`evals/results/20261024T122329Z-real.json`), no de una transcripción a mano.
-> Resultado: **0 ataques exitosos** de los 19 casos medidos en modo real
-> —evaluador 6, revisor 4 revisados a mano, validador 9—, con 4 bloqueados por el
-> guardarraíl del proxy y 2 por el pre-filtro.
->
-> El punto de partida era el conjunto adversarial de la suite de §5.5 (19 casos
-> escritos a mano, por quien diseñó las defensas, que cubrían en versión mínima
-> los objetivos 1 a 6 y se ejecutaban como regresión). El ejercicio lo amplía a
-> **24 casos**, ejecuta los medibles contra los modelos reales y **declara** los
-> que el arnés no puede cubrir hoy: los objetivos 7 y 9, y —el hueco más
-> importante— la resistencia del modelo en web y código, que no se mide en
-> ningún modo (abajo).
+El ejercicio se ejecutó el **24 de octubre de 2026** en modo real contra los
+modelos y el proxy del stack, y su informe completo vive en
+`capstone/red-teaming/informe.md`, con las cifras sacadas del informe de la suite
+(`evals/results/20261024T122329Z-real.json`), no de una transcripción a mano. El
+resultado fue **0 ataques exitosos** de los 19 casos medidos en modo real
+—evaluador 6, revisor 4 revisados a mano, validador 9—, con 4 bloqueados por el
+guardarraíl del proxy y 2 por el pre-filtro. Se partió del conjunto adversarial de
+la suite (§5.5) —19 casos escritos a mano, por quien diseñó las defensas, en
+versión mínima de los objetivos 1 a 6 y ejecutados como regresión—; el ejercicio lo
+amplía a **24**, ejecuta los medibles contra los modelos reales y **declara** los
+que el arnés no puede cubrir hoy: los objetivos 7 y 9, y —el hueco más
+importante— la resistencia del modelo en web y código, que no se mide en ningún
+modo (abajo).
 
-**El punto de partida honesto: dos falsos positivos reales ya han debilitado los
-controles automatizados.**
+**La honestidad del punto de partida: dos falsos positivos reales ya han
+debilitado los controles automatizados.**
 
 El primero, con Lakera. En uso normal, el guardarraíl marcó como `prompt_attack`
 contenido completamente benigno: rutas de repositorio que contienen la palabra
@@ -2850,7 +2849,7 @@ inferencia externo**, y eso es lo que las medidas de esta sección acotan.
 | Mecanismo | Qué hace | Protege de | Dónde |
 |---|---|---|---|
 | **`mask_input` de Langfuse** | Oculta el contenido **en la traza guardada** | Que *nosotros* almacenemos datos sensibles en la plataforma de observabilidad | `agents/*/app/tracing.py` |
-| **Presidio en LiteLLM** | Sustituye el dato **antes de enviarlo** al proveedor | Que *el proveedor externo* reciba datos personales | `infra/litellm/config.yaml` |
+| **Presidio —en el agente, con la red del proxy de respaldo—** | Sustituye el dato **antes de enviarlo** al proveedor | Que *el proveedor externo* reciba datos personales | `agents/evaluator/app/redaction.py` (y su gemelo en el revisor), con la red de seguridad en `infra/litellm/config.yaml` |
 
 Son capas independientes y complementarias: una mira hacia dentro y otra hacia
 fuera. Ninguna de las dos afecta a la observabilidad de coste, latencia, tokens o
