@@ -54,8 +54,9 @@ Tres decisiones articulan el sistema y se defienden a lo largo del documento:
 El documento recorre la elección y parametrización de los modelos (parte II), el
 diseño del sistema de agentes y de la cadena de desarrollo asistida por copilotos
 (parte III), el despliegue y la evaluación (parte IV) y los controles de seguridad
-y el análisis de riesgos (parte V); cierra con las lecciones aprendidas y el
-trabajo futuro (parte VI).
+y el análisis de riesgos (parte V); cierra con las lecciones aprendidas, el
+trabajo futuro y unas conclusiones que contrastan los resultados con los objetivos
+de §1.6 (parte VI).
 
 ---
 
@@ -63,9 +64,11 @@ trabajo futuro (parte VI).
 
 El documento está escrito como un documento de ingeniería, no como un examen: las
 partes siguen el orden en que un lector necesita la información, no el orden del
-programa del máster. Esta tabla localiza cada concepto de la rúbrica. Quien
-prefiera ver primero el sistema funcionando tiene un ejemplo real, de la
-generación de un ejercicio a la valoración de una respuesta, en §1.6.
+programa del máster. Esta tabla localiza cada concepto de la rúbrica. Los
+objetivos del proyecto y sus criterios de éxito están en §1.6, y su contraste con
+los resultados, en las conclusiones (§9). Quien prefiera ver primero el sistema
+funcionando tiene un ejemplo real, de la generación de un ejercicio a la valoración
+de una respuesta, en §1.7.
 
 | Lo que se pide | Dónde está |
 |---|---|
@@ -252,7 +255,33 @@ Lo que el sistema **no** hace, y por qué:
 | Internacionalización | Todo se entrega en español; el prompt lo exige en los cuatro agentes que producen texto para una persona (§3.1). |
 | Autorregistro de usuarios | La entrada al sistema es por invitación de un tech lead. |
 
-### 1.6 Un ejemplo real
+### 1.6 Objetivos y criterios de éxito
+
+El proyecto tiene un objetivo de producto —que un tech lead pueda entrenar a un
+junior con ejercicios de su propio código sin dedicarle horas de senior— y lo
+descompone en siete objetivos comprobables. Cada uno lleva un criterio de éxito
+que se puede contrastar con la evidencia del repositorio, y las conclusiones (§9)
+lo hacen uno a uno.
+
+| # | Objetivo | Criterio de éxito | Dónde se comprueba |
+|---|---|---|---|
+| O1 | Generar ejercicios de nivel junior sobre el código y las tecnologías del proyecto, de los dos tipos (`knowledge` y `debug`) | Contrato de salida: cardinalidad ≥ 90 %, salida válida y límites de palabras ≥ 98 %, solapamiento máximo de temas entre generaciones ≤ 0,50. Calidad pedagógica: medida con un juez calibrado contra el tech lead | §5.5, §5.6, §5.7 |
+| O2 | Valorar cada respuesta en el momento, con una valoración fiable | Exactitud ≥ 0,85 y κ de Cohen ≥ 0,60 frente a la etiqueta humana; p95 de la evaluación por debajo del presupuesto síncrono de 45 s | §5.5, §5.7 |
+| O3 | Dejar en manos humanas todo lo que persiste o llega a una persona, y compensar la única excepción | Ningún agente puede guardar, asignar ni escribir en tablas de negocio; la excepción —la valoración— está declarada y tiene controles propios | §4.6, §6.2 |
+| O4 | Aplicar mínimo privilegio y resistir la inyección de prompts | Credencial, presupuesto y, si accede a datos, rol de base de datos propios por agente, y ninguna herramienta de escritura; 0 ataques exitosos en el red teaming; los diez riesgos del OWASP Top 10 para LLM mapeados con su residual | §6.2, §6.3, §6.5 |
+| O5 | Conocer y acotar el coste | Coste por operación y por nivel de uso medido sobre lo facturado, no estimado con precios de lista; un tope de gasto por agente | §3.4, §3.7 |
+| O6 | Operar con resiliencia y observabilidad | Política de fallo definida por agente; respaldo en otro proveedor con su calidad medida; una traza por operación; umbrales de alerta definidos | §4.3, §5.7, §5.8 |
+| O7 | Desarrollar con copilotos sin perder el control de su salida | Todo cambio pasa por propuesta, diseño, tareas y delta de especificación; las capacidades vigentes validan con el CLI de OpenSpec | §4.9, Anexo C |
+
+Dos precisiones de método. Los umbrales numéricos de O1 y O2 son los del gate de
+evaluación (`evals/thresholds.json`, §5.8), que se fijaron a partir de la primera
+línea base y no antes de construir el sistema: sirven como listón de regresión, no
+como una predicción que se haya cumplido. Y el valor pedagógico —que el junior
+aprenda antes y el tech lead recupere horas— no figura entre los objetivos porque
+no se puede medir dentro del proyecto: es la premisa de §1.1, y §9 dice qué haría
+falta para comprobarla.
+
+### 1.7 Un ejemplo real
 
 Antes de entrar en la arquitectura, el producto en funcionamiento. Lo que sigue
 son salidas reales de los modelos de producción, copiadas sin retocar del informe
@@ -3185,6 +3214,7 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 
 | Trabajo | Por qué |
 |---|---|
+| Piloto con un equipo real | Las premisas de §1.1 no están medidas (§9): hace falta medir con usuarios la proporción de candidatos guardados, el tiempo de revisión del tech lead y la opinión de los juniors sobre las valoraciones |
 | Afinar el juez de contenido (§5.6) | El juez ya funciona y está calibrado (κ 0,475); faltan revisar `autosuficiencia` y `calidad_del_fallo` con una nueva pasada |
 | CI/CD completo con las evals como *gate* (§5.3) | Las evals simuladas ya corren en CI y el job `evals-gate` existe; faltan el **aprovisionamiento de `develop`** y la **protección de rama** que haga obligatorio el gate, los tests de backend y el despliegue. Un *import check* no sostiene el backend de un sistema de doce servicios |
 | Despliegue con gestor de secretos y secretos segmentados por servicio (§5.1, §5.2) | Riesgo 7 del registro: hoy toda la configuración vive en un único `.env` compartido por los servicios que la consumen |
@@ -3209,6 +3239,64 @@ Lo que queda fuera a propósito, con su prioridad y su razón.
 | Inferencia autoalojada como opción de despliegue | Los modelos de producción son open-weight precisamente para esto (§3.1); sería la respuesta a un cliente que exija que su código no salga de su red |
 | Más tipos de ejercicio | `knowledge` y `debug` cubren el caso de uso inicial |
 | Analítica de progreso del alumno | Los datos están; falta el producto |
+
+## 9. Conclusiones
+
+JuniorTrainer se planteó para que un tech lead pueda entrenar a un junior con
+ejercicios de su propio código sin dedicarle horas de senior, y para hacerlo con un
+sistema de agentes que pudiera ponerse en producción, no con un prototipo. Esta
+sección contrasta lo construido con los objetivos de §1.6 y separa lo que está
+demostrado de lo que sigue abierto.
+
+**Los objetivos, uno a uno.**
+
+| # | Resultado | Veredicto |
+|---|---|---|
+| O1 | Contrato de salida cumplido en las tres ejecuciones: cardinalidad 1,000, salida válida y límites al 100 %, solapamiento máximo de temas entre 0,25 y 0,28, y ningún reintento correctivo (§5.7). La calidad pedagógica tiene juez, pero su concordancia con el tech lead es moderada (κ 0,475) y floja en `autosuficiencia` y `calidad_del_fallo` (§5.6). El ejemplo de §1.7 muestra la consecuencia: un ejercicio que pasa todas las comprobaciones y describe un síntoma falso | **Cumplido en el contrato; parcial en la calidad** |
+| O2 | Exactitud 1,000 y κ 1,000 en las 22 respuestas, en las tres ejecuciones; p95 de 2,7 s frente a 45 s (§5.7). La muestra es corta: el intervalo de confianza al 95 % de la exactitud empieza en torno a 0,85, justo en el umbral. Y lo que aporta el revisor sobre el evaluador no está medido (§1.7) | **Cumplido, con una muestra corta** |
+| O3 | Guardar, cerrar una generación, componer, eliminar y asignar son acciones solo humanas, y lo refuerzan los roles de base de datos de los agentes y los *triggers* (§4.6, §6.2). La valoración es la única excepción, declarada y con cuatro controles (§4.6) | **Cumplido** |
+| O4 | Veinticinco controles (§6.2); 0 ataques exitosos de 19 medidos en modo real (§6.5); los diez riesgos OWASP mapeados con su residual (§6.3). Quedan sin medir la resistencia del modelo en los agentes web y de código y los objetivos 7 y 9 del red teaming; el bloqueo automático de inyección está apagado en evaluador y revisor, y las dependencias de Python no están fijadas (LLM03) | **Parcial** |
+| O5 | Coste facturado medido por agente: 0,0014 USD por ejercicio guardado, 0,000679 por evaluación y unos 2,20 USD por equipo el primer año (§3.7); tope de gasto por clave (§3.4). La infraestructura no está costeada (§5.2) | **Cumplido en inferencia; falta la infraestructura** |
+| O6 | Política de fallo por agente implementada (§4.3); respaldo medido, equivalente en lo esencial y algo peor en repetición de temas (§5.7); una traza por operación y umbrales de alerta fijados (§5.8). El cuadro de mando no está montado y el CI del backend solo comprueba que arranca (§5.3) | **Cumplido en diseño; parcial en operación** |
+| O7 | Sesenta cambios con sus cuatro artefactos y veintiocho capacidades que validan con el CLI; la auditoría del propio proceso encontró una desincronización y se corrigió (§4.9, Anexo C) | **Cumplido** |
+
+**Lo que el proyecto demuestra.** Las tres decisiones del resumen ejecutivo salen
+reforzadas, y cada una por una razón concreta:
+
+1. **Repartir los agentes por fuente de información y nivel de confianza es
+   repartir permisos.** La credencial de GitHub vive en dos procesos, el texto del
+   alumno llega a dos agentes, cada agente tiene su presupuesto y un fallo del
+   agente web degrada la generación en lugar de tumbarla. Ninguna de esas
+   propiedades sería una frontera real en un único proceso (§1.4, §4.4).
+2. **Que el agente proponga y el humano disponga no es prudencia retórica.** El
+   ejercicio de §1.7 cumple todo lo que el código comprueba y aun así enseñaría algo
+   falso; solo un humano lo detecta. Y el único camino sin humano, la valoración, es
+   también donde se concentra el riesgo residual más serio del sistema (riesgo 10).
+3. **Lo que el prompt pide, el código lo garantiza.** El contrato de salida se
+   cumple al 100 % y sin reintentos, y donde el modelo sí falló —rutas inventadas,
+   límites, contradicciones del validador— lo rescató el código (§7, lección 5). La
+   otra cara es igual de instructiva: lo que sigue abierto es justo lo que el código
+   no puede comprobar, la corrección pedagógica de un ejercicio y la de un veredicto
+   fuera de la muestra.
+
+**Lo que queda abierto.** Tres cosas, por orden de importancia:
+
+- **El valor del producto no está validado con usuarios.** Que el junior aprenda
+  antes y el tech lead recupere horas es la premisa de §1.1, no un resultado. Para
+  comprobarlo hace falta un piloto con un equipo real que mida, como mínimo, la
+  proporción de candidatos que el tech lead guarda, el tiempo que dedica a
+  revisarlos y lo que los juniors opinan de las valoraciones.
+- **La valoración descansa en un evaluador medido sobre 22 respuestas.** Es la
+  única salida que llega a una persona sin revisión humana. Ampliar el conjunto de
+  evaluación es la medición pendiente más importante del sistema (§5.7).
+- **El paso a producción tiene tareas concretas:** gestor de secretos por servicio,
+  tests del backend en el CI, aprovisionamiento de `develop` y el cuadro de mando
+  (§8, prioridad alta).
+
+El sistema cumple su contrato, mide su calidad y su coste con instrumentos que a su
+vez se han verificado (§7, lección 8), y declara con la misma precisión lo que
+todavía no sabe. Lo que falta para llevarlo a terceros está identificado y acotado;
+lo que falta para saber si cumple su propósito es ponerlo en manos de un equipo.
 
 ---
 
