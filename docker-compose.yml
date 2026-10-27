@@ -90,11 +90,20 @@ services:
   # habla, dentro de la red interna de Compose, por su nombre de servicio
   # (que coincide con el host que cada uno ya anuncia por defecto en su
   # propia Agent Card, ver agents/*/app/config.py y backend/app/config.py).
+  #
+  # LITELLM_BASE_URL fijada en el `environment:` de los seis agentes (change
+  # `fix-compose-litellm-url-agentes`): el .env de la raiz puede llevar
+  # LITELLM_BASE_URL=http://localhost:4000/v1 para el arnes de evals/ desde el
+  # host, y `env_file` lo heredaria aqui, donde localhost es el propio agente
+  # y ninguna llamada llega al modelo. `environment` tiene prioridad sobre
+  # `env_file`, asi que el contenedor usa siempre la URL interna.
   agent-web:
     build: ./agents/web
     expose:
       - "8010"
     env_file: .env
+    environment:
+      LITELLM_BASE_URL: http://litellm:4000/v1
     depends_on:
       - litellm
 
@@ -103,6 +112,8 @@ services:
     expose:
       - "8011"
     env_file: .env
+    environment:
+      LITELLM_BASE_URL: http://litellm:4000/v1
     # Sin volumen de repos: lee el contenido directamente de la API de
     # GitHub (change acceso-repo-github-tool), nunca de una carpeta local.
     depends_on:
@@ -113,6 +124,8 @@ services:
     expose:
       - "8012"
     env_file: .env
+    environment:
+      LITELLM_BASE_URL: http://litellm:4000/v1
     depends_on:
       - litellm
 
@@ -130,6 +143,7 @@ services:
       - "8013"
     env_file: .env
     environment:
+      LITELLM_BASE_URL: http://litellm:4000/v1
       PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
       PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     depends_on:
@@ -143,6 +157,7 @@ services:
       - "8014"
     env_file: .env
     environment:
+      LITELLM_BASE_URL: http://litellm:4000/v1
       PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
       PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     depends_on:
@@ -159,6 +174,7 @@ services:
       - "8015"
     env_file: .env
     environment:
+      LITELLM_BASE_URL: http://litellm:4000/v1
       PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
       PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
     depends_on:
