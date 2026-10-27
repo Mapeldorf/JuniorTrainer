@@ -9,8 +9,8 @@
 | **Fecha** | 26 de octubre de 2026 |
 | **Versión** | 1.1 |
 | **Repositorio** | `JuniorTrainer` (incluido con la entrega) |
-| **Especificación formal** | `openspec/specs/` — 28 capacidades |
-| **Historial de cambios** | `openspec/changes/archive/` — 60 cambios |
+| **Especificación formal** | `openspec/specs/` — 29 capacidades |
+| **Historial de cambios** | `openspec/changes/archive/` — 62 cambios |
 
 ---
 
@@ -28,7 +28,7 @@ qué se delega, en qué orden y con qué margen de error.
 | Agentes | **6**, cada uno con su servicio, credencial y presupuesto |
 | Modelos lógicos | **4** roles sobre 2 familias de modelos open-weight y 2 proveedores |
 | Servicios | **12** contenedores |
-| Especificación | **28** capacidades y **60** cambios archivados |
+| Especificación | **29** capacidades y **62** cambios archivados |
 | Controles de seguridad | **25** |
 | Dataset de evaluación | **126** casos en seis conjuntos, más **10** del juez |
 
@@ -1098,8 +1098,8 @@ total.
 El sistema se construyó con copilotos de IA, y la pregunta relevante es **qué
 controles hay sobre su salida**. La respuesta es un proceso de desarrollo guiado por
 especificaciones con **OpenSpec**, dentro del propio repositorio:
-`openspec/specs/` contiene las 28 capacidades vigentes, escritas como requisitos con
-`SHALL`/`MUST`, y `openspec/changes/archive/` los 60 cambios archivados. Cada cambio
+`openspec/specs/` contiene las 29 capacidades vigentes, escritas como requisitos con
+`SHALL`/`MUST`, y `openspec/changes/archive/` los 62 cambios archivados. Cada cambio
 tiene cuatro artefactos obligatorios:
 
 | Artefacto | Contenido | Para qué sirve como control |
@@ -1865,7 +1865,7 @@ contraste con los objetivos de §1.6:
 | O4 | 25 controles, 0 ataques exitosos de 19, OWASP mapeado. Sin medir el modelo en web y código; Lakera apagado en la evaluación; dependencias sin fijar | **Parcial** |
 | O5 | 0,00072 USD por ejercicio guardado y 0,000166 por evaluación, facturados con la política de enrutado activa; topes por clave. La infraestructura, estimada, es más del 97 % del coste | **Cumplido; la infraestructura, estimada** |
 | O6 | Política de fallo por agente; respaldo medido; trazas y umbrales. Sin cuadro de mando y con un CI de backend mínimo | **Cumplido en diseño; parcial en operación** |
-| O7 | 60 cambios con sus artefactos y 28 capacidades que validan; la auditoría del propio proceso encontró y corrigió una desincronización | **Cumplido** |
+| O7 | 62 cambios con sus artefactos y 29 capacidades que validan; la auditoría del propio proceso encontró y corrigió una desincronización | **Cumplido** |
 
 **Lo que demuestra.** Las tres decisiones del resumen salen reforzadas. **Repartir
 los agentes por fuente y confianza es repartir permisos**: la credencial de GitHub
@@ -2277,7 +2277,7 @@ cada bloque documenta qué es el valor y cómo obtenerlo o generarlo.
 
 ## Anexo C — El proceso de especificación como evidencia
 
-Las 28 capacidades vigentes de `openspec/specs/`:
+Las 29 capacidades vigentes de `openspec/specs/`:
 
 | Dominio | Capacidades |
 |---|---|
@@ -2288,12 +2288,12 @@ Las 28 capacidades vigentes de `openspec/specs/`:
 | Autenticación y datos | `user-auth`, `data-authorization` |
 | Seguridad de la API | `api-rate-limiting`, `api-body-size-limit`, `api-security-headers`, `api-error-handling` |
 | Seguridad de IA | `pii-redaction`, `prompt-injection-mitigation` |
-| Modelos | `litellm-admin-access`, `litellm-agent-keys` |
+| Modelos | `litellm-admin-access`, `litellm-agent-keys`, `llm-provider-routing` |
 | Integraciones | `github-repo-access` |
 | Frontend | `frontend-security-headers`, `frontend-ui-theme`, `confirm-dialog` |
 
-Los 60 cambios de `openspec/changes/archive/`, entre el 11 y el 26 de octubre de
-2026, cuentan la historia del proyecto. Diecisiete son de seguridad, y dieciséis se
+Los 62 cambios de `openspec/changes/archive/`, entre el 11 y el 27 de octubre de
+2026, cuentan la historia del proyecto. Dieciocho son de seguridad, y dieciséis se
 concentran entre el 14 y el 16 de octubre: hubo una fase deliberada de
 endurecimiento. Cuatro corrigen una decisión anterior (`fix-falso-positivo-lakera`,
 `fix-agent-model-env-collision`, `quitar-url-person-presidio`,
@@ -2302,7 +2302,10 @@ historial no se ha limpiado. `guardarrailes-por-capas` no corrige un valor, sino
 sitio donde se tomaban las decisiones; `suite-evaluacion-agentes` construye el
 instrumento que mide al resto, y `costes-por-operacion`, al usarlo, contradijo una
 decisión del diseño —los modelos elegidos razonan igualmente— y quedó escrito en
-lugar de corregirse en silencio.
+lugar de corregirse en silencio. Los dos últimos salieron de preparar este
+documento: `enrutado-proveedores-openrouter`, de preguntar adónde viajan los datos
+(§6.7), y `fix-compose-litellm-url-agentes`, de un fallo que apareció al hacer las
+capturas del Anexo G.
 
 ## Anexo D — Informes de evaluación
 

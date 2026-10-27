@@ -29,7 +29,7 @@ Revisión global completa (portada y resumen, «cómo leer», §1–§8 y Anexos
 la rama `docs/capstone-revision-global`. **Re-revisión por tramos completada**
 (portada, resumen y «cómo leer»; §1, §2 y §3 completos, y §4.1–§4.8), en las ramas
 `docs/capstone-rerevision-*` y los PRs #123–#127. Las cifras de cabecera quedan
-reverificadas: 28 capacidades, 60 cambios, 126 casos del dataset en seis conjuntos
+reverificadas: 29 capacidades, 62 cambios, 126 casos del dataset en seis conjuntos
 más 10 del juez, y 25 controles de seguridad.
 
 **Versión 1.1, condensada** (rama `docs/capstone-condensado`): de unas 48.000 a unas
