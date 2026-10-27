@@ -49,7 +49,8 @@ tales dentro del propio documento:
 | §6.4 | Reactivar Lakera en evaluador y revisor (riesgo 1) y gestor de secretos por servicio (riesgo 7) | Change propio / infraestructura |
 | §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 | §6.6 | El borrador de cumplimiento (RAT, base jurídica, información, encargados, retención, EIPD) está escrito; falta su revisión jurídica y un procedimiento de supresión de los datos de un alumno | Cumplimiento / implementarlo |
-| §6.7 | Política de enrutado de OpenRouter (riesgo 11), impugnación de valoraciones y documentar la evaluación del artículo 6.3 del Reglamento de IA | Change propio / cumplimiento |
+| §6.7 | Impugnación de valoraciones; documentar la evaluación del artículo 6.3 del Reglamento de IA; verificar la certificación DPF de los proveedores de la lista de enrutado y decidir sobre el respaldo de Hugging Face (la política de enrutado ya está, change `enrutado-proveedores-openrouter`) | Change propio / cumplimiento |
+| §3.7, §5.7 | Repetir la línea base de coste y calidad con el revisor en GLM-5.3-Flash y la política de enrutado activa | Ejecutar la suite en real |
 
 ## Generar el PDF
 

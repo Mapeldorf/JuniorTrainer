@@ -494,7 +494,7 @@ preferencia. Los siete salen de los requisitos de §1.4:
 | 3. Coste | Coste facturado por agente y por campaña, y frente a un modelo de referencia | §3.7 |
 | 4. Latencia | p50, p95 y p99 por caso frente a los 45 s | §5.7 |
 | 5. Proveedor | Alias por rol y *virtual key* por agente | §3.2, §3.4 |
-| 6. Pesos publicados | Respaldo en Hugging Face; única excepción, el primario del revisor | §3.3 |
+| 6. Pesos publicados | Los cuatro roles usan modelos con pesos publicados y tienen respaldo en Hugging Face | §3.3 |
 | 7. Español | Exigencia literal en los prompts | Anexo A |
 
 **Las familias sopesadas, y lo que decidió cada una.** DeepSeek V4.1 Flash, por
@@ -503,8 +503,9 @@ familia (2). Los modelos frontier cerrados quedaron fuera de producción por cos
 pesos (3 y 6), y se usan como cota de coste (§3.7) y como juez offline (§5.6). La
 inferencia local, por latencia (4): no cabe en 45 s con hardware razonable, y queda
 como ruta de autoalojado. **Cuando los criterios chocan, decide el orden**: la
-latencia se impuso al autoalojado, y la diversidad de familia a los pesos publicados
-en un único punto, el primario del revisor.
+latencia se impuso al autoalojado. Hasta el change `enrutado-proveedores-openrouter`,
+la diversidad de familia se impuso también a los pesos publicados en un punto: el
+primario del revisor era GLM-5.3-FlashX, que no los tiene. Hoy no hay excepción.
 
 ### 3.2 Cuatro roles lógicos, no cuatro modelos
 
@@ -530,7 +531,7 @@ validador, es una decisión de configuración y no de código.
 |---|---|---|---|
 | `generator` | `openrouter/deepseek/deepseek-v4.1-flash` | `huggingface/deepseek-ai/DeepSeek-V4.1-Flash` | Volumen y contexto altos; buena adherencia al contrato con coste por token muy bajo; tolera latencia |
 | `evaluator` | `openrouter/deepseek/deepseek-v4.1-flash` | `huggingface/deepseek-ai/DeepSeek-V4.1-Flash` | Clasificar en tres categorías y justificar en ≤ 50 palabras: hace falta un modelo rápido y obediente, no uno grande |
-| `reviewer` | `openrouter/z-ai/glm-5.3-flashx` | `huggingface/zai-org/GLM-5.3-Flash` | Tarea igual de acotada; tiene que ser **otra familia** que el evaluador, para que su lectura de la justificación no herede los sesgos de quien la escribió |
+| `reviewer` | `openrouter/z-ai/glm-5.3-flash` | `huggingface/zai-org/GLM-5.3-Flash` | Tarea igual de acotada; tiene que ser **otra familia** que el evaluador, para que su lectura de la justificación no herede los sesgos de quien la escribió. Comparte modelo con el validador |
 | `validator` | `openrouter/z-ai/glm-5.3-flash` | `huggingface/zai-org/GLM-5.3-Flash` | Clasificación binaria con esquema fijo, en el camino crítico |
 
 **La diversidad de familia, y lo que protege.** El revisor recibe el veredicto como
@@ -539,7 +540,8 @@ corregirla si es vaga, incorrecta o incoherente (Anexo A.6). Para esa tarea la
 diversidad tiene sentido: el mismo modelo tendería a dar por buena una explicación
 escrita con sus palabras, y otro modelo es una lectura independiente. No es una
 decisión de coste: por token están en el mismo orden de precio, aunque el revisor,
-que razona más, cuesta unas tres veces y media por llamada (§3.7).
+que razona más, costaba unas tres veces y media por llamada con su primario anterior
+(§3.7).
 
 **Lo que la doble pasada no protege es el veredicto.** Que el revisor no pueda
 cambiarlo es deliberado —evita que dos agentes compitan por la misma decisión—, y
@@ -554,11 +556,12 @@ las dos cosas quedan en §8.
 
 **El respaldo es el mismo modelo en otro proveedor.** Se busca independencia de
 proveedor, no de modelo: en el validador, cambiar de modelo cambiaría el criterio de
-un control de seguridad. Lo cumplen generador, evaluador y validador. La excepción es
-el revisor: GLM-5.3-FlashX no tiene pesos publicados y su respaldo es GLM-5.3-Flash,
-una desviación documentada en `litellm-huggingface-fallback`. Los guardarraíles de
-bloqueo están en **ambos** deployments del validador, para que el respaldo no pueda
-saltárselos.
+un control de seguridad. Lo cumplen los cuatro roles. El revisor fue la excepción
+hasta que la política de enrutado de §6.7 lo obligó a cambiar: su primario,
+GLM-5.3-FlashX, no tenía pesos publicados y solo lo servía Z.AI, un proveedor que esa
+política excluye; ahora usa GLM-5.3-Flash, el mismo modelo que su respaldo, cuya
+calidad en el rol ya estaba medida (§5.7). Los guardarraíles de bloqueo están en
+**ambos** deployments del validador, para que el respaldo no pueda saltárselos.
 
 **Descartados.** Un único modelo para todo pierde la independencia de la segunda
 lectura. Los modelos de razonamiento se descartaron porque ninguna tarea es de
@@ -698,6 +701,11 @@ el precio de lista (`evals/prices.json`) y se marca. Los informes están en
 | web | 5 | 3.604 | 870 (319) | 0,000785 |
 | code | 2 | 19.748 | 4.182 (1.836) | 0,004151 |
 
+Las mediciones de esta sección son del 24 de octubre, antes de la política de
+enrutado de §6.7: el revisor usaba GLM-5.3-FlashX y OpenRouter elegía proveedor sin
+restricciones. Con GLM-5.3-Flash y la lista cerrada de proveedores, el coste del
+revisor y el precio facturado pueden cambiar, y hay que volver a medirlos.
+
 **Por operación**, sumando los agentes que intervienen: validar una tecnología,
 0,000135 USD; evaluar una respuesta, **0,000679** (el revisor es el 77 %); generar
 cinco candidatos, 0,0040 sin repositorio y 0,0082 con él, y 0,0033 con acierto de
@@ -733,8 +741,8 @@ más**, que es una cota inferior.
 - **El coste de evaluar es el revisor**, no el evaluador: razona 266 tokens de media
   frente a 36.
 - **El precio de lista no predice lo facturado**: la razón va de 0,73 a 1,40 según el
-  agente, porque OpenRouter enruta a proveedores con precios distintos (lo que lleva
-  al riesgo 11, §6.7).
+  agente, porque OpenRouter enrutaba a proveedores con precios distintos. Es el
+  síntoma que llevó al riesgo 11 y a la política de enrutado (§6.7).
 
 **Experimento: recortar el razonamiento.** Con el flag `--reasoning` del arnés, que
 inyecta el objeto `reasoning` de OpenRouter sin tocar los agentes:
@@ -1357,13 +1365,17 @@ en `evals/baseline/` (Anexo D).
 | Primario frente a respaldo | Primario | Respaldo |
 |---|---|---|
 | Evaluador: exactitud / κ | 1,000 / 1,000 | 1,000 / 1,000 |
+| Revisor: salida válida / límites / reintentos | 100 % / 100 % / 0 | 100 % / 100 % / 0 |
 | Validador: falsos positivos / negativos | 0 / 0 | 0 / 0 |
 | Validador: cobertura de duplicados | 0,800–1,000 | 0,600–0,800 |
 | Ejercicios: solapamiento máximo de temas | 0,25–0,28 | 0,32–0,53 |
 | Código: fragmentos fundamentados | 1,000 | 0,950–1,000 |
 
 **El respaldo es equivalente en lo esencial y algo peor en dos cosas**: repite más
-temas y falló un fragmento en una ejecución. Lo pendiente es ampliar el conjunto de
+temas y falló un fragmento en una ejecución. Estas ejecuciones son anteriores a la
+política de enrutado de §6.7: en ellas el revisor usaba GLM-5.3-FlashX, y su
+respaldo, GLM-5.3-Flash, es el modelo que hoy usa como primario. Lo pendiente es
+repetir la línea base con la configuración actual y ampliar el conjunto de
 evaluación, porque con 22 respuestas el κ tiene un margen ancho.
 
 ### 5.8 Monitorización en producción
@@ -1531,7 +1543,7 @@ cerrado si su eficacia no está medida.
 | Riesgo | Controles | Veredicto y residual |
 |---|---|---|
 | **LLM01** Inyección de prompts | Delimitadores y frase defensiva en los siete prompts; Lakera en bloqueo en el validador; ningún agente con escritura | **Mitigado, con residual.** En evaluador y revisor solo protege la instrucción: activar Lakera ahí exige recalibrar su umbral (§6.5). El cierre del delimitador desde el contenido no lo impide ningún código. El daño se limita a la calidad del resultado |
-| **LLM02** Fuga de información sensible | Presidio en el agente y en el proxy; pre-filtro de DNI/NIE; `mask_input` en trazas; roles de mínimo privilegio; GitHub App sin persistencia | **Mitigado.** Residual inherente: el código del repositorio **llega al proveedor** por diseño (riesgo 3), y a proveedores que hoy no se eligen (riesgo 11) |
+| **LLM02** Fuga de información sensible | Presidio en el agente y en el proxy; pre-filtro de DNI/NIE; `mask_input` en trazas; roles de mínimo privilegio; GitHub App sin persistencia | **Mitigado.** Residual inherente: el código del repositorio **llega al proveedor** por diseño (riesgo 3); la política de enrutado limita a qué proveedores, salvo en el respaldo (riesgo 11) |
 | **LLM03** Cadena de suministro | *Lockfile* en el frontend; modelos open-weight con respaldo | **Parcial.** Backend y agentes declaran dependencias **solo por rango**, sin *lockfile* ni *hash*, y no hay escaneo de vulnerabilidades en el CI. Es el hueco de proceso más claro |
 | **LLM04** Envenenamiento | No se entrena ningún modelo; memoria aislada en su rol y con clave por repositorio | **Parcial, y el menos obvio.** Un resumen manipulado que entre en la caché dura 30 días, y como el TTL se renueva al leer, una clave muy consultada puede no caducar nunca |
 | **LLM05** Manejo de la salida | Esquema estricto, veredicto de tres valores, límites en código, rutas validadas, degradación de contradicciones | **Mitigado: el mejor cubierto**, por el principio «lo que el prompt pide, el código lo garantiza» |
@@ -1569,16 +1581,17 @@ calidad de un resultado.
 | 8 | Degradación silenciosa del respaldo | Media | Medio | Medio | Medido: equivalente en lo esencial (§5.7); su coste, estimado |
 | 9 | Falso positivo de guardarraíl que rompe el servicio | Baja *(tras el arreglo)* | Alto | Medio | Mitigado en origen con la redacción por campo |
 | 10 | **Contenido incorrecto enseñado como correcto** | Media | Alto | **Alto** | **Aceptar con mitigación**: aprobación humana de los ejercicios y doble pasada sobre la justificación; el veredicto lo decide solo el evaluador. Condicionado a que el tech lead revise las valoraciones |
-| 11 | **Datos a proveedores de terceros países**, sin saber de antemano cuál recibe cada llamada | Alta *(configuración actual)* | Alto | **Alto** | **Mitigar**: fijar la política de enrutado de OpenRouter (§6.7) |
+| 11 | **Datos a proveedores de terceros países**, sin saber de antemano cuál recibe cada llamada | Baja *(solo por el respaldo)* | Alto | Medio | **Mitigado** con la política de enrutado (`enrutado-proveedores-openrouter`): sin recogida de datos, retención cero y lista cerrada de proveedores del EEE y de EE. UU. Residual: el respaldo de Hugging Face no lleva la política, y la certificación DPF de cada proveedor estadounidense no está verificada (§6.7) |
 
-**Los cuatro riesgos altos no se cierran con un control más.** El 3 es una propiedad
+**Los tres riesgos altos no se cierran con un control más.** El 3 es una propiedad
 del producto: para generar ejercicios del código, el código tiene que llegar a un
 modelo. El 7 es alto hoy y bajo en cuanto se despliega con un gestor de secretos. El
 10 es el riesgo de producto más serio: el sistema enseña a quien, por definición, no
 puede evaluar si lo que aprende es correcto, y su mitigación real es que la revisión
-a posteriori exista y el producto la haga fácil. El 11 es el único que se cierra con
-configuración, y salió al preguntar adónde viajan los datos, no al revisar el
-código. La aceptación formal de cada residual corresponde al tech lead.
+a posteriori exista y el producto la haga fácil. El 11 fue alto hasta que se fijó la
+política de enrutado; salió al preguntar adónde viajan los datos, no al revisar el
+código, y se cerró con configuración. La aceptación formal de cada residual
+corresponde al tech lead.
 
 ### 6.5 Red teaming
 
@@ -1673,9 +1686,10 @@ delegado de protección de datos de cada empresa, no asesoramiento jurídico.
   nombre y con los datos personales sustituidos, que la valoración es formativa y
   que puede pedir que una persona la revise. Las dos últimas son compromisos que el
   sistema aún no cumple (§6.7).
-- **Encargados**: Supabase (UE, `eu-west-1`), Langfuse (región UE), OpenRouter y
-  Hugging Face (enrutan a proveedores de varias jurisdicciones, §6.7), Lakera y
-  Tavily (solo nombres de tecnología). Con cada uno hace falta un acuerdo de encargo.
+- **Encargados**: Supabase (UE, `eu-west-1`), Langfuse (región UE), OpenRouter
+  (limitado por la política de enrutado a proveedores del EEE y de EE. UU.), Hugging
+  Face (el respaldo, que elige su propio proveedor), Lakera y Tavily (solo nombres de
+  tecnología). Con cada uno hace falta un acuerdo de encargo (§6.7).
 - **Retención propuesta**: respuestas hasta 12 meses después de terminar la
   incorporación; auditoría de accesos, 12 meses; trazas, 30 días; memoria, el TTL de
   30 días.
@@ -1717,21 +1731,26 @@ lead, desde una cola, registra su veredicto, que se muestra junto al automático
 revisiones en desacuerdo son, además, los casos que más falta hacen en el conjunto de
 evaluación.
 
-**Adónde viajan los datos.** LiteLLM no fija política de enrutado en OpenRouter, que
-elige proveedor en cada llamada. Según su API pública (26 de octubre de 2026):
+**Adónde viajan los datos.** Por los proveedores de inferencia pasan el código
+propietario y las respuestas redactadas. Hasta el 26 de octubre de 2026, LiteLLM no
+fijaba ninguna política y OpenRouter elegía proveedor en cada llamada. Según su API
+pública, DeepSeek V4.1 Flash tenía 41 *endpoints* de 33 proveedores, entre ellos
+algunos con sede fuera del EEE y sin decisión de adecuación; y GLM-5.3-FlashX, el
+primario del revisor, solo lo servía Z.AI, con sede publicada en Singapur. Una
+transferencia así exige garantías que un enrutado automático no puede dar.
 
-| Modelo | Quién lo sirve |
-|---|---|
-| DeepSeek V4.1 Flash (generador y evaluador) | 41 *endpoints* de 33 proveedores, entre ellos nubes chinas |
-| GLM-5.3-FlashX (revisor) | Solo Z.AI, de la empresa china Zhipu |
-| GLM-5.3-Flash (validador y respaldo del revisor) | 38 *endpoints* de 34 proveedores |
-
-Por esa ruta viajan el código propietario y las respuestas redactadas. Una
-transferencia a un país sin decisión de adecuación exige garantías que un enrutado
-automático no puede dar. La mitigación es de configuración (OpenRouter, s. f.):
-`data_collection: "deny"`, `zdr: true` y una lista cerrada de proveedores; el revisor
-tendría que pasar a GLM-5.3-Flash si Z.AI queda fuera. La solución de raíz sigue
-siendo autoalojar los modelos abiertos.
+El change `enrutado-proveedores-openrouter` lo cerró con configuración (OpenRouter,
+s. f.). Cada deployment de OpenRouter lleva ahora `data_collection: "deny"`, `zdr:
+true` y una **lista cerrada de 25 proveedores**: 3 con sede en el EEE y 22 en EE. UU.,
+que tiene decisión de adecuación por el Data Privacy Framework. Una política que no
+se puede cumplir no se relaja: OpenRouter devuelve un error. Por eso el revisor pasó
+a GLM-5.3-Flash, y por eso cambiar de modelo obliga a revisar la lista. Quedan dos
+residuales declarados. El **respaldo de Hugging Face no lleva la política**, porque es
+un parámetro de OpenRouter: una llamada que cae al respaldo, incluida la que OpenRouter
+rechaza por la política, sale sin esas garantías. Y la decisión de adecuación de EE.
+UU. cubre solo a las empresas certificadas en el DPF, algo que no se ha verificado
+proveedor a proveedor. La solución de raíz sigue siendo autoalojar los modelos
+abiertos.
 
 **Más allá de la norma**, tres cuestiones: el **sesgo de automatización** del tech
 lead, que dejará de leer valoraciones que casi siempre aciertan; la **equidad**, porque
@@ -1800,7 +1819,8 @@ el repositorio con su razón: es el valor concreto del ciclo de §4.9.
 | Prioridad | Trabajo | Por qué |
 |---|---|---|
 | Alta | Piloto con un equipo real | Las premisas de §1.1 no están medidas: proporción de candidatos guardados, tiempo de revisión y opinión de los juniors |
-| Alta | Política de enrutado de OpenRouter | Riesgo 11; se cierra con configuración (§6.7) |
+| Media | Verificar la certificación DPF de los proveedores estadounidenses y decidir qué hacer con el respaldo | Residuales del riesgo 11: la política de enrutado no cubre el respaldo de Hugging Face (§6.7) |
+| Media | Volver a medir coste y calidad del revisor con GLM-5.3-Flash | Las cifras de §3.7 y §5.7 se tomaron con su primario anterior |
 | Alta | Impugnación de valoraciones y supresión de datos | El alumno no puede discrepar y sus datos no se pueden suprimir (§6.6, §6.7) |
 | Alta | Clasificación según el Reglamento de IA y evaluación de impacto | Documentar el artículo 6.3 y la evaluación del artículo 35 |
 | Alta | CI/CD completo: tests de backend, gate obligatorio, aprovisionar `develop`, despliegue | Un *import check* no sostiene el backend de doce servicios (§5.3) |
@@ -1844,8 +1864,8 @@ pedagógica de un ejercicio y la de un veredicto fuera de la muestra.
 la premisa de §1.1 y exige un piloto. La **valoración descansa en un evaluador medido
 sobre 22 respuestas**, la única salida que llega a una persona sin revisión. El
 **encaje legal depende del uso**, y el sistema aún no lo sostiene: el alumno no puede
-impugnar, sus datos no se pueden suprimir y no se sabe de antemano qué proveedor
-recibe su texto. Y el **paso a producción** tiene tareas concretas en §8.
+impugnar, sus datos no se pueden suprimir y, cuando una llamada cae al respaldo, sale
+sin la política de enrutado. Y el **paso a producción** tiene tareas concretas en §8.
 
 El sistema cumple su contrato, mide su calidad y su coste con instrumentos que a su
 vez se han verificado, y declara con la misma precisión lo que todavía no sabe. Lo
@@ -2345,8 +2365,11 @@ Desde la raíz del repositorio, en orden de dependencias:
 8. **Comprobaciones.** `curl http://localhost:8000/health`, `python -m evals.run`
    (modo simulado, sin coste) y `python -m evals.run --mode real --limit-per-set 3`.
 9. **Antes de abrirlo a un cliente**: publicar solo frontend y backend tras un *proxy*
-   con TLS y cerrar el puerto 4000; un gestor de secretos por servicio; el tope de 50
-   USD por clave; y la política de enrutado de OpenRouter (§6.7).
+   con TLS y cerrar el puerto 4000; un gestor de secretos por servicio; y el tope de
+   50 USD por clave. Además, `REVIEWER_MODEL` tiene que ser
+   `openrouter/z-ai/glm-5.3-flash`: con la política de enrutado (§6.7), un modelo sin
+   ningún proveedor en la lista cerrada falla siempre y vive en el respaldo sin dar
+   error visible.
 
 ## Anexo G — Guía de uso, con capturas
 
