@@ -50,7 +50,7 @@ tales dentro del propio documento:
 | §6.5 | Cobertura restante del red teaming: resistencia del modelo en web y código (repo de prueba), y objetivos 7 y 9 | Extender el arnés |
 | §6.6 | El borrador de cumplimiento (RAT, base jurídica, información, encargados, retención, EIPD) está escrito; falta su revisión jurídica y un procedimiento de supresión de los datos de un alumno | Cumplimiento / implementarlo |
 | §6.7 | Impugnación de valoraciones; documentar la evaluación del artículo 6.3 del Reglamento de IA; verificar la certificación DPF de los proveedores de la lista de enrutado y decidir sobre el respaldo de Hugging Face (la política de enrutado ya está, change `enrutado-proveedores-openrouter`) | Change propio / cumplimiento |
-| §3.7, §5.7 | Repetir la línea base de coste y calidad con el revisor en GLM-5.3-Flash y la política de enrutado activa | Ejecutar la suite en real |
+| §5.7 | La línea base vigente (`evals/baseline/enrutado/`, 27 de octubre) muestra la cola de latencia más larga con la política de enrutado: vigilarla y, si hace falta, ajustar la lista de proveedores o los timeouts | Medición en producción |
 
 ## Generar el PDF
 

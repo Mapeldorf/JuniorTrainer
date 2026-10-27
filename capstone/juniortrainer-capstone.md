@@ -224,7 +224,7 @@ devuelve `incomplete` en 1,7 s —«Indica correctamente que registra una ruta P
 /items, pero omite lo esencial: FastAPI valida el body de la petición contra el
 modelo Pydantic Item…»— y coincide con la etiqueta humana. El revisor reescribe la
 justificación en 3,9 s, a un coste casi ocho veces mayor por los 416 tokens de
-razonamiento que gasta. La suite mide las dos pasadas **por separado** —el revisor
+razonamiento que gastaba su primario de entonces, GLM-5.3-FlashX. La suite mide las dos pasadas **por separado** —el revisor
 recibe una justificación fija del dataset—, así que lo que el revisor añade sobre
 el evaluador no está medido (§3.3).
 
@@ -474,7 +474,7 @@ preferencia. Los siete salen de los requisitos de §1.4:
    justificación, no el veredicto (§3.3).
 3. **Coste por operación.** Una generación encadena de tres a seis llamadas; una
    evaluación, dos. El coste por ejercicio tiene que ser despreciable frente al
-   tiempo de senior, y lo es: 0,0014 USD por ejercicio guardado (§3.7).
+   tiempo de senior, y lo es: 0,0007 USD por ejercicio guardado (§3.7).
 4. **Latencia con presupuesto duro.** La evaluación es síncrona: 45 s por llamada
    (`timeout=45.0` en `agents/*/app/llm.py`). Un modelo excelente que tarde 90 s no
    sirve como evaluador.
@@ -539,9 +539,9 @@ validador, es una decisión de configuración y no de código.
 corregirla si es vaga, incorrecta o incoherente (Anexo A.6). Para esa tarea la
 diversidad tiene sentido: el mismo modelo tendería a dar por buena una explicación
 escrita con sus palabras, y otro modelo es una lectura independiente. No es una
-decisión de coste: por token están en el mismo orden de precio, aunque el revisor,
-que razona más, costaba unas tres veces y media por llamada con su primario anterior
-(§3.7).
+decisión de coste: por token están en el mismo orden de precio, y por llamada el
+revisor cuesta hoy 1,2 veces lo que el evaluador; con su primario anterior, que
+razonaba más, costaba tres veces y media (§3.7).
 
 **Lo que la doble pasada no protege es el veredicto.** Que el revisor no pueda
 cambiarlo es deliberado —evita que dos agentes compitan por la misma decisión—, y
@@ -599,8 +599,8 @@ hace.
 
 **El tope es configurable** (`LITELLM_KEY_MAX_BUDGET_USD`): **5 USD** por defecto en
 desarrollo y **50 USD** en despliegue. Con 30 equipos, el pico de una sola clave en
-30 días —la del revisor— ronda los 16 USD, así que 50 deja una holgura de tres veces
-y sigue cortando un bucle en horas, no en semanas.
+30 días —la del agente de código— ronda los 5,3 USD, así que 50 deja casi diez veces
+de holgura y sigue cortando un bucle en horas, no en semanas.
 
 ### 3.5 Parametrización: por qué cada número es el que es
 
@@ -687,28 +687,25 @@ Los siete prompts íntegros están en el **Anexo A**. Comparten un patrón:
 así que la medición sale de cada respuesta: los tokens (`usage_metadata`, con los de
 razonamiento aparte) y el **coste facturado** que OpenRouter devuelve por llamada. El
 arnés de §5.5 lo captura en modo real; donde el proveedor no informa coste se usa
-el precio de lista (`evals/prices.json`) y se marca. Los informes están en
-`evals/baseline/costes/`.
+el precio de lista (`evals/prices.json`) y se marca. Las cifras vigentes son del 27
+de octubre de 2026, con la política de enrutado de §6.7 activa y el revisor en
+GLM-5.3-Flash (`evals/baseline/enrutado/`); las del 24 de octubre, anteriores a esa
+política, se dan como comparación (`evals/baseline/costes/`).
 
 **Por agente** (media por llamada completa; el de código hace dos):
 
-| Agente | Casos | Tokens de entrada | De salida (de razonamiento) | USD por llamada |
-|---|---|---|---|---|
-| evaluator | 10 | 466 | 100 (36) | 0,000153 |
-| reviewer | 10 | 449 | 329 (266) | 0,000526 |
-| validator | 8 | 569 | 199 (144) | 0,000135 |
-| exercises | 7 | 763 | 2.165 (1.636) | 0,001800 |
-| web | 5 | 3.604 | 870 (319) | 0,000785 |
-| code | 2 | 19.748 | 4.182 (1.836) | 0,004151 |
-
-Las mediciones de esta sección son del 24 de octubre, antes de la política de
-enrutado de §6.7: el revisor usaba GLM-5.3-FlashX y OpenRouter elegía proveedor sin
-restricciones. Con GLM-5.3-Flash y la lista cerrada de proveedores, el coste del
-revisor y el precio facturado pueden cambiar, y hay que volver a medirlos.
+| Agente | Casos | Tokens de entrada | De salida (de razonamiento) | USD por llamada | Antes de la política |
+|---|---|---|---|---|---|
+| evaluator | 22 | 468 | 105 (41) | 0,000076 | 0,000153 |
+| reviewer | 22 | 450 | 215 (158) | 0,000090 | 0,000526 |
+| validator | 28 | 586 | 160 (107) | 0,000088 | 0,000135 |
+| exercises | 8 | 888 | 1.488 (954) | 0,000774 | 0,001800 |
+| web | 5 | 3.534 | 1.378 (869) | 0,001623 | 0,000785 |
+| code | 2 | 23.034 | 4.314 (1.980) | 0,002369 | 0,004151 |
 
 **Por operación**, sumando los agentes que intervienen: validar una tecnología,
-0,000135 USD; evaluar una respuesta, **0,000679** (el revisor es el 77 %); generar
-cinco candidatos, 0,0040 sin repositorio y 0,0082 con él, y 0,0033 con acierto de
+0,000088 USD; evaluar una respuesta, **0,000166** (el revisor es el 54 %); generar
+cinco candidatos, 0,0030 sin repositorio y 0,0054 con él, y 0,0014 con acierto de
 memoria. Las búsquedas de Tavily valoradas al precio del crédito adicional (0,008
 USD) dominarían la operación, pero no se pagan así: Tavily se factura por plan, y el
 gratuito alcanza.
@@ -721,31 +718,36 @@ los resuelven en dos semanas (**1.000 evaluaciones**), y después llegan 2 junio
 año y unos 50 ejercicios nuevos. Las hipótesis son editables en
 `evals/cost_assumptions.json`.
 
-| USD | Piloto (1 equipo) | Equipo (5) | Organización (30) |
-|---|---|---|---|
-| Campaña (generación + resolución) | 1,37 | 6,84 | 41,01 |
-| Primer año, con el régimen | 2,20 | 11,02 | 66,12 |
+| USD | Piloto (1 equipo) | Equipo (5) | Organización (30) | Organización, antes |
+|---|---|---|---|---|
+| Campaña (generación + resolución) | 0,53 | 2,64 | 15,81 | 41,01 |
+| Primer año, con el régimen | 0,77 | 3,85 | 23,10 | 66,12 |
 
-El reparto es mitad generación, mitad evaluación: una generación es mucho más cara
-y las evaluaciones son muchas. En unidades, **0,0014 USD por ejercicio guardado,
-0,000679 por evaluación y 0,68 por junior formado**. El respaldo de Hugging Face deja
-la campaña en el mismo orden de magnitud (entre 35,76 y 57,67 USD a escala de
+El reparto es dos tercios generación y uno evaluación. En unidades, **0,00072 USD
+por ejercicio guardado, 0,000166 por evaluación y 0,26 por junior formado**, entre
+dos y cuatro veces menos que antes de la política. El respaldo de Hugging Face deja
+la campaña en el mismo orden de magnitud (entre 33,98 y 55,08 USD a escala de
 organización si todo fuera por él), y la misma campaña con modelos frontier —Opus 5.5
-para generar y Haiku 5.5 para evaluar, con los mismos tokens— costaría **16,2 veces
+para generar y Haiku 5.5 para evaluar, con los mismos tokens— costaría **40,4 veces
 más**, que es una cota inferior.
 
-**Tres hallazgos.**
+**Cuatro hallazgos.**
 
-- **Casi toda la salida de tres agentes es razonamiento**: entre el 72 % y el 81 % en
-  el revisor, el de ejercicios y el validador, facturado como salida.
-- **El coste de evaluar es el revisor**, no el evaluador: razona 266 tokens de media
-  frente a 36.
-- **El precio de lista no predice lo facturado**: la razón va de 0,73 a 1,40 según el
-  agente, porque OpenRouter enrutaba a proveedores con precios distintos. Es el
-  síntoma que llevó al riesgo 11 y a la política de enrutado (§6.7).
+- **La política de enrutado abarató, no encareció.** Lo facturado queda en la mitad
+  del precio de lista en casi todos los agentes (razón de 0,50 a 0,66; 1,12 en el
+  web): los proveedores con retención cero de la lista cerrada son, en este momento,
+  de los baratos. Es una observación de un día, no una garantía.
+- **El revisor ha dejado de ser el coste de evaluar**: con GLM-5.3-Flash razona 158
+  tokens de media frente a 266 y cuesta unas seis veces menos por llamada; hoy pesa
+  algo más que el evaluador (54 % frente a 46 %), no el 77 %.
+- **Sigue habiendo mucho razonamiento**: entre el 64 % y el 73 % de la salida del
+  revisor, el de ejercicios y el validador, facturado como salida.
+- **El agente web se encarece** (de 0,00079 a 0,00162 USD por llamada), porque escribe
+  más y razona más; es el único que sube.
 
-**Experimento: recortar el razonamiento.** Con el flag `--reasoning` del arnés, que
-inyecta el objeto `reasoning` de OpenRouter sin tocar los agentes:
+**Experimento: recortar el razonamiento** (24 de octubre, con la configuración
+anterior). Con el flag `--reasoning` del arnés, que inyecta el objeto `reasoning` de
+OpenRouter sin tocar los agentes:
 
 | Agente | Nivel | Razonamiento | USD por llamada | p50 | Calidad |
 |---|---|---|---|---|---|
@@ -775,8 +777,8 @@ evaluación estimadas a partir del código; Lakera y Tavily, en sus planes gratu
 | USD, primer año | Piloto | Equipo | Organización |
 |---|---|---|---|
 | Infraestructura | 600–2.000 | 600–2.000 | 950–2.500 |
-| Inferencia | 2,20 | 11,02 | 66,12 |
-| Peso de la infraestructura | > 99 % | > 98 % | > 93 % |
+| Inferencia | 0,77 | 3,85 | 23,10 |
+| Peso de la infraestructura | > 99 % | > 99 % | > 97 % |
 
 **El coste de JuniorTrainer es la infraestructura, no la inferencia.** Y como es
 fija, el coste por junior cae con la escala: varios cientos de dólares en el piloto,
@@ -1340,29 +1342,44 @@ juez **offline** con cuatro condiciones de diseño:
 
 ### 5.7 Resultados de la evaluación
 
-Tres ejecuciones completas de los seis agentes en modo real con los modelos de
-producción (24 de octubre de 2026) y dos con el respaldo; el agente de código leyó
-`Mapeldorf/autobot-frontend` en el commit `37cf3b0`. Los informes están versionados
-en `evals/baseline/` (Anexo D).
+**La línea base vigente** son tres ejecuciones completas de los seis agentes en modo
+real del 27 de octubre de 2026, con la política de enrutado de §6.7 activa y el
+revisor en GLM-5.3-Flash; el agente de código leyó `Mapeldorf/autobot-frontend` en el
+commit `37cf3b0`. Los informes están en `evals/baseline/enrutado/`, y los de la línea
+base anterior, del 24 de octubre, en `evals/baseline/primario/` (Anexo D).
 
-| Agente | Casos | Salida válida | Métricas | p50 / p95 |
+| Agente | Casos | Salida válida | Métricas (tres ejecuciones) | p50 / p95 |
 |---|---|---|---|---|
-| Evaluador | 22 | 100 % | Exactitud **1,000** y κ **1,000** en las tres; ningún reintento; 0 de 6 ataques | 1,7 s / 2,7 s |
-| Revisor | 22 | 100 % | Límites al 100 %; ningún reintento; 0 de 4 ataques | 3,6 s / 5,5 s |
-| Validador | 34 | 100 % | 0 falsos positivos y 0 negativos; duplicados con precisión 1,000 y cobertura 1,000 / 1,000 / 0,800; 0 de 9 ataques | 2,6 s / 5,2 s |
-| Ejercicios | 7 | 100 % | Cardinalidad 1,000; límites al 100 %; solapamiento máximo 0,25–0,28 | 12,6 s / 87,8 s |
-| Web | 5 | 100 % | Presupuesto, cobertura y declaración de ausencia de fuentes al 100 % | 10,7 s / 21,6 s |
-| Código | 2 | 100 % | 20 de 20 rutas válidas y 20 de 20 fragmentos fundamentados, en las tres | 38,4 s / 51,6 s |
+| Evaluador | 22 | 100 % | Exactitud **1,000** y κ **1,000** en las tres; ningún reintento; 0 de 6 ataques | 1,6–1,9 s / 3,4–4,7 s |
+| Revisor | 22 | 100 % | Límites al 100 %; ningún reintento | 1,8–2,7 s / 14,7–27,1 s |
+| Validador | 34 | 100 % | 0 falsos positivos y 0 negativos; duplicados con precisión y cobertura 1,000 en las tres; 0 de 9 ataques | 1,3–1,7 s / 7,3–11,5 s |
+| Ejercicios | 8 | 100 % | Cardinalidad 1,000; límites al 100 %; solapamiento máximo 0,24–0,28 | 9,3–12,1 s / 19,3–136,8 s |
+| Web | 5 | 100 % | Presupuesto, cobertura y declaración de ausencia de fuentes al 100 % | 7,1–18,7 s / 13,8–26,4 s |
+| Código | 2 | 100 % | 20 de 20 rutas válidas y todos los fragmentos fundamentados | 44,1–92,9 s / 48,3–147,9 s |
 
-- **La exactitud de 1,000 se lee con su tamaño**: un solo error la bajaría a ~0,95,
-  y el intervalo de confianza empieza en torno a 0,85.
-- **La latencia de la evaluación** (p95 de 2,7 s) queda muy por debajo de los 45 s;
-  la más variable es la de ejercicios, que no tiene presupuesto duro.
-- **Las tres ejecuciones coinciden** salvo en la cobertura de duplicados y el
-  solapamiento de temas: la variación esperable de un modelo estocástico, y la razón
-  de medir tres veces.
+**Frente a la línea base anterior, la calidad no cambia y la cola de latencia
+empeora:**
 
-| Primario frente a respaldo | Primario | Respaldo |
+- **La calidad se mantiene o mejora.** Exactitud y κ del evaluador, gate del
+  validador, cardinalidad y rutas del agente de código siguen en 1,000; la cobertura
+  de duplicados, que antes bajó a 0,800 en una ejecución, queda en 1,000 en las tres.
+  Con 22 respuestas, un solo error bajaría la exactitud a ~0,95, y el intervalo de
+  confianza empieza en torno a 0,85.
+- **La mediana es igual o mejor, pero la cola se alarga.** El p95 del revisor pasa de
+  4,9–6,8 s a 14,7–27,1 s, y el del validador, de 5,2–7,3 s a 7,3–11,5 s. En la primera
+  ejecución, **dos casos agotaron el tiempo**, uno del agente de ejercicios y otro del
+  de código, tras más de dos minutos. La explicación más probable es la política: con
+  una lista cerrada, OpenRouter tiene menos proveedores donde elegir cuando uno va
+  lento. La evaluación completa (evaluador más revisor) sigue dentro de los 45 s, pero
+  su p95 supera ya el umbral de aviso de 10 s de §5.8: la política tiene un coste en
+  latencia que hay que vigilar.
+- **Las tres ejecuciones coinciden** salvo en latencia y en el solapamiento de temas:
+  la variación esperable de un modelo estocástico, y la razón de medir tres veces.
+
+La comparativa con el respaldo de Hugging Face es de la línea base anterior; no se ha
+repetido, porque la política no afecta al respaldo:
+
+| Primario frente a respaldo (24 de octubre) | Primario | Respaldo |
 |---|---|---|
 | Evaluador: exactitud / κ | 1,000 / 1,000 | 1,000 / 1,000 |
 | Revisor: salida válida / límites / reintentos | 100 % / 100 % / 0 | 100 % / 100 % / 0 |
@@ -1375,8 +1392,8 @@ en `evals/baseline/` (Anexo D).
 temas y falló un fragmento en una ejecución. Estas ejecuciones son anteriores a la
 política de enrutado de §6.7: en ellas el revisor usaba GLM-5.3-FlashX, y su
 respaldo, GLM-5.3-Flash, es el modelo que hoy usa como primario. Lo pendiente es
-repetir la línea base con la configuración actual y ampliar el conjunto de
-evaluación, porque con 22 respuestas el κ tiene un margen ancho.
+ampliar el conjunto de evaluación, porque con 22 respuestas el κ tiene un margen
+ancho.
 
 ### 5.8 Monitorización en producción
 
@@ -1820,7 +1837,7 @@ el repositorio con su razón: es el valor concreto del ciclo de §4.9.
 |---|---|---|
 | Alta | Piloto con un equipo real | Las premisas de §1.1 no están medidas: proporción de candidatos guardados, tiempo de revisión y opinión de los juniors |
 | Media | Verificar la certificación DPF de los proveedores estadounidenses y decidir qué hacer con el respaldo | Residuales del riesgo 11: la política de enrutado no cubre el respaldo de Hugging Face (§6.7) |
-| Media | Volver a medir coste y calidad del revisor con GLM-5.3-Flash | Las cifras de §3.7 y §5.7 se tomaron con su primario anterior |
+| Media | Vigilar y acotar la cola de latencia con la política de enrutado | El p95 del revisor subió a 15–27 s y hubo dos timeouts en la nueva línea base (§5.7) |
 | Alta | Impugnación de valoraciones y supresión de datos | El alumno no puede discrepar y sus datos no se pueden suprimir (§6.6, §6.7) |
 | Alta | Clasificación según el Reglamento de IA y evaluación de impacto | Documentar el artículo 6.3 y la evaluación del artículo 35 |
 | Alta | CI/CD completo: tests de backend, gate obligatorio, aprovisionar `develop`, despliegue | Un *import check* no sostiene el backend de doce servicios (§5.3) |
@@ -1842,11 +1859,11 @@ contraste con los objetivos de §1.6:
 
 | # | Resultado | Veredicto |
 |---|---|---|
-| O1 | Contrato cumplido en las tres ejecuciones: cardinalidad 1,000, salida y límites al 100 %, solapamiento 0,25–0,28, ningún reintento. La calidad pedagógica tiene juez, con concordancia moderada (κ 0,475), y el ejemplo de §1.7 muestra un ejercicio que pasa todas las comprobaciones y describe un síntoma falso | **Cumplido en el contrato; parcial en la calidad** |
-| O2 | Exactitud y κ de 1,000 en 22 respuestas; p95 de 2,7 s. Muestra corta: el intervalo de Wilson empieza en torno a 0,85, justo en el umbral | **Cumplido, con una muestra corta** |
+| O1 | Contrato cumplido en las tres ejecuciones: cardinalidad 1,000, salida y límites al 100 %, solapamiento 0,24–0,28, ningún reintento. La calidad pedagógica tiene juez, con concordancia moderada (κ 0,475), y el ejemplo de §1.7 muestra un ejercicio que pasa todas las comprobaciones y describe un síntoma falso | **Cumplido en el contrato; parcial en la calidad** |
+| O2 | Exactitud y κ de 1,000 en 22 respuestas; la evaluación cabe en los 45 s, aunque con la política de enrutado el p95 del revisor sube a 15–27 s. Muestra corta: el intervalo de Wilson empieza en torno a 0,85, justo en el umbral | **Cumplido, con una muestra corta** |
 | O3 | Guardar, componer, eliminar y asignar son solo humanos, reforzado por roles y *triggers*; la valoración es la excepción declarada | **Cumplido** |
 | O4 | 25 controles, 0 ataques exitosos de 19, OWASP mapeado. Sin medir el modelo en web y código; Lakera apagado en la evaluación; dependencias sin fijar | **Parcial** |
-| O5 | 0,0014 USD por ejercicio guardado y 0,000679 por evaluación, facturados; topes por clave. La infraestructura, estimada, es más del 93 % del coste | **Cumplido; la infraestructura, estimada** |
+| O5 | 0,00072 USD por ejercicio guardado y 0,000166 por evaluación, facturados con la política de enrutado activa; topes por clave. La infraestructura, estimada, es más del 97 % del coste | **Cumplido; la infraestructura, estimada** |
 | O6 | Política de fallo por agente; respaldo medido; trazas y umbrales. Sin cuadro de mando y con un CI de backend mínimo | **Cumplido en diseño; parcial en operación** |
 | O7 | 60 cambios con sus artefactos y 28 capacidades que validan; la auditoría del propio proceso encontró y corrigió una desincronización | **Cumplido** |
 
@@ -2295,7 +2312,8 @@ este documento están versionados en `evals/baseline/`, con su procedencia en
 
 | Carpeta | Sostiene |
 |---|---|
-| `primario/` | Las tres ejecuciones completas de §5.7 y los umbrales de §5.8 |
+| `enrutado/` | La línea base vigente de §5.7 y los costes de §3.7, con la política de enrutado activa (27 de octubre) |
+| `primario/` | La línea base anterior a la política (24 de octubre) y los umbrales de §5.8 |
 | `respaldo/` | La comparativa primario/respaldo (§5.7) |
 | `red-teaming/` | El ejercicio de §6.5 y `capstone/red-teaming/informe.md` |
 | `razonamiento/` | El experimento de razonamiento (§3.7) |

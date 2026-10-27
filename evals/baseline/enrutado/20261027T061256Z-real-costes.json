@@ -1,0 +1,1836 @@
+{
+  "currency": "USD",
+  "prices_fetched": "2026-10-24",
+  "candidates_per_generation": 5,
+  "measures": {
+    "evaluator": {
+      "cases": 22,
+      "calls": 22,
+      "input_tokens": 467.72727272727275,
+      "output_tokens": 105.0909090909091,
+      "reasoning_tokens": 40.68181818181818,
+      "billed_cost": 7.59714e-05,
+      "billed_complete": true,
+      "cost_min": 1.9316e-05,
+      "cost_max": 0.00028614
+    },
+    "reviewer": {
+      "cases": 22,
+      "calls": 22,
+      "input_tokens": 450.45454545454544,
+      "output_tokens": 215.45454545454547,
+      "reasoning_tokens": 157.95454545454547,
+      "billed_cost": 9.02132585909091e-05,
+      "billed_complete": true,
+      "cost_min": 2.8226789e-05,
+      "cost_max": 0.00021556
+    },
+    "validator": {
+      "cases": 28,
+      "calls": 28,
+      "input_tokens": 586.4285714285714,
+      "output_tokens": 159.71428571428572,
+      "reasoning_tokens": 106.85714285714286,
+      "billed_cost": 8.781010892857143e-05,
+      "billed_complete": true,
+      "cost_min": 2.4198e-05,
+      "cost_max": 0.000438372
+    },
+    "exercises": {
+      "cases": 8,
+      "calls": 8,
+      "input_tokens": 888.25,
+      "output_tokens": 1488.125,
+      "reasoning_tokens": 954.125,
+      "billed_cost": 0.0007741855,
+      "billed_complete": true,
+      "cost_min": 0.000133808,
+      "cost_max": 0.00291465,
+      "output_tokens_per_candidate": 593.0833333333334,
+      "prompt_cost": 4.82055e-05,
+      "completion_cost_per_candidate": 0.00025630791666666667,
+      "candidates_measured": [
+        1,
+        2,
+        3,
+        5
+      ]
+    },
+    "web": {
+      "cases": 5,
+      "calls": 5,
+      "input_tokens": 3534.2,
+      "output_tokens": 1378.2,
+      "reasoning_tokens": 869.0,
+      "billed_cost": 0.001622728,
+      "billed_complete": true,
+      "cost_min": 0.00091112,
+      "cost_max": 0.00294606,
+      "searches": 2.2
+    },
+    "code": {
+      "cases": 2,
+      "calls": 4,
+      "input_tokens": 23034.5,
+      "output_tokens": 4314.0,
+      "reasoning_tokens": 1980.5,
+      "billed_cost": 0.002369313,
+      "billed_complete": true,
+      "cost_min": 0.0021093120000000003,
+      "cost_max": 0.002629314,
+      "reads": 10.0
+    }
+  },
+  "missing_agents": [],
+  "operations": {
+    "validate_technology": {
+      "cost": 8.781010892857143e-05,
+      "breakdown": {
+        "validator": 8.781010892857143e-05
+      },
+      "share": {
+        "validator": 1.0
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "evaluate_answer": {
+      "cost": 0.0001661846585909091,
+      "breakdown": {
+        "evaluator": 7.59714e-05,
+        "reviewer": 9.02132585909091e-05
+      },
+      "share": {
+        "evaluator": 0.4571505014010716,
+        "reviewer": 0.5428494985989284
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "generate_without_repo": {
+      "cost": 0.020640283192261907,
+      "breakdown": {
+        "validator": 8.781010892857143e-05,
+        "web": 0.001622728,
+        "exercises": 0.0013297450833333333,
+        "tavily_marginal": 0.0176
+      },
+      "share": {
+        "validator": 0.004254307371203689,
+        "web": 0.07861946393295441,
+        "exercises": 0.0644247499390831,
+        "tavily_marginal": 0.8527014787567587
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "generate_with_repo": {
+      "cost": 0.023009596192261905,
+      "breakdown": {
+        "validator": 8.781010892857143e-05,
+        "web": 0.001622728,
+        "code": 0.002369313,
+        "exercises": 0.0013297450833333333,
+        "tavily_marginal": 0.0176
+      },
+      "share": {
+        "validator": 0.0038162385899715118,
+        "web": 0.07052396688933295,
+        "code": 0.10297064669030553,
+        "exercises": 0.0577908917749945,
+        "tavily_marginal": 0.7648982560553955
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "generate_memory_hit": {
+      "cost": 0.0014175551922619048,
+      "breakdown": {
+        "validator": 8.781010892857143e-05,
+        "exercises": 0.0013297450833333333
+      },
+      "share": {
+        "validator": 0.06194475489060732,
+        "exercises": 0.9380552451093926
+      },
+      "missing": [],
+      "incomplete": false
+    }
+  },
+  "operations_reference": {
+    "validate_technology": {
+      "cost": 0.0001385,
+      "breakdown": {
+        "validator": 0.0001385
+      },
+      "share": {
+        "validator": 1.0
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "evaluate_answer": {
+      "cost": 0.0002520909090909091,
+      "breakdown": {
+        "evaluator": 9.931818181818182e-05,
+        "reviewer": 0.00015277272727272728
+      },
+      "share": {
+        "evaluator": 0.3939776415434547,
+        "reviewer": 0.6060223584565452
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "generate_without_repo": {
+      "cost": 0.12230063333333334,
+      "breakdown": {
+        "validator": 0.0001385,
+        "web": 0.0417008,
+        "exercises": 0.06286133333333334,
+        "tavily_marginal": 0.0176
+      },
+      "share": {
+        "validator": 0.0011324552966337869,
+        "web": 0.34096961612899795,
+        "exercises": 0.5139902518902192,
+        "tavily_marginal": 0.14390767668414908
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "generate_with_repo": {
+      "cost": 0.3007186333333333,
+      "breakdown": {
+        "validator": 0.0001385,
+        "web": 0.0417008,
+        "code": 0.178418,
+        "exercises": 0.06286133333333334,
+        "tavily_marginal": 0.0176
+      },
+      "share": {
+        "validator": 0.0004605634125986429,
+        "web": 0.1386704892136714,
+        "code": 0.5933054364550517,
+        "exercises": 0.20903704115885074,
+        "tavily_marginal": 0.058526469759827546
+      },
+      "missing": [],
+      "incomplete": false
+    },
+    "generate_memory_hit": {
+      "cost": 0.06299983333333334,
+      "breakdown": {
+        "validator": 0.0001385,
+        "exercises": 0.06286133333333334
+      },
+      "share": {
+        "validator": 0.002198418514334694,
+        "exercises": 0.9978015814856653
+      },
+      "missing": [],
+      "incomplete": false
+    }
+  },
+  "campaign": {
+    "piloto": {
+      "computable": true,
+      "teams": 1,
+      "generations_per_tech_lead": 112,
+      "generations_with_repo": 90,
+      "evaluations_per_team": 1000,
+      "memory": {
+        "web_misses": 15,
+        "code_misses": 75,
+        "web_keys": 15,
+        "code_keys": 75
+      },
+      "phases_per_team": {
+        "generation": 0.36080557653333334,
+        "resolution": 0.16618465859090908,
+        "regime_year": 0.24297965275714284
+      },
+      "campaign_llm_cost": 0.5269902351242424,
+      "share": {
+        "generation": 0.6846532487423992,
+        "evaluation": 0.3153467512576009
+      },
+      "peak_30d_per_key": {
+        "validator": 0.0098347322,
+        "web": 0.02434092,
+        "code": 0.177698475,
+        "exercises": 0.14893144933333333,
+        "evaluator": 0.0759714,
+        "reviewer": 0.0902132585909091
+      },
+      "keys_over_budget": [],
+      "recommended_key_cap": {
+        "usd_30d": 5,
+        "margin": 2,
+        "most_loaded_key": "code",
+        "peak": 0.177698475
+      },
+      "tavily": {
+        "campaign": {
+          "researcher": {
+            "plan": "researcher",
+            "credits": 33.0,
+            "included": 1000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 0.0
+          },
+          "project": {
+            "plan": "project",
+            "credits": 33.0,
+            "included": 4000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 30.0
+          },
+          "payg": {
+            "plan": "payg",
+            "credits": 33.0,
+            "included": 0,
+            "excess": 33.0,
+            "sufficient": true,
+            "cost": 0.264
+          }
+        },
+        "regime_year_credits": 26.400000000000002
+      },
+      "sensitivity": {
+        "1": {
+          "web_misses": 15,
+          "code_misses": 75,
+          "generation_cost_per_team": 0.36080557653333334,
+          "tavily_credits": 33.0
+        },
+        "2": {
+          "web_misses": 30,
+          "code_misses": 90,
+          "generation_cost_per_team": 0.4206861915333333,
+          "tavily_credits": 66.0
+        },
+        "4": {
+          "web_misses": 60,
+          "code_misses": 90,
+          "generation_cost_per_team": 0.46936803153333334,
+          "tavily_credits": 132.0
+        }
+      },
+      "unit_costs": {
+        "per_saved_exercise": 0.0007216111530666667,
+        "per_evaluation": 0.0001661846585909091,
+        "per_junior_trained": 0.2634951175621212
+      },
+      "team_total_first_year": 0.7699698878813852
+    },
+    "equipo": {
+      "computable": true,
+      "teams": 5,
+      "generations_per_tech_lead": 112,
+      "generations_with_repo": 90,
+      "evaluations_per_team": 1000,
+      "memory": {
+        "web_misses": 15,
+        "code_misses": 75,
+        "web_keys": 15,
+        "code_keys": 75
+      },
+      "phases_per_team": {
+        "generation": 0.36080557653333334,
+        "resolution": 0.16618465859090908,
+        "regime_year": 0.24297965275714284
+      },
+      "campaign_llm_cost": 2.634951175621212,
+      "share": {
+        "generation": 0.6846532487423992,
+        "evaluation": 0.3153467512576009
+      },
+      "peak_30d_per_key": {
+        "validator": 0.049173661,
+        "web": 0.1217046,
+        "code": 0.888492375,
+        "exercises": 0.7446572466666667,
+        "evaluator": 0.379857,
+        "reviewer": 0.45106629295454553
+      },
+      "keys_over_budget": [],
+      "recommended_key_cap": {
+        "usd_30d": 5,
+        "margin": 2,
+        "most_loaded_key": "code",
+        "peak": 0.888492375
+      },
+      "tavily": {
+        "campaign": {
+          "researcher": {
+            "plan": "researcher",
+            "credits": 165.0,
+            "included": 1000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 0.0
+          },
+          "project": {
+            "plan": "project",
+            "credits": 165.0,
+            "included": 4000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 30.0
+          },
+          "payg": {
+            "plan": "payg",
+            "credits": 165.0,
+            "included": 0,
+            "excess": 165.0,
+            "sufficient": true,
+            "cost": 1.32
+          }
+        },
+        "regime_year_credits": 132.0
+      },
+      "sensitivity": {
+        "1": {
+          "web_misses": 15,
+          "code_misses": 75,
+          "generation_cost_per_team": 0.36080557653333334,
+          "tavily_credits": 165.0
+        },
+        "2": {
+          "web_misses": 30,
+          "code_misses": 90,
+          "generation_cost_per_team": 0.4206861915333333,
+          "tavily_credits": 330.0
+        },
+        "4": {
+          "web_misses": 60,
+          "code_misses": 90,
+          "generation_cost_per_team": 0.46936803153333334,
+          "tavily_credits": 660.0
+        }
+      },
+      "unit_costs": {
+        "per_saved_exercise": 0.0007216111530666667,
+        "per_evaluation": 0.0001661846585909091,
+        "per_junior_trained": 0.2634951175621212
+      },
+      "team_total_first_year": 0.7699698878813852
+    },
+    "organizacion": {
+      "computable": true,
+      "teams": 30,
+      "generations_per_tech_lead": 112,
+      "generations_with_repo": 90,
+      "evaluations_per_team": 1000,
+      "memory": {
+        "web_misses": 15,
+        "code_misses": 75,
+        "web_keys": 15,
+        "code_keys": 75
+      },
+      "phases_per_team": {
+        "generation": 0.36080557653333334,
+        "resolution": 0.16618465859090908,
+        "regime_year": 0.24297965275714284
+      },
+      "campaign_llm_cost": 15.809707053727271,
+      "share": {
+        "generation": 0.6846532487423992,
+        "evaluation": 0.3153467512576009
+      },
+      "peak_30d_per_key": {
+        "validator": 0.295041966,
+        "web": 0.7302276,
+        "code": 5.33095425,
+        "exercises": 4.46794348,
+        "evaluator": 2.279142,
+        "reviewer": 2.7063977577272733
+      },
+      "keys_over_budget": [
+        "code"
+      ],
+      "recommended_key_cap": {
+        "usd_30d": 20,
+        "margin": 2,
+        "most_loaded_key": "code",
+        "peak": 5.33095425
+      },
+      "tavily": {
+        "campaign": {
+          "researcher": {
+            "plan": "researcher",
+            "credits": 990.0,
+            "included": 1000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 0.0
+          },
+          "project": {
+            "plan": "project",
+            "credits": 990.0,
+            "included": 4000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 30.0
+          },
+          "payg": {
+            "plan": "payg",
+            "credits": 990.0,
+            "included": 0,
+            "excess": 990.0,
+            "sufficient": true,
+            "cost": 7.92
+          }
+        },
+        "regime_year_credits": 792.0000000000001
+      },
+      "sensitivity": {
+        "1": {
+          "web_misses": 15,
+          "code_misses": 75,
+          "generation_cost_per_team": 0.36080557653333334,
+          "tavily_credits": 990.0
+        },
+        "2": {
+          "web_misses": 30,
+          "code_misses": 90,
+          "generation_cost_per_team": 0.4206861915333333,
+          "tavily_credits": 1980.0
+        },
+        "4": {
+          "web_misses": 60,
+          "code_misses": 90,
+          "generation_cost_per_team": 0.46936803153333334,
+          "tavily_credits": 3960.0
+        }
+      },
+      "unit_costs": {
+        "per_saved_exercise": 0.0007216111530666667,
+        "per_evaluation": 0.0001661846585909091,
+        "per_junior_trained": 0.2634951175621212
+      },
+      "team_total_first_year": 0.7699698878813852
+    }
+  },
+  "campaign_reference": {
+    "piloto": {
+      "computable": true,
+      "teams": 1,
+      "generations_per_tech_lead": 112,
+      "generations_with_repo": 90,
+      "evaluations_per_team": 1000,
+      "memory": {
+        "web_misses": 15,
+        "code_misses": 75,
+        "web_keys": 15,
+        "code_keys": 75
+      },
+      "phases_per_team": {
+        "generation": 21.062843333333333,
+        "resolution": 0.2520909090909091,
+        "regime_year": 3.3178876
+      },
+      "campaign_llm_cost": 21.314934242424243,
+      "share": {
+        "generation": 0.9881730383859614,
+        "evaluation": 0.01182696161403863
+      },
+      "peak_30d_per_key": {
+        "validator": 0.015512000000000001,
+        "web": 0.6255120000000001,
+        "code": 13.38135,
+        "exercises": 7.040469333333334,
+        "evaluator": 0.09931818181818182,
+        "reviewer": 0.15277272727272728
+      },
+      "keys_over_budget": [
+        "code",
+        "exercises"
+      ],
+      "recommended_key_cap": {
+        "usd_30d": 50,
+        "margin": 2,
+        "most_loaded_key": "code",
+        "peak": 13.38135
+      },
+      "tavily": {
+        "campaign": {
+          "researcher": {
+            "plan": "researcher",
+            "credits": 33.0,
+            "included": 1000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 0.0
+          },
+          "project": {
+            "plan": "project",
+            "credits": 33.0,
+            "included": 4000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 30.0
+          },
+          "payg": {
+            "plan": "payg",
+            "credits": 33.0,
+            "included": 0,
+            "excess": 33.0,
+            "sufficient": true,
+            "cost": 0.264
+          }
+        },
+        "regime_year_credits": 26.400000000000002
+      },
+      "sensitivity": {
+        "1": {
+          "web_misses": 15,
+          "code_misses": 75,
+          "generation_cost_per_team": 21.062843333333333,
+          "tavily_credits": 33.0
+        },
+        "2": {
+          "web_misses": 30,
+          "code_misses": 90,
+          "generation_cost_per_team": 24.364625333333333,
+          "tavily_credits": 66.0
+        },
+        "4": {
+          "web_misses": 60,
+          "code_misses": 90,
+          "generation_cost_per_team": 25.615649333333334,
+          "tavily_credits": 132.0
+        }
+      },
+      "unit_costs": {
+        "per_saved_exercise": 0.04212568666666667,
+        "per_evaluation": 0.0002520909090909091,
+        "per_junior_trained": 10.657467121212122
+      },
+      "team_total_first_year": 24.632821842424242
+    },
+    "equipo": {
+      "computable": true,
+      "teams": 5,
+      "generations_per_tech_lead": 112,
+      "generations_with_repo": 90,
+      "evaluations_per_team": 1000,
+      "memory": {
+        "web_misses": 15,
+        "code_misses": 75,
+        "web_keys": 15,
+        "code_keys": 75
+      },
+      "phases_per_team": {
+        "generation": 21.062843333333333,
+        "resolution": 0.2520909090909091,
+        "regime_year": 3.3178876
+      },
+      "campaign_llm_cost": 106.57467121212122,
+      "share": {
+        "generation": 0.9881730383859614,
+        "evaluation": 0.011826961614038631
+      },
+      "peak_30d_per_key": {
+        "validator": 0.07756,
+        "web": 3.1275600000000003,
+        "code": 66.90675,
+        "exercises": 35.20234666666667,
+        "evaluator": 0.4965909090909091,
+        "reviewer": 0.7638636363636364
+      },
+      "keys_over_budget": [
+        "code",
+        "exercises"
+      ],
+      "recommended_key_cap": {
+        "usd_30d": 200,
+        "margin": 2,
+        "most_loaded_key": "code",
+        "peak": 66.90675
+      },
+      "tavily": {
+        "campaign": {
+          "researcher": {
+            "plan": "researcher",
+            "credits": 165.0,
+            "included": 1000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 0.0
+          },
+          "project": {
+            "plan": "project",
+            "credits": 165.0,
+            "included": 4000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 30.0
+          },
+          "payg": {
+            "plan": "payg",
+            "credits": 165.0,
+            "included": 0,
+            "excess": 165.0,
+            "sufficient": true,
+            "cost": 1.32
+          }
+        },
+        "regime_year_credits": 132.0
+      },
+      "sensitivity": {
+        "1": {
+          "web_misses": 15,
+          "code_misses": 75,
+          "generation_cost_per_team": 21.062843333333333,
+          "tavily_credits": 165.0
+        },
+        "2": {
+          "web_misses": 30,
+          "code_misses": 90,
+          "generation_cost_per_team": 24.364625333333333,
+          "tavily_credits": 330.0
+        },
+        "4": {
+          "web_misses": 60,
+          "code_misses": 90,
+          "generation_cost_per_team": 25.615649333333334,
+          "tavily_credits": 660.0
+        }
+      },
+      "unit_costs": {
+        "per_saved_exercise": 0.04212568666666667,
+        "per_evaluation": 0.0002520909090909091,
+        "per_junior_trained": 10.657467121212122
+      },
+      "team_total_first_year": 24.632821842424242
+    },
+    "organizacion": {
+      "computable": true,
+      "teams": 30,
+      "generations_per_tech_lead": 112,
+      "generations_with_repo": 90,
+      "evaluations_per_team": 1000,
+      "memory": {
+        "web_misses": 15,
+        "code_misses": 75,
+        "web_keys": 15,
+        "code_keys": 75
+      },
+      "phases_per_team": {
+        "generation": 21.062843333333333,
+        "resolution": 0.2520909090909091,
+        "regime_year": 3.3178876
+      },
+      "campaign_llm_cost": 639.4480272727274,
+      "share": {
+        "generation": 0.9881730383859613,
+        "evaluation": 0.01182696161403863
+      },
+      "peak_30d_per_key": {
+        "validator": 0.46536000000000005,
+        "web": 18.76536,
+        "code": 401.4405,
+        "exercises": 211.21408000000002,
+        "evaluator": 2.9795454545454545,
+        "reviewer": 4.583181818181819
+      },
+      "keys_over_budget": [
+        "code",
+        "exercises",
+        "web"
+      ],
+      "recommended_key_cap": {
+        "usd_30d": 1000,
+        "margin": 2,
+        "most_loaded_key": "code",
+        "peak": 401.4405
+      },
+      "tavily": {
+        "campaign": {
+          "researcher": {
+            "plan": "researcher",
+            "credits": 990.0,
+            "included": 1000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 0.0
+          },
+          "project": {
+            "plan": "project",
+            "credits": 990.0,
+            "included": 4000,
+            "excess": 0.0,
+            "sufficient": true,
+            "cost": 30.0
+          },
+          "payg": {
+            "plan": "payg",
+            "credits": 990.0,
+            "included": 0,
+            "excess": 990.0,
+            "sufficient": true,
+            "cost": 7.92
+          }
+        },
+        "regime_year_credits": 792.0000000000001
+      },
+      "sensitivity": {
+        "1": {
+          "web_misses": 15,
+          "code_misses": 75,
+          "generation_cost_per_team": 21.062843333333333,
+          "tavily_credits": 990.0
+        },
+        "2": {
+          "web_misses": 30,
+          "code_misses": 90,
+          "generation_cost_per_team": 24.364625333333333,
+          "tavily_credits": 1980.0
+        },
+        "4": {
+          "web_misses": 60,
+          "code_misses": 90,
+          "generation_cost_per_team": 25.615649333333334,
+          "tavily_credits": 3960.0
+        }
+      },
+      "unit_costs": {
+        "per_saved_exercise": 0.04212568666666667,
+        "per_evaluation": 0.0002520909090909091,
+        "per_junior_trained": 10.657467121212122
+      },
+      "team_total_first_year": 24.632821842424242
+    }
+  },
+  "reference_comparison": {
+    "piloto": {
+      "measured": 0.5269902351242424,
+      "reference": 21.314934242424243,
+      "factor": 40.44654496757244
+    },
+    "equipo": {
+      "measured": 2.634951175621212,
+      "reference": 106.57467121212122,
+      "factor": 40.44654496757244
+    },
+    "organizacion": {
+      "measured": 15.809707053727271,
+      "reference": 639.4480272727274,
+      "factor": 40.44654496757244
+    }
+  },
+  "fallback": {
+    "shares": [
+      0,
+      0.05,
+      0.2,
+      1.0
+    ],
+    "operations": {
+      "min": {
+        "validate_technology": {
+          "cost": 0.00016782142857142855,
+          "breakdown": {
+            "validator": 0.00016782142857142855
+          },
+          "share": {
+            "validator": 1.0
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "evaluate_answer": {
+          "cost": 0.00033189545454545457,
+          "breakdown": {
+            "evaluator": 0.0001566,
+            "reviewer": 0.00017529545454545456
+          },
+          "share": {
+            "evaluator": 0.47183532601996797,
+            "reviewer": 0.5281646739800321
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "generate_without_repo": {
+          "cost": 0.02125848142857143,
+          "breakdown": {
+            "validator": 0.00016782142857142855,
+            "web": 0.00153376,
+            "exercises": 0.0019569,
+            "tavily_marginal": 0.0176
+          },
+          "share": {
+            "validator": 0.007894328159577585,
+            "web": 0.07214814497232264,
+            "exercises": 0.09205267114564089,
+            "tavily_marginal": 0.8279048557224589
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "generate_with_repo": {
+          "cost": 0.02845378142857143,
+          "breakdown": {
+            "validator": 0.00016782142857142855,
+            "web": 0.00153376,
+            "code": 0.007195300000000001,
+            "exercises": 0.0019569,
+            "tavily_marginal": 0.0176
+          },
+          "share": {
+            "validator": 0.005898036048133597,
+            "web": 0.0539035559772698,
+            "code": 0.2528767579825067,
+            "exercises": 0.06877469010270139,
+            "tavily_marginal": 0.6185469598893886
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "generate_memory_hit": {
+          "cost": 0.0021247214285714288,
+          "breakdown": {
+            "validator": 0.00016782142857142855,
+            "exercises": 0.0019569
+          },
+          "share": {
+            "validator": 0.07898514427101366,
+            "exercises": 0.9210148557289863
+          },
+          "missing": [],
+          "incomplete": false
+        }
+      },
+      "max": {
+        "validate_technology": {
+          "cost": 0.00016782142857142855,
+          "breakdown": {
+            "validator": 0.00016782142857142855
+          },
+          "share": {
+            "validator": 1.0
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "evaluate_answer": {
+          "cost": 0.0004417227272727273,
+          "breakdown": {
+            "evaluator": 0.00026642727272727275,
+            "reviewer": 0.00017529545454545456
+          },
+          "share": {
+            "evaluator": 0.6031550026240237,
+            "reviewer": 0.3968449973759763
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "generate_without_repo": {
+          "cost": 0.02430689642857143,
+          "breakdown": {
+            "validator": 0.00016782142857142855,
+            "web": 0.0027141,
+            "exercises": 0.0038249750000000004,
+            "tavily_marginal": 0.0176
+          },
+          "share": {
+            "validator": 0.00690427217084628,
+            "web": 0.11165966860375164,
+            "exercises": 0.15736171877146565,
+            "tavily_marginal": 0.7240743404539365
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "generate_with_repo": {
+          "cost": 0.03639404642857143,
+          "breakdown": {
+            "validator": 0.00016782142857142855,
+            "web": 0.0027141,
+            "code": 0.01208715,
+            "exercises": 0.0038249750000000004,
+            "tavily_marginal": 0.0176
+          },
+          "share": {
+            "validator": 0.004611233018587322,
+            "web": 0.07457538433729301,
+            "code": 0.332118881689146,
+            "exercises": 0.1050989207124046,
+            "tavily_marginal": 0.48359558024256916
+          },
+          "missing": [],
+          "incomplete": false
+        },
+        "generate_memory_hit": {
+          "cost": 0.003992796428571429,
+          "breakdown": {
+            "validator": 0.00016782142857142855,
+            "exercises": 0.0038249750000000004
+          },
+          "share": {
+            "validator": 0.04203105056159171,
+            "exercises": 0.9579689494384083
+          },
+          "missing": [],
+          "incomplete": false
+        }
+      }
+    },
+    "campaign": {
+      "piloto": {
+        "min": {
+          "computable": true,
+          "teams": 1,
+          "generations_per_tech_lead": 112,
+          "generations_with_repo": 90,
+          "evaluations_per_team": 1000,
+          "memory": {
+            "web_misses": 15,
+            "code_misses": 75,
+            "web_keys": 15,
+            "code_keys": 75
+          },
+          "phases_per_team": {
+            "generation": 0.8006227,
+            "resolution": 0.33189545454545455,
+            "regime_year": 0.4809397771428572
+          },
+          "campaign_llm_cost": 1.1325181545454546,
+          "share": {
+            "generation": 0.7069402788702637,
+            "evaluation": 0.29305972112973633
+          },
+          "peak_30d_per_key": {
+            "validator": 0.018795999999999997,
+            "web": 0.0230064,
+            "code": 0.5396475000000001,
+            "exercises": 0.2191728,
+            "evaluator": 0.15660000000000002,
+            "reviewer": 0.17529545454545456
+          },
+          "keys_over_budget": [],
+          "recommended_key_cap": {
+            "usd_30d": 5,
+            "margin": 2,
+            "most_loaded_key": "code",
+            "peak": 0.5396475000000001
+          },
+          "tavily": {
+            "campaign": {
+              "researcher": {
+                "plan": "researcher",
+                "credits": 33.0,
+                "included": 1000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 0.0
+              },
+              "project": {
+                "plan": "project",
+                "credits": 33.0,
+                "included": 4000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 30.0
+              },
+              "payg": {
+                "plan": "payg",
+                "credits": 33.0,
+                "included": 0,
+                "excess": 33.0,
+                "sufficient": true,
+                "cost": 0.264
+              }
+            },
+            "regime_year_credits": 26.400000000000002
+          },
+          "sensitivity": {
+            "1": {
+              "web_misses": 15,
+              "code_misses": 75,
+              "generation_cost_per_team": 0.8006227,
+              "tavily_credits": 33.0
+            },
+            "2": {
+              "web_misses": 30,
+              "code_misses": 90,
+              "generation_cost_per_team": 0.9315586,
+              "tavily_credits": 66.0
+            },
+            "4": {
+              "web_misses": 60,
+              "code_misses": 90,
+              "generation_cost_per_team": 0.9775714000000001,
+              "tavily_credits": 132.0
+            }
+          },
+          "unit_costs": {
+            "per_saved_exercise": 0.0016012454,
+            "per_evaluation": 0.00033189545454545457,
+            "per_junior_trained": 0.5662590772727273
+          },
+          "team_total_first_year": 1.6134579316883118
+        },
+        "max": {
+          "computable": true,
+          "teams": 1,
+          "generations_per_tech_lead": 112,
+          "generations_with_repo": 90,
+          "evaluations_per_team": 1000,
+          "memory": {
+            "web_misses": 15,
+            "code_misses": 75,
+            "web_keys": 15,
+            "code_keys": 75
+          },
+          "phases_per_team": {
+            "generation": 1.39444095,
+            "resolution": 0.4417227272727273,
+            "regime_year": 0.6872492571428572
+          },
+          "campaign_llm_cost": 1.8361636772727272,
+          "share": {
+            "generation": 0.7594317256461458,
+            "evaluation": 0.24056827435385425
+          },
+          "peak_30d_per_key": {
+            "validator": 0.018795999999999997,
+            "web": 0.040711500000000005,
+            "code": 0.9065362499999999,
+            "exercises": 0.42839720000000003,
+            "evaluator": 0.26642727272727273,
+            "reviewer": 0.17529545454545456
+          },
+          "keys_over_budget": [],
+          "recommended_key_cap": {
+            "usd_30d": 5,
+            "margin": 2,
+            "most_loaded_key": "code",
+            "peak": 0.9065362499999999
+          },
+          "tavily": {
+            "campaign": {
+              "researcher": {
+                "plan": "researcher",
+                "credits": 33.0,
+                "included": 1000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 0.0
+              },
+              "project": {
+                "plan": "project",
+                "credits": 33.0,
+                "included": 4000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 30.0
+              },
+              "payg": {
+                "plan": "payg",
+                "credits": 33.0,
+                "included": 0,
+                "excess": 33.0,
+                "sufficient": true,
+                "cost": 0.264
+              }
+            },
+            "regime_year_credits": 26.400000000000002
+          },
+          "sensitivity": {
+            "1": {
+              "web_misses": 15,
+              "code_misses": 75,
+              "generation_cost_per_team": 1.39444095,
+              "tavily_credits": 33.0
+            },
+            "2": {
+              "web_misses": 30,
+              "code_misses": 90,
+              "generation_cost_per_team": 1.6164597,
+              "tavily_credits": 66.0
+            },
+            "4": {
+              "web_misses": 60,
+              "code_misses": 90,
+              "generation_cost_per_team": 1.6978827,
+              "tavily_credits": 132.0
+            }
+          },
+          "unit_costs": {
+            "per_saved_exercise": 0.0027888819,
+            "per_evaluation": 0.0004417227272727273,
+            "per_junior_trained": 0.9180818386363636
+          },
+          "team_total_first_year": 2.5234129344155845
+        }
+      },
+      "equipo": {
+        "min": {
+          "computable": true,
+          "teams": 5,
+          "generations_per_tech_lead": 112,
+          "generations_with_repo": 90,
+          "evaluations_per_team": 1000,
+          "memory": {
+            "web_misses": 15,
+            "code_misses": 75,
+            "web_keys": 15,
+            "code_keys": 75
+          },
+          "phases_per_team": {
+            "generation": 0.8006227,
+            "resolution": 0.33189545454545455,
+            "regime_year": 0.4809397771428572
+          },
+          "campaign_llm_cost": 5.662590772727273,
+          "share": {
+            "generation": 0.7069402788702637,
+            "evaluation": 0.29305972112973633
+          },
+          "peak_30d_per_key": {
+            "validator": 0.09397999999999998,
+            "web": 0.115032,
+            "code": 2.6982375000000003,
+            "exercises": 1.095864,
+            "evaluator": 0.7830000000000001,
+            "reviewer": 0.8764772727272728
+          },
+          "keys_over_budget": [],
+          "recommended_key_cap": {
+            "usd_30d": 10,
+            "margin": 2,
+            "most_loaded_key": "code",
+            "peak": 2.6982375000000003
+          },
+          "tavily": {
+            "campaign": {
+              "researcher": {
+                "plan": "researcher",
+                "credits": 165.0,
+                "included": 1000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 0.0
+              },
+              "project": {
+                "plan": "project",
+                "credits": 165.0,
+                "included": 4000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 30.0
+              },
+              "payg": {
+                "plan": "payg",
+                "credits": 165.0,
+                "included": 0,
+                "excess": 165.0,
+                "sufficient": true,
+                "cost": 1.32
+              }
+            },
+            "regime_year_credits": 132.0
+          },
+          "sensitivity": {
+            "1": {
+              "web_misses": 15,
+              "code_misses": 75,
+              "generation_cost_per_team": 0.8006227,
+              "tavily_credits": 165.0
+            },
+            "2": {
+              "web_misses": 30,
+              "code_misses": 90,
+              "generation_cost_per_team": 0.9315586,
+              "tavily_credits": 330.0
+            },
+            "4": {
+              "web_misses": 60,
+              "code_misses": 90,
+              "generation_cost_per_team": 0.9775714000000001,
+              "tavily_credits": 660.0
+            }
+          },
+          "unit_costs": {
+            "per_saved_exercise": 0.0016012454,
+            "per_evaluation": 0.00033189545454545457,
+            "per_junior_trained": 0.5662590772727273
+          },
+          "team_total_first_year": 1.6134579316883118
+        },
+        "max": {
+          "computable": true,
+          "teams": 5,
+          "generations_per_tech_lead": 112,
+          "generations_with_repo": 90,
+          "evaluations_per_team": 1000,
+          "memory": {
+            "web_misses": 15,
+            "code_misses": 75,
+            "web_keys": 15,
+            "code_keys": 75
+          },
+          "phases_per_team": {
+            "generation": 1.39444095,
+            "resolution": 0.4417227272727273,
+            "regime_year": 0.6872492571428572
+          },
+          "campaign_llm_cost": 9.180818386363637,
+          "share": {
+            "generation": 0.7594317256461457,
+            "evaluation": 0.24056827435385422
+          },
+          "peak_30d_per_key": {
+            "validator": 0.09397999999999998,
+            "web": 0.20355750000000003,
+            "code": 4.5326812499999996,
+            "exercises": 2.141986,
+            "evaluator": 1.3321363636363637,
+            "reviewer": 0.8764772727272728
+          },
+          "keys_over_budget": [],
+          "recommended_key_cap": {
+            "usd_30d": 10,
+            "margin": 2,
+            "most_loaded_key": "code",
+            "peak": 4.5326812499999996
+          },
+          "tavily": {
+            "campaign": {
+              "researcher": {
+                "plan": "researcher",
+                "credits": 165.0,
+                "included": 1000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 0.0
+              },
+              "project": {
+                "plan": "project",
+                "credits": 165.0,
+                "included": 4000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 30.0
+              },
+              "payg": {
+                "plan": "payg",
+                "credits": 165.0,
+                "included": 0,
+                "excess": 165.0,
+                "sufficient": true,
+                "cost": 1.32
+              }
+            },
+            "regime_year_credits": 132.0
+          },
+          "sensitivity": {
+            "1": {
+              "web_misses": 15,
+              "code_misses": 75,
+              "generation_cost_per_team": 1.39444095,
+              "tavily_credits": 165.0
+            },
+            "2": {
+              "web_misses": 30,
+              "code_misses": 90,
+              "generation_cost_per_team": 1.6164597,
+              "tavily_credits": 330.0
+            },
+            "4": {
+              "web_misses": 60,
+              "code_misses": 90,
+              "generation_cost_per_team": 1.6978827,
+              "tavily_credits": 660.0
+            }
+          },
+          "unit_costs": {
+            "per_saved_exercise": 0.0027888819,
+            "per_evaluation": 0.0004417227272727273,
+            "per_junior_trained": 0.9180818386363636
+          },
+          "team_total_first_year": 2.5234129344155845
+        }
+      },
+      "organizacion": {
+        "min": {
+          "computable": true,
+          "teams": 30,
+          "generations_per_tech_lead": 112,
+          "generations_with_repo": 90,
+          "evaluations_per_team": 1000,
+          "memory": {
+            "web_misses": 15,
+            "code_misses": 75,
+            "web_keys": 15,
+            "code_keys": 75
+          },
+          "phases_per_team": {
+            "generation": 0.8006227,
+            "resolution": 0.33189545454545455,
+            "regime_year": 0.4809397771428572
+          },
+          "campaign_llm_cost": 33.97554463636364,
+          "share": {
+            "generation": 0.7069402788702637,
+            "evaluation": 0.29305972112973633
+          },
+          "peak_30d_per_key": {
+            "validator": 0.5638799999999999,
+            "web": 0.690192,
+            "code": 16.189425,
+            "exercises": 6.575184,
+            "evaluator": 4.698,
+            "reviewer": 5.258863636363637
+          },
+          "keys_over_budget": [
+            "code",
+            "exercises",
+            "reviewer"
+          ],
+          "recommended_key_cap": {
+            "usd_30d": 50,
+            "margin": 2,
+            "most_loaded_key": "code",
+            "peak": 16.189425
+          },
+          "tavily": {
+            "campaign": {
+              "researcher": {
+                "plan": "researcher",
+                "credits": 990.0,
+                "included": 1000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 0.0
+              },
+              "project": {
+                "plan": "project",
+                "credits": 990.0,
+                "included": 4000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 30.0
+              },
+              "payg": {
+                "plan": "payg",
+                "credits": 990.0,
+                "included": 0,
+                "excess": 990.0,
+                "sufficient": true,
+                "cost": 7.92
+              }
+            },
+            "regime_year_credits": 792.0000000000001
+          },
+          "sensitivity": {
+            "1": {
+              "web_misses": 15,
+              "code_misses": 75,
+              "generation_cost_per_team": 0.8006227,
+              "tavily_credits": 990.0
+            },
+            "2": {
+              "web_misses": 30,
+              "code_misses": 90,
+              "generation_cost_per_team": 0.9315586,
+              "tavily_credits": 1980.0
+            },
+            "4": {
+              "web_misses": 60,
+              "code_misses": 90,
+              "generation_cost_per_team": 0.9775714000000001,
+              "tavily_credits": 3960.0
+            }
+          },
+          "unit_costs": {
+            "per_saved_exercise": 0.0016012454,
+            "per_evaluation": 0.00033189545454545457,
+            "per_junior_trained": 0.5662590772727273
+          },
+          "team_total_first_year": 1.6134579316883118
+        },
+        "max": {
+          "computable": true,
+          "teams": 30,
+          "generations_per_tech_lead": 112,
+          "generations_with_repo": 90,
+          "evaluations_per_team": 1000,
+          "memory": {
+            "web_misses": 15,
+            "code_misses": 75,
+            "web_keys": 15,
+            "code_keys": 75
+          },
+          "phases_per_team": {
+            "generation": 1.39444095,
+            "resolution": 0.4417227272727273,
+            "regime_year": 0.6872492571428572
+          },
+          "campaign_llm_cost": 55.08491031818182,
+          "share": {
+            "generation": 0.7594317256461457,
+            "evaluation": 0.24056827435385422
+          },
+          "peak_30d_per_key": {
+            "validator": 0.5638799999999999,
+            "web": 1.2213450000000001,
+            "code": 27.196087499999997,
+            "exercises": 12.851916000000001,
+            "evaluator": 7.992818181818182,
+            "reviewer": 5.258863636363637
+          },
+          "keys_over_budget": [
+            "code",
+            "evaluator",
+            "exercises",
+            "reviewer"
+          ],
+          "recommended_key_cap": {
+            "usd_30d": 100,
+            "margin": 2,
+            "most_loaded_key": "code",
+            "peak": 27.196087499999997
+          },
+          "tavily": {
+            "campaign": {
+              "researcher": {
+                "plan": "researcher",
+                "credits": 990.0,
+                "included": 1000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 0.0
+              },
+              "project": {
+                "plan": "project",
+                "credits": 990.0,
+                "included": 4000,
+                "excess": 0.0,
+                "sufficient": true,
+                "cost": 30.0
+              },
+              "payg": {
+                "plan": "payg",
+                "credits": 990.0,
+                "included": 0,
+                "excess": 990.0,
+                "sufficient": true,
+                "cost": 7.92
+              }
+            },
+            "regime_year_credits": 792.0000000000001
+          },
+          "sensitivity": {
+            "1": {
+              "web_misses": 15,
+              "code_misses": 75,
+              "generation_cost_per_team": 1.39444095,
+              "tavily_credits": 990.0
+            },
+            "2": {
+              "web_misses": 30,
+              "code_misses": 90,
+              "generation_cost_per_team": 1.6164597,
+              "tavily_credits": 1980.0
+            },
+            "4": {
+              "web_misses": 60,
+              "code_misses": 90,
+              "generation_cost_per_team": 1.6978827,
+              "tavily_credits": 3960.0
+            }
+          },
+          "unit_costs": {
+            "per_saved_exercise": 0.0027888819,
+            "per_evaluation": 0.0004417227272727273,
+            "per_junior_trained": 0.9180818386363636
+          },
+          "team_total_first_year": 2.5234129344155845
+        }
+      }
+    },
+    "weighted": {
+      "piloto": {
+        "0": {
+          "min": 0.5269902351242424,
+          "max": 0.5269902351242424
+        },
+        "0.05": {
+          "min": 0.5572666310953029,
+          "max": 0.5924489072316665
+        },
+        "0.2": {
+          "min": 0.6480958190084849,
+          "max": 0.7888249235539394
+        },
+        "1.0": {
+          "min": 1.1325181545454546,
+          "max": 1.8361636772727272
+        }
+      },
+      "equipo": {
+        "0": {
+          "min": 2.634951175621212,
+          "max": 2.634951175621212
+        },
+        "0.05": {
+          "min": 2.7863331554765147,
+          "max": 2.962244536158333
+        },
+        "0.2": {
+          "min": 3.2404790950424243,
+          "max": 3.944124617769697
+        },
+        "1.0": {
+          "min": 5.662590772727273,
+          "max": 9.180818386363637
+        }
+      },
+      "organizacion": {
+        "0": {
+          "min": 15.809707053727271,
+          "max": 15.809707053727271
+        },
+        "0.05": {
+          "min": 16.71799893285909,
+          "max": 17.77346721695
+        },
+        "0.2": {
+          "min": 19.442874570254546,
+          "max": 23.66474770661818
+        },
+        "1.0": {
+          "min": 33.97554463636364,
+          "max": 55.08491031818182
+        }
+      }
+    },
+    "providers": {
+      "evaluator": {
+        "min": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "deepinfra",
+          "input_per_m": 0.2,
+          "output_per_m": 0.6
+        },
+        "max": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "novita",
+          "input_per_m": 0.3,
+          "output_per_m": 1.2
+        }
+      },
+      "reviewer": {
+        "min": {
+          "model": "zai-org/GLM-5.3-Flash",
+          "provider": "novita",
+          "input_per_m": 0.15,
+          "output_per_m": 0.5
+        },
+        "max": {
+          "model": "zai-org/GLM-5.3-Flash",
+          "provider": "novita",
+          "input_per_m": 0.15,
+          "output_per_m": 0.5
+        }
+      },
+      "validator": {
+        "min": {
+          "model": "zai-org/GLM-5.3-Flash",
+          "provider": "novita",
+          "input_per_m": 0.15,
+          "output_per_m": 0.5
+        },
+        "max": {
+          "model": "zai-org/GLM-5.3-Flash",
+          "provider": "novita",
+          "input_per_m": 0.15,
+          "output_per_m": 0.5
+        }
+      },
+      "exercises": {
+        "min": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "deepinfra",
+          "input_per_m": 0.2,
+          "output_per_m": 0.6
+        },
+        "max": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "novita",
+          "input_per_m": 0.3,
+          "output_per_m": 1.2
+        }
+      },
+      "web": {
+        "min": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "deepinfra",
+          "input_per_m": 0.2,
+          "output_per_m": 0.6
+        },
+        "max": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "novita",
+          "input_per_m": 0.3,
+          "output_per_m": 1.2
+        }
+      },
+      "code": {
+        "min": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "deepinfra",
+          "input_per_m": 0.2,
+          "output_per_m": 0.6
+        },
+        "max": {
+          "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+          "provider": "novita",
+          "input_per_m": 0.3,
+          "output_per_m": 1.2
+        }
+      }
+    }
+  },
+  "crosscheck": {
+    "evaluator": {
+      "billed": 7.59714e-05,
+      "list_price": 0.00011444545454545456,
+      "ratio": 0.6638219080149336
+    },
+    "reviewer": {
+      "billed": 9.02132585909091e-05,
+      "list_price": 0.00017529545454545456,
+      "ratio": 0.5146354697264359
+    },
+    "validator": {
+      "billed": 8.781010892857143e-05,
+      "list_price": 0.00016782142857142855,
+      "ratio": 0.5232353798680571
+    },
+    "web": {
+      "billed": 0.001622728,
+      "list_price": 0.0014488840000000001,
+      "ratio": 1.1199847606847753
+    },
+    "code": {
+      "billed": 0.002369313,
+      "list_price": 0.00477469,
+      "ratio": 0.4962234197403392
+    }
+  },
+  "assumptions": {
+    "teams_piloto": {
+      "value": 1,
+      "origin": "capstone",
+      "note": "Nivel piloto: 1 tech lead (un equipo)."
+    },
+    "teams_equipo": {
+      "value": 5,
+      "origin": "capstone",
+      "note": "Nivel equipo: 5 tech leads (cinco equipos)."
+    },
+    "teams_organizacion": {
+      "value": 30,
+      "origin": "capstone",
+      "note": "Nivel organizacion: 30 tech leads (treinta equipos)."
+    },
+    "juniors_per_team": {
+      "value": 2,
+      "origin": "usuario",
+      "note": "Un equipo tiene 2 juniors."
+    },
+    "saved_exercises": {
+      "value": 500,
+      "origin": "usuario",
+      "note": "Ejercicios guardados que genera cada tech lead durante el primer mes."
+    },
+    "candidates_per_generation": {
+      "value": 5,
+      "origin": "usuario",
+      "note": "Cada generacion pide siempre 5 candidatos."
+    },
+    "save_rate": {
+      "value": 0.9,
+      "origin": "usuario",
+      "note": "El tech lead guarda el 90 % de los candidatos."
+    },
+    "exercises_per_junior": {
+      "value": 500,
+      "origin": "usuario",
+      "note": "Cada junior resuelve los 500 ejercicios en 2 semanas."
+    },
+    "new_juniors_per_year": {
+      "value": 2,
+      "origin": "usuario",
+      "note": "Cada ano se incorporan 2 juniors mas por equipo; resuelven el catalogo ya existente."
+    },
+    "new_exercises_per_year": {
+      "value": 50,
+      "origin": "hipotesis",
+      "note": "Ejercicios nuevos que el tech lead anade cada ano segun el feedback de los juniors; los resuelven los juniors del equipo. Eliminar ejercicios no gasta modelo."
+    },
+    "with_repo_share": {
+      "value": 0.8,
+      "origin": "hipotesis",
+      "note": "Proporcion de generaciones que usan un repositorio (el resto solo documentacion web)."
+    },
+    "repositories_per_project": {
+      "value": 5,
+      "origin": "usuario",
+      "note": "Maximo de repositorios de un proyecto."
+    },
+    "technologies_per_project": {
+      "value": 15,
+      "origin": "usuario",
+      "note": "Maximo de tecnologias de un proyecto (10-15). Con una tecnologia por generacion, acota las claves de memoria: 15 de web y 5 x 15 = 75 de codigo."
+    },
+    "key_multipliers": {
+      "value": [
+        1,
+        2,
+        4
+      ],
+      "origin": "hipotesis",
+      "note": "Sensibilidad: el numero de claves de memoria distintas se multiplica por estos factores (el tech lead mezcla tecnologias y cada combinacion es otra clave)."
+    },
+    "fallback_shares": {
+      "value": [
+        0,
+        0.05,
+        0.2,
+        1.0
+      ],
+      "origin": "hipotesis",
+      "note": "Sensibilidad: fraccion de las llamadas que cae al modelo de respaldo. La fraccion real no se mide (el alias no distingue el modelo que contesto)."
+    },
+    "key_budget_usd_30d": {
+      "value": 5.0,
+      "origin": "usuario",
+      "note": "Presupuesto que aplica hoy el autor a cada virtual key de LiteLLM por 30 dias: una medida de seguridad personal en desarrollo, no un limite del producto."
+    },
+    "key_cap_margin": {
+      "value": 2,
+      "origin": "hipotesis",
+      "note": "Holgura para dimensionar el tope: veces el pico de 30 dias de la clave mas cargada. Para un cliente el tope se subiria o se quitaria."
+    },
+    "regime_memory_hit": {
+      "value": false,
+      "origin": "hipotesis",
+      "note": "En regimen el uso es esporadico y la memoria caduca a los 30 dias sin lecturas: se supone que cada generacion nueva falla la memoria (cota conservadora)."
+    }
+  },
+  "reports": [
+    "evals\\results\\20261027T055034Z-real.json",
+    "evals\\results\\20261027T060214Z-real.json",
+    "evals\\results\\20261027T061256Z-real.json"
+  ]
+}
