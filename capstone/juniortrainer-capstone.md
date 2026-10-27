@@ -2454,6 +2454,14 @@ reescribe la justificación, en la misma petición.
 
 ![Una respuesta incompleta al ejercicio de depuración: identifica la causa, pero no la corrige, y la justificación dice exactamente qué falta.](img/10-valoracion-incompleta.png){width=70%}
 
+**8. Revisar a posteriori las valoraciones.** La valoración llega al alumno sin que la
+vea un humano (§4.6). El control que compensa esa autonomía es que el tech lead vea
+después, alumno a alumno, cada respuesta con su veredicto y su justificación, y pueda
+discrepar de una valoración antes de que el junior se quede con una explicación
+equivocada.
+
+![El detalle de un alumno visto por el tech lead: el progreso de cada bloque y, desplegado, cada respuesta con su veredicto y la justificación que recibió.](img/11-revision-a-posteriori.png){width=85%}
+
 ---
 
 *Documento de especificación y diseño técnico. La normativa formal del sistema vive

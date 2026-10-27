@@ -36,7 +36,7 @@ más 10 del juez, y 25 controles de seguridad.
 22.600 palabras de texto. Los capítulos de la materia del máster —modelos, agentes,
 evaluación y seguridad de LLM— conservan el mayor peso; el contexto, el despliegue y
 el cumplimiento se resumen. Los prompts del Anexo A y las referencias se conservan
-íntegros. El Anexo G es la guía de uso con diez capturas de la aplicación
+íntegros. El Anexo G es la guía de uso con once capturas de la aplicación
 (`img/`). En total, unas **45 páginas** A4 a 10 pt. Quedan pendientes, marcadas como
 tales dentro del propio documento:
 
