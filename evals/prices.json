@@ -27,7 +27,7 @@
   "roles": {
     "production": {
       "evaluator": "deepseek/deepseek-v4.1-flash",
-      "reviewer": "z-ai/glm-5.3-flashx",
+      "reviewer": "z-ai/glm-5.3-flash",
       "validator": "z-ai/glm-5.3-flash",
       "exercises": "deepseek/deepseek-v4.1-flash",
       "web": "deepseek/deepseek-v4.1-flash",
