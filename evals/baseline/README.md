@@ -7,11 +7,12 @@ ejecutar la suite, que en modo real cuesta dinero y necesita el stack levantado.
 
 | Carpeta | Informes | Qué sostiene |
 |---|---|---|
-| `primario/` | `20261024T135007Z`, `20261024T135820Z`, `20261024T140622Z` | Las tres ejecuciones completas con los modelos primarios (§5.7) y la línea base de la que salen los umbrales de `evals/thresholds.json` (§5.8) |
+| `enrutado/` | `20261027T055034Z`, `20261027T060214Z`, `20261027T061256Z` y su informe de costes `20261027T061256Z-real-costes.{json,md}` | **La línea base vigente**: tres ejecuciones completas con la política de enrutado de OpenRouter activa y el revisor en GLM-5.3-Flash (change `enrutado-proveedores-openrouter`), y los costes de §3.7 |
+| `primario/` | `20261024T135007Z`, `20261024T135820Z`, `20261024T140622Z` | La línea base anterior a la política de enrutado, con el revisor en GLM-5.3-FlashX: comparativa de §5.7 y origen de los umbrales de `evals/thresholds.json` (§5.8) |
 | `respaldo/` | `20261024T163846Z`, `20261024T164648Z` | Las dos ejecuciones completas con los cuatro roles resueltos al respaldo de Hugging Face: comparativa primario/respaldo (§5.7, riesgo 8) |
 | `red-teaming/` | `20261024T122329Z` | El ejercicio de red teaming (§6.5 y `capstone/red-teaming/informe.md`) |
-| `razonamiento/` | `20261024T111510Z` (sin ajuste), `111757Z` (`off`), `112205Z` (`effort=low`), `112537Z` (`effort=medium`), `113045Z` (`effort=high`) | El experimento de coste del razonamiento (§3.7, apartado 14) |
-| `costes/` | `20261024T060409Z`, `061748Z`, `063002Z` y su informe de costes `20261024T063002Z-real-costes.{json,md}` | Los costes por agente, por operación y por campaña (§3.7). El informe de costes cita los tres de entrada con su ruta original en `evals/results/` |
+| `razonamiento/` | `20261024T111510Z` (sin ajuste), `111757Z` (`off`), `112205Z` (`effort=low`), `112537Z` (`effort=medium`), `113045Z` (`effort=high`) | El experimento de coste del razonamiento (§3.7) |
+| `costes/` | `20261024T060409Z`, `061748Z`, `063002Z` y su informe de costes `20261024T063002Z-real-costes.{json,md}` | Los costes anteriores a la política de enrutado, que §3.7 compara con los vigentes. El informe de costes cita los tres de entrada con su ruta original en `evals/results/` |
 | `juez/` | `20261024T183305Z` (κ 0,312, rúbrica sin anclar), `20261024T185544Z` (κ 0,475, rúbrica anclada) | La calibración del juez de contenido (§5.6) |
 
 ## Lo que se ha redactado
