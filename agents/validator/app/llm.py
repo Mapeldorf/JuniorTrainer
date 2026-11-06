@@ -22,6 +22,12 @@ def build_validator_model() -> ChatOpenAI:
         model=_MODEL_NAME,
         base_url=settings.litellm_base_url,
         api_key=settings.agent_validator_litellm_key,
+        # temperature=0: es un juez, no un generador. Con la temperatura por
+        # defecto de ChatOpenAI (0.7) el mismo input podia dar veredictos
+        # contradictorios entre llamadas (p. ej. una tecnologia aceptada al
+        # darla de alta en el catalogo y luego rechazada al validar una
+        # generacion). 0 lo hace lo mas determinista y reproducible posible.
+        temperature=0,
         # Sin esto, una llamada colgada al proxy LiteLLM no falla por si
         # sola, y la tarea queda bloqueada hasta que el backend la corte
         # desde fuera a los 120s (change resiliencia-agentes).
